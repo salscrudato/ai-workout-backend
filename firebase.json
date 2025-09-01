@@ -1,0 +1,46 @@
+{
+  "firestore": {
+    "database": "(default)",
+    "location": "nam5",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "hosting": {
+    "public": "dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "function": "api"
+      }
+    ]
+  },
+  "functions": [
+    {
+      "source": ".",
+      "codebase": "default",
+      "runtime": "nodejs18",
+      "memory": 256,
+      "timeout": "60s",
+      "minInstances": 0,
+      "maxInstances": 10,
+      "concurrency": 80,
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.md",
+        "postman-*.json",
+        "test-*",
+        "scripts",
+        "src/**/*.test.*",
+        "src/**/*.spec.*"
+      ]
+    }
+  ]
+}

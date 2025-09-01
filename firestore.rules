@@ -1,0 +1,33 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow read/write access to all documents for now
+    // In production, implement proper user-based security rules
+    match /{document=**} {
+      allow read, write: if true;
+    }
+
+    // Optimized rules for specific collections to reduce costs
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+
+    match /profiles/{profileId} {
+      allow read, write: if true;
+    }
+
+    match /equipment/{equipmentId} {
+      allow read: if true;
+      allow write: if false; // Equipment is read-only for users
+    }
+
+    match /workoutPlans/{planId} {
+      allow read, write: if true;
+    }
+
+    match /workoutSessions/{sessionId} {
+      allow read, write: if true;
+    }
+  }
+}
