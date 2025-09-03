@@ -1,5 +1,7 @@
-import { initializeFirebase } from '../src/config/db';
-import { EquipmentModel } from '../src/models/Equipment';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const db_1 = require("../src/config/db");
+const Equipment_1 = require("../src/models/Equipment");
 const EQUIPMENT = [
     ['bodyweight', 'Bodyweight'],
     ['dumbbells', 'Dumbbells'],
@@ -14,10 +16,10 @@ const EQUIPMENT = [
     ['rower', 'Rower'],
 ];
 async function main() {
-    await initializeFirebase();
+    await (0, db_1.initializeFirebase)();
     for (const [slug, label] of EQUIPMENT) {
         try {
-            await EquipmentModel.updateOne({ slug }, { slug, label }, { upsert: true });
+            await Equipment_1.EquipmentModel.updateOne({ slug }, { slug, label }, { upsert: true });
         }
         catch (error) {
             // If equipment already exists, that's fine

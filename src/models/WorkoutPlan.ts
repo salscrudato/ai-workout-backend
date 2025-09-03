@@ -98,7 +98,7 @@ export class WorkoutPlanModel {
   }
 
   static async find(
-    filter: { userId?: string },
+    filter: { userId?: string; ids?: string[] },
     options: { sort?: { [key: string]: 1 | -1 }; limit?: number; select?: { [key: string]: 0 | 1 } } = {}
   ): Promise<WorkoutPlan[]> {
     const db = getFirestore();

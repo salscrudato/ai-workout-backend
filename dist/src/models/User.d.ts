@@ -2,11 +2,13 @@ import { Timestamp } from 'firebase-admin/firestore';
 export interface User {
     id?: string;
     email?: string;
+    firebaseUid?: string;
     createdAt: Timestamp;
     updatedAt: Timestamp;
 }
 export interface CreateUserInput {
     email?: string;
+    firebaseUid?: string;
 }
 export declare class UserModel {
     private static collection;

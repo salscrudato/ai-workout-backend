@@ -27,6 +27,17 @@ export declare const WorkoutPlanJsonSchema: {
                         type: string;
                     };
                 };
+                workout_name: {
+                    type: string;
+                };
+                instructions: {
+                    type: string;
+                    items: {
+                        type: string;
+                    };
+                    minItems: number;
+                    maxItems: number;
+                };
             };
             required: string[];
         };
@@ -44,6 +55,14 @@ export declare const WorkoutPlanJsonSchema: {
                     };
                     cues: {
                         type: string;
+                    };
+                    instructions: {
+                        type: string;
+                        items: {
+                            type: string;
+                        };
+                        minItems: number;
+                        maxItems: number;
                     };
                 };
                 required: string[];
@@ -85,6 +104,14 @@ export declare const WorkoutPlanJsonSchema: {
                                         type: string;
                                     };
                                 };
+                                instructions: {
+                                    type: string;
+                                    items: {
+                                        type: string;
+                                    };
+                                    minItems: number;
+                                    maxItems: number;
+                                };
                                 sets: {
                                     type: string;
                                     items: {
@@ -107,6 +134,15 @@ export declare const WorkoutPlanJsonSchema: {
                                                 type: string;
                                             };
                                             notes: {
+                                                type: string;
+                                            };
+                                            weight_guidance: {
+                                                type: string;
+                                            };
+                                            rpe: {
+                                                type: string;
+                                            };
+                                            rest_type: {
                                                 type: string;
                                             };
                                         };
@@ -160,6 +196,14 @@ export declare const WorkoutPlanJsonSchema: {
                     };
                     cues: {
                         type: string;
+                    };
+                    instructions: {
+                        type: string;
+                        items: {
+                            type: string;
+                        };
+                        minItems: number;
+                        maxItems: number;
                     };
                 };
                 required: string[];

@@ -1,10 +1,13 @@
-import { getFirestore } from '../config/db';
-import { Timestamp } from 'firebase-admin/firestore';
-export class ProfileModel {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ProfileModel = void 0;
+const db_1 = require("../config/db");
+const firestore_1 = require("firebase-admin/firestore");
+class ProfileModel {
     static collection = 'profiles';
     static async create(data) {
-        const db = getFirestore();
-        const now = Timestamp.now();
+        const db = (0, db_1.getFirestore)();
+        const now = firestore_1.Timestamp.now();
         const profileData = {
             userId: data.userId,
             experience: data.experience || 'beginner',
@@ -29,7 +32,7 @@ export class ProfileModel {
         };
     }
     static async findOne(filter) {
-        const db = getFirestore();
+        const db = (0, db_1.getFirestore)();
         if (filter.id) {
             const doc = await db.collection(this.collection).doc(filter.id).get();
             if (!doc.exists)
@@ -54,8 +57,8 @@ export class ProfileModel {
         return null;
     }
     static async findOneAndUpdate(filter, update, options = {}) {
-        const db = getFirestore();
-        const now = Timestamp.now();
+        const db = (0, db_1.getFirestore)();
+        const now = firestore_1.Timestamp.now();
         if (filter.userId) {
             const existing = await this.findOne({ userId: filter.userId });
             if (existing) {
@@ -76,4 +79,5 @@ export class ProfileModel {
         throw new Error('Profile not found and upsert not enabled');
     }
 }
+exports.ProfileModel = ProfileModel;
 //# sourceMappingURL=Profile.js.map

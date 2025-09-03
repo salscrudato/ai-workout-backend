@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
+import admin from 'firebase-admin';
 import { asyncHandler } from '../middlewares/errors';
 import { UserModel } from '../models/User';
 import { ProfileModel } from '../models/Profile';
@@ -67,4 +68,41 @@ export const createUser = asyncHandler(async (req: Request, res: Response): Prom
     user,
     profile: profile || undefined
   });
+});
+
+const AuthSchema = z.object({
+  idToken: z.string()
+});
+
+export const authenticateUser = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  const { idToken } = AuthSchema.parse(req.body);
+
+  try {
+    // Verify the Firebase ID token
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+
+    // Get or create user based on Firebase Auth user
+    let user = await UserModel.findByEmail(decodedToken.email!);
+
+    if (!user) {
+      // Create new user from Firebase Auth data
+      user = await UserModel.create({
+        email: decodedToken.email!,
+        firebaseUid: decodedToken.uid
+      });
+    }
+
+    // Check if user has a profile
+    const profile = await ProfileModel.findOne({ userId: user.id! });
+
+    res.json({
+      user,
+      profile,
+      token: idToken, // Return the token for frontend to store
+      isNewUser: !profile
+    });
+  } catch (error) {
+    console.error('Authentication failed:', error);
+    res.status(401).json({ error: 'Invalid token' });
+  }
 });

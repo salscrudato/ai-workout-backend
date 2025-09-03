@@ -1,7 +1,11 @@
-import { ZodError } from 'zod';
-export function errorHandler(err, req, res, _next) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.asyncHandler = void 0;
+exports.errorHandler = errorHandler;
+const zod_1 = require("zod");
+function errorHandler(err, req, res, _next) {
     // Handle Zod validation errors
-    if (err instanceof ZodError) {
+    if (err instanceof zod_1.ZodError) {
         const validationErrors = err.errors.map(e => ({
             field: e.path.join('.'),
             message: e.message
@@ -46,7 +50,8 @@ export function errorHandler(err, req, res, _next) {
         ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
     });
 }
-export const asyncHandler = (fn) => (req, res, next) => {
+const asyncHandler = (fn) => (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch(next);
 };
+exports.asyncHandler = asyncHandler;
 //# sourceMappingURL=errors.js.map

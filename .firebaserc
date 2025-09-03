@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "ai-workout-backend-2024"
+  },
+  "targets": {
+    "ai-workout-backend-2024": {
+      "hosting": {
+        "frontend": [
+          "ai-workout-backend-2024"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

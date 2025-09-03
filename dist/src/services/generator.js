@@ -1,10 +1,13 @@
-import { openai } from '../libs/openai';
-import { env } from '../config/env';
-import { WorkoutPlanJsonSchema } from '../schemas/workoutOutput';
-export async function generateWorkout(prompt) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.generateWorkout = generateWorkout;
+const openai_1 = require("../libs/openai");
+const env_1 = require("../config/env");
+const workoutOutput_1 = require("../schemas/workoutOutput");
+async function generateWorkout(prompt) {
     try {
-        const response = await openai.chat.completions.create({
-            model: env.OPENAI_MODEL,
+        const response = await openai_1.openai.chat.completions.create({
+            model: env_1.env.OPENAI_MODEL,
             messages: [
                 {
                     role: 'system',
@@ -20,7 +23,7 @@ export async function generateWorkout(prompt) {
                 type: 'json_schema',
                 json_schema: {
                     name: 'workout_plan',
-                    schema: WorkoutPlanJsonSchema,
+                    schema: workoutOutput_1.WorkoutPlanJsonSchema,
                     strict: true
                 }
             }

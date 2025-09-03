@@ -4,6 +4,22 @@ import { asyncHandler } from '../middlewares/errors';
 import { ProfileModel } from '../models/Profile';
 import { isValidObjectId } from '../utils/validation';
 
+const CreateProfileSchema = z.object({
+  userId: z.string().min(1),
+  experience: z.enum(['beginner', 'intermediate', 'advanced']),
+  goals: z.array(z.string()),
+  equipmentAvailable: z.array(z.string()),
+  age: z.number().int().min(13).max(120).optional(),
+  sex: z.enum(['male', 'female', 'prefer_not_to_say']).optional(),
+  height_ft: z.number().int().min(0).max(10).optional(),
+  height_in: z.number().int().min(0).max(11).optional(),
+  weight_lb: z.number().positive().optional(),
+  injury_notes: z.string().optional(),
+  constraints: z.array(z.string()),
+  health_ack: z.boolean(),
+  data_consent: z.boolean()
+});
+
 const UpdateProfileSchema = z.object({
   experience: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
   goals: z.array(z.string()).optional(),
@@ -65,4 +81,18 @@ export const patchProfile = asyncHandler(async (req: Request, res: Response): Pr
     { upsert: true }
   );
   res.json({ profile });
+});
+
+export const createProfile = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  const data = CreateProfileSchema.parse(req.body);
+
+  // Check if profile already exists for this user
+  const existingProfile = await ProfileModel.findOne({ userId: data.userId });
+  if (existingProfile) {
+    res.status(409).json({ error: 'Profile already exists for this user' });
+    return;
+  }
+
+  const profile = await ProfileModel.create(data);
+  res.status(201).json({ profile });
 });

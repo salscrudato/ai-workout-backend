@@ -1,10 +1,13 @@
-import { getFirestore } from '../config/db';
-import { Timestamp } from 'firebase-admin/firestore';
-export class EquipmentModel {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.EquipmentModel = void 0;
+const db_1 = require("../config/db");
+const firestore_1 = require("firebase-admin/firestore");
+class EquipmentModel {
     static collection = 'equipment';
     static async create(data) {
-        const db = getFirestore();
-        const now = Timestamp.now();
+        const db = (0, db_1.getFirestore)();
+        const now = firestore_1.Timestamp.now();
         const equipmentData = {
             slug: data.slug,
             label: data.label,
@@ -18,7 +21,7 @@ export class EquipmentModel {
         };
     }
     static async find(_filter = {}) {
-        const db = getFirestore();
+        const db = (0, db_1.getFirestore)();
         const snapshot = await db.collection(this.collection)
             .orderBy('label', 'asc')
             .get();
@@ -28,7 +31,7 @@ export class EquipmentModel {
         }));
     }
     static async findOne(filter) {
-        const db = getFirestore();
+        const db = (0, db_1.getFirestore)();
         if (filter.id) {
             const doc = await db.collection(this.collection).doc(filter.id).get();
             if (!doc.exists)
@@ -53,8 +56,8 @@ export class EquipmentModel {
         return null;
     }
     static async updateOne(filter, update, options = {}) {
-        const db = getFirestore();
-        const now = Timestamp.now();
+        const db = (0, db_1.getFirestore)();
+        const now = firestore_1.Timestamp.now();
         if (filter.slug) {
             const existing = await this.findOne({ slug: filter.slug });
             if (existing) {
@@ -73,4 +76,5 @@ export class EquipmentModel {
         throw new Error('Equipment not found and upsert not enabled');
     }
 }
+exports.EquipmentModel = EquipmentModel;
 //# sourceMappingURL=Equipment.js.map

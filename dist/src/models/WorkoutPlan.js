@@ -1,10 +1,13 @@
-import { getFirestore } from '../config/db';
-import { Timestamp } from 'firebase-admin/firestore';
-export class WorkoutPlanModel {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.WorkoutPlanModel = void 0;
+const db_1 = require("../config/db");
+const firestore_1 = require("firebase-admin/firestore");
+class WorkoutPlanModel {
     static collection = 'workoutPlans';
     static async create(data) {
-        const db = getFirestore();
-        const now = Timestamp.now();
+        const db = (0, db_1.getFirestore)();
+        const now = firestore_1.Timestamp.now();
         const workoutPlanData = {
             userId: data.userId,
             model: data.model,
@@ -20,7 +23,7 @@ export class WorkoutPlanModel {
         };
     }
     static async findById(id) {
-        const db = getFirestore();
+        const db = (0, db_1.getFirestore)();
         const doc = await db.collection(this.collection).doc(id).get();
         if (!doc.exists) {
             return null;
@@ -31,7 +34,7 @@ export class WorkoutPlanModel {
         };
     }
     static async findOne(filter) {
-        const db = getFirestore();
+        const db = (0, db_1.getFirestore)();
         let query = db.collection(this.collection);
         if (filter.userId) {
             query = query.where('userId', '==', filter.userId);
@@ -60,7 +63,7 @@ export class WorkoutPlanModel {
         return { id: doc.id, ...doc.data() };
     }
     static async find(filter, options = {}) {
-        const db = getFirestore();
+        const db = (0, db_1.getFirestore)();
         let query = db.collection(this.collection);
         if (filter.userId) {
             query = query.where('userId', '==', filter.userId);
@@ -106,4 +109,5 @@ export class WorkoutPlanModel {
         return results;
     }
 }
+exports.WorkoutPlanModel = WorkoutPlanModel;
 //# sourceMappingURL=WorkoutPlan.js.map

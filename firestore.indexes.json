@@ -1,13 +1,6 @@
 {
   "indexes": [
     {
-      "collectionGroup": "profiles",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "workoutPlans",
       "queryScope": "COLLECTION",
       "fields": [
@@ -20,7 +13,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
+        { "fieldPath": "completedAt", "order": "DESCENDING" }
       ]
     }
   ],

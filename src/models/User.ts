@@ -4,12 +4,14 @@ import { Timestamp } from 'firebase-admin/firestore';
 export interface User {
   id?: string;
   email?: string;
+  firebaseUid?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
 
 export interface CreateUserInput {
   email?: string;
+  firebaseUid?: string;
 }
 
 export class UserModel {
@@ -19,11 +21,12 @@ export class UserModel {
     const db = getFirestore();
     const now = Timestamp.now();
 
-    const userData: Omit<User, 'id'> = {
+    const userData = {
       email: data.email || '',
+      firebaseUid: data.firebaseUid,
       createdAt: now,
       updatedAt: now,
-    };
+    } as Omit<User, 'id'>;
 
     const docRef = await db.collection(this.collection).add(userData);
 

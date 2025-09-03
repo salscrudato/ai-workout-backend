@@ -26,6 +26,7 @@ export declare class WorkoutPlanModel {
     }): Promise<WorkoutPlan | null>;
     static find(filter: {
         userId?: string;
+        ids?: string[];
     }, options?: {
         sort?: {
             [key: string]: 1 | -1;
