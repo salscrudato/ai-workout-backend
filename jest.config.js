@@ -1,6 +1,7 @@
 /** @type {import('jest').Config} */
-module.exports = {
-  preset: 'ts-jest',
+export default {
+  preset: 'ts-jest/presets/default-esm',
+  extensionsToTreatAsEsm: ['.ts'],
   testEnvironment: 'node',
   roots: ['<rootDir>/src', '<rootDir>/tests'],
   testMatch: [
@@ -8,7 +9,9 @@ module.exports = {
     '**/?(*.)+(spec|test).ts'
   ],
   transform: {
-    '^.+\\.ts$': 'ts-jest',
+    '^.+\\.ts$': ['ts-jest', {
+      useESM: true
+    }],
   },
   collectCoverageFrom: [
     'src/**/*.ts',
@@ -39,7 +42,7 @@ module.exports = {
   clearMocks: true,
   resetMocks: true,
   restoreMocks: true,
-  moduleNameMapping: {
+  moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
 }

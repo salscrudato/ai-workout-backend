@@ -1,0 +1,53 @@
+[
+  {
+    "name": "minScore",
+    "expected": 0.9,
+    "actual": 0,
+    "values": [
+      0,
+      0,
+      0
+    ],
+    "operator": ">=",
+    "passed": false,
+    "auditId": "errors-in-console",
+    "level": "error",
+    "url": "http://localhost:55788/index.html",
+    "auditTitle": "Browser errors were logged to the console",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/best-practices/errors-in-console/"
+  },
+  {
+    "name": "minScore",
+    "expected": 0.9,
+    "actual": 0,
+    "values": [
+      0,
+      0,
+      0
+    ],
+    "operator": ">=",
+    "passed": false,
+    "auditId": "html-has-lang",
+    "level": "error",
+    "url": "http://localhost:55788/index.html",
+    "auditTitle": "`<html>` element does not have a `[lang]` attribute",
+    "auditDocumentationLink": "https://dequeuniversity.com/rules/axe/4.10/html-has-lang"
+  },
+  {
+    "name": "minScore",
+    "expected": 0.9,
+    "actual": 0,
+    "values": [
+      0,
+      0,
+      0
+    ],
+    "operator": ">=",
+    "passed": false,
+    "auditId": "meta-description",
+    "level": "error",
+    "url": "http://localhost:55788/index.html",
+    "auditTitle": "Document does not have a meta description",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/seo/meta-description/"
+  }
+]

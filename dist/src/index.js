@@ -1,58 +1,112 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = __importDefault(require("express"));
-const cors_1 = __importDefault(require("cors"));
-const helmet_1 = __importDefault(require("helmet"));
-const compression_1 = __importDefault(require("compression"));
-const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
+exports.api = void 0;
+const https_1 = require("firebase-functions/v2/https");
+const app_1 = require("./app");
 const pino_1 = __importDefault(require("pino"));
-const pino_http_1 = __importDefault(require("pino-http"));
-const env_1 = require("./config/env");
-const db_1 = require("./config/db");
-const auth_1 = require("./middlewares/auth");
-const errors_1 = require("./middlewares/errors");
-const v1_1 = __importDefault(require("./routes/v1"));
-async function main() {
-    await (0, db_1.initializeFirebase)();
-    const app = (0, express_1.default)();
-    const logger = (0, pino_1.default)({ transport: { target: 'pino-pretty', options: { singleLine: true } } });
-    app.use(express_1.default.json({ limit: '1mb' }));
-    app.use(express_1.default.urlencoded({ extended: true, limit: '1mb' }));
-    app.use((0, cors_1.default)());
-    app.use((0, helmet_1.default)());
-    app.use((0, compression_1.default)());
-    app.use((0, pino_http_1.default)({ logger }));
-    app.use(auth_1.maybeApiKey);
-    // Health check endpoint
-    app.get('/health', (_req, res) => res.json({
-        ok: true,
-        timestamp: new Date().toISOString(),
-        version: '1.0.0',
-        environment: env_1.env.NODE_ENV
-    }));
-    // Rate limiting for AI generation endpoint
-    app.use('/v1/workouts/generate', (0, express_rate_limit_1.default)({
-        windowMs: 60_000, // 1 minute
-        max: 6, // 6 requests per minute
-        message: { error: 'Too many workout generation requests, please try again later' },
-        standardHeaders: true,
-        legacyHeaders: false
-    }));
-    // API routes
-    app.use('/v1', v1_1.default);
-    // 404 handler for unmatched routes
-    app.use((_req, res) => {
-        res.status(404).json({ error: 'Route not found' });
-    });
-    // Global error handler (must be last)
-    app.use(errors_1.errorHandler);
-    app.listen(env_1.env.PORT, () => logger.info(`API listening on :${env_1.env.PORT}`));
-}
-main().catch(err => {
-    console.error('Fatal startup error:', err);
-    process.exit(1);
+// Initialize logger
+const logger = (0, pino_1.default)({
+    level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
+    ...(process.env.NODE_ENV === 'development' && {
+        transport: {
+            target: 'pino-pretty',
+            options: { singleLine: true }
+        }
+    })
 });
+// Firebase Functions entry point
+exports.api = (0, https_1.onRequest)({
+    region: 'us-central1',
+    memory: '512MiB',
+    timeoutSeconds: 60,
+    maxInstances: 10,
+    minInstances: 1, // Keep at least 1 instance warm
+    concurrency: 80,
+    cors: true
+}, async (req, res) => {
+    try {
+        const app = await (0, app_1.createExpressApp)();
+        // Add performance monitoring
+        const startTime = Date.now();
+        // Handle the request
+        app(req, res);
+        // Log performance metrics
+        res.on('finish', () => {
+            const responseTime = Date.now() - startTime;
+            logger.info({
+                method: req.method,
+                url: req.url,
+                statusCode: res.statusCode,
+                responseTime: `${responseTime}ms`,
+                userAgent: req.get('User-Agent'),
+                ip: req.ip
+            }, 'Request completed');
+        });
+    }
+    catch (error) {
+        logger.error({ error }, 'Firebase Function error');
+        res.status(500).json({
+            error: 'Internal server error',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+// For local development
+if (process.env.NODE_ENV === 'development') {
+    Promise.resolve().then(() => __importStar(require('./config/env.js'))).then(({ env }) => {
+        async function startLocalServer() {
+            try {
+                const app = await (0, app_1.createExpressApp)();
+                const port = env.PORT || 3000;
+                app.listen(port, () => {
+                    logger.info(`🚀 Local development server running on port ${port}`);
+                    logger.info(`📊 Performance monitoring enabled`);
+                    logger.info(`🔧 Enhanced AI prompting active`);
+                    logger.info(`📱 Mobile-optimized endpoints ready`);
+                });
+            }
+            catch (error) {
+                logger.error({ error }, 'Failed to start local server');
+                process.exit(1);
+            }
+        }
+        startLocalServer();
+    });
+}
 //# sourceMappingURL=index.js.map

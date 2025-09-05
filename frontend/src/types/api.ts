@@ -100,7 +100,8 @@ export interface Equipment {
 // Workout types
 export interface WorkoutExercise {
   name: string;
-  sets: number;
+  display_name?: string; // Alternative display name
+  sets: number | { reps: string; weight?: string; rest?: string }[]; // Can be number or array of set objects
   reps: string;
   weight?: string;
   duration?: string;
@@ -138,12 +139,13 @@ export interface WorkoutPlan {
 
 export interface PreWorkout {
   experience: 'beginner' | 'intermediate' | 'advanced';
-  goals: string[];
-  workoutType: string;
-  equipmentAvailable: string[];
+  goals: readonly string[] | string[];
+  workoutType?: string; // Made optional to handle undefined values from API
+  equipmentAvailable: readonly string[] | string[];
   duration: number;
   time_available_min?: number; // Backend field name
-  constraints: string[];
+  constraints: readonly string[] | string[];
+  energy_level?: number; // Energy level (1-5)
 }
 
 export interface WorkoutPlanResponse {
@@ -165,11 +167,11 @@ export interface WorkoutPlanResponse {
 
 export interface GenerateWorkoutRequest {
   experience: 'beginner' | 'intermediate' | 'advanced';
-  goals: string[];
+  goals: readonly string[] | string[];
   workoutType: string;
-  equipmentAvailable: string[];
+  equipmentAvailable: readonly string[] | string[];
   duration: number;
-  constraints?: string[];
+  constraints?: readonly string[] | string[];
 }
 
 export interface GenerateWorkoutResponse {

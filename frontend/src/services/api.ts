@@ -1,6 +1,7 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosResponse } from 'axios';
 import { auth } from '../config/firebase';
+import { apiCache, userCache, workoutCache, generateCacheKey, invalidateCache } from '../utils/cache';
 import type {
   User,
   Profile,
@@ -71,7 +72,7 @@ class ApiClient {
 
     this.client = axios.create({
       baseURL: this.baseURL,
-      timeout: 30000,
+      timeout: 120000, // 2 minutes for AI generation
       headers: {
         'Content-Type': 'application/json',
       },

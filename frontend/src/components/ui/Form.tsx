@@ -9,8 +9,8 @@ export interface FormProps extends FormHTMLAttributes<HTMLFormElement> {
   spacing?: 'sm' | 'md' | 'lg';
 }
 
-export interface FormFieldProps<T extends FieldValues = FieldValues> 
-  extends Omit<InputProps, 'name' | 'error'> {
+export interface FormFieldProps<T extends FieldValues = FieldValues>
+  extends Omit<InputProps, 'name' | 'error' | 'form'> {
   name: FieldPath<T>;
   form: UseFormReturn<T>;
 }
@@ -114,7 +114,7 @@ const FormActions = forwardRef<HTMLDivElement, FormActionsProps>(({
 /**
  * Form Submit Button with loading state integration
  */
-interface FormSubmitButtonProps extends Omit<ButtonProps, 'type'> {
+interface FormSubmitButtonProps extends Omit<ButtonProps, 'type' | 'form'> {
   form?: UseFormReturn<any>;
   loadingText?: string;
 }

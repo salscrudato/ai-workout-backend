@@ -12,6 +12,8 @@ import { maybeApiKey } from './middlewares/auth';
 import { errorHandler } from './middlewares/errors';
 import v1 from './routes/v1';
 import healthRoutes from './routes/health';
+import analyticsRoutes from './routes/analytics';
+import { performanceOptimizer } from './services/performanceOptimizer';
 
 let appInstance: express.Application | null = null;
 
@@ -84,6 +86,19 @@ export async function createExpressApp(): Promise<express.Application> {
   app.use(pinoHttp({ logger }));
   app.use(maybeApiKey);
 
+  // Performance monitoring middleware
+  app.use((req, res, next) => {
+    const startTime = Date.now();
+
+    res.on('finish', () => {
+      const responseTime = Date.now() - startTime;
+      const isError = res.statusCode >= 400;
+      performanceOptimizer.recordRequest(responseTime, isError);
+    });
+
+    next();
+  });
+
   // Health check endpoint
   app.get('/health', (_req, res) => res.json({
     ok: true,
@@ -140,6 +155,9 @@ export async function createExpressApp(): Promise<express.Application> {
 
   // Health check routes (no rate limiting)
   app.use('/health', healthRoutes);
+
+  // Analytics routes (internal use)
+  app.use('/analytics', analyticsRoutes);
 
   // API routes
   app.use('/v1', v1);

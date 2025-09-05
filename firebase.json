@@ -19,7 +19,19 @@
         "function": "api"
       },
       {
+        "source": "/health",
+        "function": "api"
+      },
+      {
         "source": "/health/**",
+        "function": "api"
+      },
+      {
+        "source": "/analytics/**",
+        "function": "api"
+      },
+      {
+        "source": "/api/**",
         "function": "api"
       },
       {
@@ -34,6 +46,55 @@
           {
             "key": "Cache-Control",
             "value": "public, max-age=31536000, immutable"
+          },
+          {
+            "key": "X-Content-Type-Options",
+            "value": "nosniff"
+          }
+        ]
+      },
+      {
+        "source": "**/*.js",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=31536000, immutable"
+          }
+        ]
+      },
+      {
+        "source": "**/*.css",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=31536000, immutable"
+          }
+        ]
+      },
+      {
+        "source": "**/*.{png,jpg,jpeg,gif,svg,webp,ico}",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=31536000, immutable"
+          }
+        ]
+      },
+      {
+        "source": "/sw.js",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/manifest.json",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=86400"
           }
         ]
       },
@@ -69,6 +130,18 @@
           {
             "key": "Cross-Origin-Opener-Policy",
             "value": "same-origin-allow-popups"
+          },
+          {
+            "key": "X-Frame-Options",
+            "value": "DENY"
+          },
+          {
+            "key": "X-Content-Type-Options",
+            "value": "nosniff"
+          },
+          {
+            "key": "Referrer-Policy",
+            "value": "strict-origin-when-cross-origin"
           }
         ]
       }
@@ -77,10 +150,13 @@
   "functions": {
     "source": "dist",
     "runtime": "nodejs20",
-    "memory": 256,
+    "memory": "512MiB",
     "timeout": "60s",
     "minInstances": 0,
     "maxInstances": 10,
-    "concurrency": 80
+    "concurrency": 80,
+    "environmentVariables": {
+      "NODE_ENV": "production"
+    }
   }
 }

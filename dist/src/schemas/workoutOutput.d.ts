@@ -114,6 +114,8 @@ export declare const WorkoutPlanJsonSchema: {
                                 };
                                 sets: {
                                     type: string;
+                                    minItems: number;
+                                    maxItems: number;
                                     items: {
                                         type: string;
                                         additionalProperties: boolean;

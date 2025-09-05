@@ -37,7 +37,7 @@ exports.WorkoutPlanJsonSchema = {
                                 equipment: { type: 'array', items: { type: 'string' } },
                                 primary_muscles: { type: 'array', items: { type: 'string' } },
                                 instructions: { type: 'array', items: { type: 'string' }, minItems: 3, maxItems: 3 },
-                                sets: { type: 'array', items: { type: 'object', additionalProperties: false, properties: {
+                                sets: { type: 'array', minItems: 2, maxItems: 6, items: { type: 'object', additionalProperties: false, properties: {
                                             reps: { type: 'number' }, time_sec: { type: 'number' }, rest_sec: { type: 'number' },
                                             tempo: { type: 'string' }, intensity: { type: 'string' }, notes: { type: 'string' },
                                             weight_guidance: { type: 'string' }, rpe: { type: 'number' }, rest_type: { type: 'string' }

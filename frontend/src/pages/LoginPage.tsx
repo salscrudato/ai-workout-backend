@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Dumbbell, Zap, Target, Users } from 'lucide-react';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
+import { Display, Heading, Body } from '../components/ui/Typography';
 
 const LoginPage: React.FC = () => {
   const { signInWithGoogle, isAuthenticated, loading } = useAuth();
@@ -36,57 +37,77 @@ const LoginPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-100">
-      <div className="flex min-h-screen">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-blue-50 to-accent-50 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-200/30 rounded-full animate-float"></div>
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-accent-200/20 rounded-full animate-float" style={{animationDelay: '1s'}}></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-blue-200/20 rounded-full animate-pulse-slow"></div>
+      </div>
+
+      <div className="flex min-h-screen relative z-10">
         {/* Left side - Hero content */}
         <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8">
-          <div className="max-w-md w-full space-y-8">
+          <div className="max-w-md w-full space-y-8 animate-fade-in-up">
             <div className="text-center">
-              <div className="flex justify-center">
-                <div className="bg-primary-600 p-3 rounded-full">
-                  <Dumbbell className="h-8 w-8 text-white" />
+              <div className="flex justify-center mb-6">
+                <div className="gradient-blue p-4 rounded-2xl shadow-glow-blue animate-glow">
+                  <Dumbbell className="h-10 w-10 text-white animate-bounce-gentle" />
                 </div>
               </div>
-              <h1 className="mt-6 text-4xl font-bold text-secondary-900">
+              <Display
+                level={1}
+                gradient="fresh"
+                animate="shimmer"
+                hover
+                className="mb-4 animate-fade-in gentle-glow"
+              >
                 AI Workout
-              </h1>
-              <p className="mt-2 text-lg text-secondary-600">
+              </Display>
+              <Body size={1} color="secondary" className="text-xl animate-fade-in" style={{animationDelay: '0.2s'}}>
                 Your personal AI fitness trainer
-              </p>
+              </Body>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-6 animate-fade-in" style={{animationDelay: '0.4s'}}>
               <div className="grid grid-cols-1 gap-4">
-                <div className="flex items-center space-x-3 p-4 bg-white rounded-lg shadow-sm">
-                  <Zap className="h-6 w-6 text-primary-600" />
-                  <span className="text-secondary-700">AI-powered workout generation</span>
+                <div className="flex items-center space-x-4 p-5 glass rounded-xl hover:bg-white/90 transition-all duration-300 hover:scale-105 group">
+                  <div className="gradient-blue p-2 rounded-lg group-hover:shadow-glow-blue transition-all duration-300">
+                    <Zap className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-secondary-700 font-medium">AI-powered workout generation</span>
                 </div>
-                <div className="flex items-center space-x-3 p-4 bg-white rounded-lg shadow-sm">
-                  <Target className="h-6 w-6 text-primary-600" />
-                  <span className="text-secondary-700">Personalized to your goals</span>
+                <div className="flex items-center space-x-4 p-5 glass rounded-xl hover:bg-white/90 transition-all duration-300 hover:scale-105 group" style={{animationDelay: '0.1s'}}>
+                  <div className="gradient-blue p-2 rounded-lg group-hover:shadow-glow-blue transition-all duration-300">
+                    <Target className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-secondary-700 font-medium">Personalized to your goals</span>
                 </div>
-                <div className="flex items-center space-x-3 p-4 bg-white rounded-lg shadow-sm">
-                  <Users className="h-6 w-6 text-primary-600" />
-                  <span className="text-secondary-700">Track your progress</span>
+                <div className="flex items-center space-x-4 p-5 glass rounded-xl hover:bg-white/90 transition-all duration-300 hover:scale-105 group" style={{animationDelay: '0.2s'}}>
+                  <div className="gradient-blue p-2 rounded-lg group-hover:shadow-glow-blue transition-all duration-300">
+                    <Users className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-secondary-700 font-medium">Track your progress</span>
                 </div>
               </div>
 
               {error && (
-                <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                  <p className="text-sm text-red-600">{error}</p>
+                <div className="glass border border-red-200 rounded-xl p-4 animate-fade-in">
+                  <p className="text-sm text-red-600 font-medium">{error}</p>
                 </div>
               )}
 
-              <button
-                onClick={handleGoogleSignIn}
-                disabled={isSigningIn}
-                className="w-full flex justify-center items-center px-4 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
+              <div className="animate-fade-in" style={{animationDelay: '0.6s'}}>
+                <button
+                  onClick={handleGoogleSignIn}
+                  disabled={isSigningIn}
+                  className="w-full flex justify-center items-center px-6 py-4 border-0 text-lg font-semibold rounded-xl text-white gradient-blue hover:shadow-glow-blue focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 hover:scale-105 active:scale-95 group"
+                >
                 {isSigningIn ? (
                   <LoadingSpinner size="sm" />
                 ) : (
                   <>
-                    <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                    <svg className="w-6 h-6 mr-3 group-hover:animate-bounce-gentle" viewBox="0 0 24 24">
                       <path
                         fill="currentColor"
                         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -108,8 +129,9 @@ const LoginPage: React.FC = () => {
                   </>
                 )}
               </button>
+              </div>
 
-              <p className="text-center text-sm text-secondary-500">
+              <p className="text-center text-sm text-secondary-500 animate-fade-in" style={{animationDelay: '0.8s'}}>
                 By signing in, you agree to our Terms of Service and Privacy Policy
               </p>
             </div>
@@ -117,13 +139,35 @@ const LoginPage: React.FC = () => {
         </div>
 
         {/* Right side - Visual */}
-        <div className="hidden lg:block flex-1 bg-gradient-to-br from-primary-600 to-primary-800">
-          <div className="flex items-center justify-center h-full p-12">
-            <div className="text-center text-white">
-              <div className="bg-white/10 p-8 rounded-2xl backdrop-blur-sm">
-                <Dumbbell className="h-16 w-16 text-white mx-auto mb-4" />
-                <h2 className="text-2xl font-bold">AI Workout</h2>
-                <p className="text-lg opacity-90 mt-2">Your personal AI fitness trainer</p>
+        <div className="hidden lg:block flex-1 gradient-blue relative overflow-hidden">
+          {/* Animated background elements */}
+          <div className="absolute inset-0">
+            <div className="absolute top-20 right-20 w-32 h-32 bg-white/10 rounded-full animate-float"></div>
+            <div className="absolute bottom-32 left-20 w-24 h-24 bg-white/5 rounded-full animate-float" style={{animationDelay: '2s'}}></div>
+            <div className="absolute top-1/2 right-1/3 w-16 h-16 bg-white/15 rounded-full animate-pulse-slow"></div>
+          </div>
+
+          <div className="flex items-center justify-center h-full p-12 relative z-10">
+            <div className="text-center text-white animate-fade-in-up">
+              <div className="glass-dark p-10 rounded-3xl backdrop-blur-md hover:bg-white/20 transition-all duration-500 group">
+                <div className="gradient-blue p-4 rounded-2xl mx-auto mb-6 w-fit group-hover:shadow-glow-blue transition-all duration-300">
+                  <Dumbbell className="h-20 w-20 text-white animate-heartbeat" />
+                </div>
+                <Heading
+                  level={2}
+                  gradient="accent"
+                  animate="glow"
+                  hover
+                  className="mb-3 gentle-glow"
+                >
+                  AI Workout
+                </Heading>
+                <Body size={1} className="text-xl opacity-90">Your personal AI fitness trainer</Body>
+                <div className="mt-6 flex justify-center space-x-2">
+                  <div className="w-2 h-2 bg-white/60 rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-white/40 rounded-full animate-pulse" style={{animationDelay: '0.5s'}}></div>
+                  <div className="w-2 h-2 bg-white/60 rounded-full animate-pulse" style={{animationDelay: '1s'}}></div>
+                </div>
               </div>
             </div>
           </div>

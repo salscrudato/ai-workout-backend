@@ -92,15 +92,15 @@ const ProfilePage: React.FC = () => {
         if (profile) {
           reset({
             experience: profile.experience,
-            goals: profile.goals,
-            equipmentAvailable: profile.equipmentAvailable,
+            goals: Array.from(profile.goals),
+            equipmentAvailable: Array.from(profile.equipmentAvailable),
             age: profile.age,
             sex: profile.sex,
             height_ft: profile.height_ft,
             height_in: profile.height_in,
             weight_lb: profile.weight_lb,
             injury_notes: profile.injury_notes || '',
-            constraints: profile.constraints,
+            constraints: Array.from(profile.constraints),
             health_ack: profile.health_ack,
             data_consent: profile.data_consent,
           });
@@ -157,15 +157,15 @@ const ProfilePage: React.FC = () => {
     if (profile) {
       reset({
         experience: profile.experience,
-        goals: profile.goals,
-        equipmentAvailable: profile.equipmentAvailable,
+        goals: Array.from(profile.goals),
+        equipmentAvailable: Array.from(profile.equipmentAvailable),
         age: profile.age,
         sex: profile.sex,
         height_ft: profile.height_ft,
         height_in: profile.height_in,
         weight_lb: profile.weight_lb,
         injury_notes: profile.injury_notes || '',
-        constraints: profile.constraints,
+        constraints: Array.from(profile.constraints),
         health_ack: profile.health_ack,
         data_consent: profile.data_consent,
       });

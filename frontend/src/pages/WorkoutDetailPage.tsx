@@ -258,7 +258,7 @@ const WorkoutDetailPage: React.FC = () => {
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold text-secondary-900 mb-4">Ready to start?</h2>
-              <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-primary-600">
                     {(workout.plan.warmup?.length || 0) + (workout.plan.exercises?.length || 0) + (workout.plan.cooldown?.length || 0)}
@@ -268,10 +268,6 @@ const WorkoutDetailPage: React.FC = () => {
                 <div className="text-center">
                   <div className="text-2xl font-bold text-primary-600">{workout.plan?.estimatedDuration || workout.preWorkout?.duration || 'N/A'}</div>
                   <div className="text-sm text-secondary-600">Minutes</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-primary-600 capitalize">{workout.preWorkout.experience}</div>
-                  <div className="text-sm text-secondary-600">Level</div>
                 </div>
               </div>
               <button
@@ -390,7 +386,9 @@ const WorkoutDetailPage: React.FC = () => {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center mb-4">
                     {currentExercise.sets && (
                       <div className="bg-gray-50 rounded-lg p-3">
-                        <div className="text-2xl font-bold text-primary-600">{currentExercise.sets}</div>
+                        <div className="text-2xl font-bold text-primary-600">
+                          {typeof currentExercise.sets === 'number' ? currentExercise.sets : currentExercise.sets.length}
+                        </div>
                         <div className="text-sm text-secondary-600">Sets</div>
                       </div>
                     )}

@@ -1,63 +1,79 @@
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import compression from 'compression';
-import rateLimit from 'express-rate-limit';
+import { onRequest } from 'firebase-functions/v2/https';
+import { createExpressApp } from './app';
 import pino from 'pino';
-import pinoHttp from 'pino-http';
 
-import { env } from './config/env';
-import { initializeFirebase } from './config/db';
-import { maybeApiKey } from './middlewares/auth';
-import { errorHandler } from './middlewares/errors';
-import v1 from './routes/v1';
-
-async function main() {
-  await initializeFirebase();
-
-  const app = express();
-  const logger = pino({ transport: { target: 'pino-pretty', options: { singleLine: true } } });
-
-  app.use(express.json({ limit: '1mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '1mb' }));
-  app.use(cors());
-  app.use(helmet());
-  app.use(compression());
-  app.use(pinoHttp({ logger }));
-  app.use(maybeApiKey);
-
-  // Health check endpoint
-  app.get('/health', (_req, res) => res.json({
-    ok: true,
-    timestamp: new Date().toISOString(),
-    version: '1.0.0',
-    environment: env.NODE_ENV
-  }));
-
-  // Rate limiting for AI generation endpoint
-  app.use('/v1/workouts/generate', rateLimit({
-    windowMs: 60_000, // 1 minute
-    max: 6, // 6 requests per minute
-    message: { error: 'Too many workout generation requests, please try again later' },
-    standardHeaders: true,
-    legacyHeaders: false
-  }));
-
-  // API routes
-  app.use('/v1', v1);
-
-  // 404 handler for unmatched routes
-  app.use((_req, res) => {
-    res.status(404).json({ error: 'Route not found' });
-  });
-
-  // Global error handler (must be last)
-  app.use(errorHandler);
-
-  app.listen(env.PORT, () => logger.info(`API listening on :${env.PORT}`));
-}
-
-main().catch(err => {
-  console.error('Fatal startup error:', err);
-  process.exit(1);
+// Initialize logger
+const logger = pino({
+  level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
+  ...(process.env.NODE_ENV === 'development' && {
+    transport: {
+      target: 'pino-pretty',
+      options: { singleLine: true }
+    }
+  })
 });
+
+// Firebase Functions entry point
+export const api = onRequest({
+  region: 'us-central1',
+  memory: '512MiB',
+  timeoutSeconds: 60,
+  maxInstances: 10,
+  minInstances: 1, // Keep at least 1 instance warm
+  concurrency: 80,
+  cors: true
+}, async (req, res) => {
+  try {
+    const app = await createExpressApp();
+
+    // Add performance monitoring
+    const startTime = Date.now();
+
+    // Handle the request
+    app(req, res);
+
+    // Log performance metrics
+    res.on('finish', () => {
+      const responseTime = Date.now() - startTime;
+      logger.info({
+        method: req.method,
+        url: req.url,
+        statusCode: res.statusCode,
+        responseTime: `${responseTime}ms`,
+        userAgent: req.get('User-Agent'),
+        ip: req.ip
+      }, 'Request completed');
+    });
+
+  } catch (error) {
+    logger.error({ error }, 'Firebase Function error');
+    res.status(500).json({
+      error: 'Internal server error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// For local development
+if (process.env.NODE_ENV === 'development') {
+  import('./config/env.js').then(({ env }) => {
+    async function startLocalServer() {
+      try {
+        const app = await createExpressApp();
+        const port = env.PORT || 3000;
+
+        app.listen(port, () => {
+          logger.info(`🚀 Local development server running on port ${port}`);
+          logger.info(`📊 Performance monitoring enabled`);
+          logger.info(`🔧 Enhanced AI prompting active`);
+          logger.info(`📱 Mobile-optimized endpoints ready`);
+        });
+      } catch (error) {
+        logger.error({ error }, 'Failed to start local server');
+        process.exit(1);
+      }
+    }
+
+    startLocalServer();
+  });
+}

@@ -1,4 +1,6 @@
-import React, { useState, useRef, useEffect, memo } from 'react';
+import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
+import { clsx } from 'clsx';
+import { imageCache } from '../../utils/cache';
 
 interface OptimizedImageProps {
   src: string;

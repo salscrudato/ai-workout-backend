@@ -93,6 +93,6 @@ export const createProfile = asyncHandler(async (req: Request, res: Response): P
     return;
   }
 
-  const profile = await ProfileModel.create(data);
+  const profile = await ProfileModel.create(data as any);
   res.status(201).json({ profile });
 });

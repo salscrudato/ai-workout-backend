@@ -21,6 +21,7 @@ export interface LogContext {
   timestamp?: string;
   url?: string;
   userAgent?: string;
+  error?: any; // For error logging
 }
 
 export interface LogEntry extends LogContext {
