@@ -177,7 +177,7 @@ class ApiClient {
     method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
     url: string,
     data?: any,
-    options: { cache?: boolean; cacheTtl?: number } = {}
+    options: { cache?: boolean; cacheTtl?: number; timeout?: number } = {}
   ): Promise<T> {
     const { cache = method === 'GET', cacheTtl = this.DEFAULT_CACHE_TTL } = options;
     const cacheKey = this.getCacheKey(method, url, data);
@@ -197,7 +197,7 @@ class ApiClient {
     }
 
     // Make the request
-    const requestPromise = this.makeRequest<T>(method, url, data);
+    const requestPromise = this.makeRequest<T>(method, url, data, options.timeout);
     this.pendingRequests.set(cacheKey, requestPromise);
 
     try {
@@ -221,13 +221,15 @@ class ApiClient {
   private async makeRequest<T>(
     method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
     url: string,
-    data?: any
+    data?: any,
+    timeout?: number
   ): Promise<T> {
     const config = {
       method,
       url,
       ...(data && ['POST', 'PUT', 'PATCH'].includes(method) && { data }),
       ...(data && method === 'GET' && { params: data }),
+      ...(timeout && { timeout }),
     };
 
     const response = await this.client.request<T>(config);
@@ -242,6 +244,13 @@ class ApiClient {
   private handleError(error: any): never {
     console.error('API Error:', error);
 
+    // Log additional error details for debugging
+    if (error.response) {
+      console.error('Response status:', error.response.status);
+      console.error('Response data:', error.response.data);
+      console.error('Response headers:', error.response.headers);
+    }
+
     // Network errors
     if (error.code === 'ERR_NETWORK' || error.code === 'ERR_CONNECTION_REFUSED') {
       throw new Error('Unable to connect to the server. Please check your internet connection and try again.');
@@ -252,22 +261,47 @@ class ApiClient {
       throw new Error('Request timed out. Please try again.');
     }
 
-    // Server response errors
-    if (error.response?.data?.error) {
-      throw new Error(error.response.data.error);
+    // Server response errors with detailed messages
+    if (error.response?.data) {
+      const errorData = error.response.data;
+
+      // Check for various error message formats
+      if (errorData.error) {
+        throw new Error(errorData.error);
+      }
+      if (errorData.message) {
+        throw new Error(errorData.message);
+      }
+      if (errorData.details) {
+        throw new Error(errorData.details);
+      }
+      if (typeof errorData === 'string') {
+        throw new Error(errorData);
+      }
     }
 
-    // HTTP status errors
+    // HTTP status errors with enhanced messages
     if (error.response?.status) {
       const status = error.response.status;
       if (status >= 500) {
-        throw new Error('Server error. Please try again later.');
+        const serverError = status === 500
+          ? 'Internal server error occurred. Our team has been notified. Please try again in a few minutes.'
+          : status === 502
+          ? 'Server is temporarily unavailable. Please try again in a moment.'
+          : status === 503
+          ? 'Service is temporarily unavailable. Please try again later.'
+          : 'Server error occurred. Please try again later.';
+        throw new Error(serverError);
       } else if (status === 404) {
         throw new Error('The requested resource was not found.');
       } else if (status === 403) {
         throw new Error('You do not have permission to access this resource.');
       } else if (status === 401) {
         throw new Error('Authentication required. Please sign in again.');
+      } else if (status === 400) {
+        throw new Error('Invalid request. Please check your input and try again.');
+      } else if (status === 429) {
+        throw new Error('Too many requests. Please wait a moment and try again.');
       }
     }
 
@@ -349,14 +383,44 @@ class ApiClient {
   async generateWorkout(workoutRequest: GenerateWorkoutRequest): Promise<GenerateWorkoutResponse> {
     try {
       console.log('API: Making request to /v1/workouts/generate with:', workoutRequest);
-      // Don't cache workout generation requests
-      const result = await this.cachedRequest<GenerateWorkoutResponse>('POST', '/v1/workouts/generate', workoutRequest, { cache: false });
+
+      // Don't cache workout generation requests and increase timeout for AI processing
+      const result = await this.cachedRequest<GenerateWorkoutResponse>(
+        'POST',
+        '/v1/workouts/generate',
+        workoutRequest,
+        {
+          cache: false,
+          timeout: 120000 // 2 minutes timeout for AI generation
+        }
+      );
+
       console.log('API: Received response:', result);
+
+      // Validate response structure
+      if (!result || !result.plan || !result.workoutId) {
+        throw new Error('Invalid response from server. Please try again.');
+      }
+
       // Clear workout cache after generation
       this.clearCachePattern('/v1/workouts');
       return result;
     } catch (error) {
       console.error('API: Error in generateWorkout:', error);
+
+      // Enhanced error handling for workout generation
+      if (error.code === 'ECONNABORTED') {
+        throw new Error('Workout generation timed out. This can happen during high demand. Please try again.');
+      }
+
+      if (error.response?.status === 500) {
+        throw new Error('Our AI workout generator is experiencing issues. Please try again in a few minutes.');
+      }
+
+      if (error.response?.status === 503) {
+        throw new Error('Workout generation service is temporarily unavailable. Please try again shortly.');
+      }
+
       this.handleError(error);
     }
   }

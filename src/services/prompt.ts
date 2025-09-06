@@ -180,7 +180,27 @@ const getIntensityGuidelines = (experience: string, workoutType: string) => {
 async function getAdvancedWorkoutHistory(userId: string, workoutType: string): Promise<WorkoutHistoryAnalysis> {
   try {
     const allWorkouts = await WorkoutPlanModel.find({ userId }, { sort: { createdAt: -1 }, limit: 20 }) as any[];
-    const allSessions = await WorkoutSessionModel.find({ userId }, { sort: { createdAt: -1 }, limit: 20 }) as any[];
+
+    // Handle potential index building issue gracefully
+    let allSessions: any[] = [];
+    try {
+      allSessions = await WorkoutSessionModel.find({ userId }, { sort: { createdAt: -1 }, limit: 20 }) as any[];
+    } catch (sessionError: any) {
+      console.error('Error analyzing workout history:', sessionError);
+      // If index is missing, try without sorting or use a simpler query
+      if (sessionError.code === 9) { // FAILED_PRECONDITION
+        console.log('Firestore index not ready, using fallback query');
+        try {
+          // Fallback: get sessions without sorting (less optimal but works)
+          allSessions = await WorkoutSessionModel.find({ userId }, { limit: 20 }) as any[];
+        } catch (fallbackError) {
+          console.error('Fallback query also failed:', fallbackError);
+          allSessions = []; // Use empty array as last resort
+        }
+      } else {
+        throw sessionError; // Re-throw if it's not an index issue
+      }
+    }
 
     // Create workout-session mapping
     const sessionMap = new Map();

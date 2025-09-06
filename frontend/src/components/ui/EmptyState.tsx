@@ -1,20 +1,27 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
 import { Search, Inbox, Wifi, AlertCircle, Plus } from 'lucide-react';
 import Button from './Button';
 import { Display, Heading, Body } from './Typography';
 
 export interface EmptyStateProps {
-  variant?: 'no-data' | 'no-results' | 'offline' | 'error' | 'loading';
+  variant?: 'no-data' | 'no-results' | 'offline' | 'error' | 'loading' | 'premium' | 'glass';
   title: string;
   description?: string;
   icon?: React.ReactNode;
   action?: {
     label: string;
     onClick: () => void;
-    variant?: 'primary' | 'secondary' | 'gradient';
+    variant?: 'primary' | 'secondary' | 'gradient' | 'premium' | 'electric';
+  };
+  secondaryAction?: {
+    label: string;
+    onClick: () => void;
+    variant?: 'ghost' | 'outline';
   };
   className?: string;
+  animate?: boolean;
 }
 
 /**
@@ -34,7 +41,9 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   description,
   icon,
   action,
+  secondaryAction,
   className,
+  animate = true,
 }) => {
   const getDefaultIcon = () => {
     switch (variant) {
@@ -71,8 +80,67 @@ const EmptyState: React.FC<EmptyStateProps> = ({
         return 'bg-gradient-to-br from-red-50 to-red-100';
       case 'offline':
         return 'bg-gradient-to-br from-yellow-50 to-yellow-100';
+      case 'premium':
+        return 'glass-blue-premium border border-blue-premium-200';
+      case 'glass':
+        return 'glass-light border border-white/20';
       default:
         return 'bg-gradient-to-br from-primary-50 to-accent-50';
+    }
+  };
+
+  // Animation variants
+  const containerVariants = {
+    initial: { opacity: 0, y: 20 },
+    animate: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.6,
+        ease: [0.25, 0.46, 0.45, 0.94],
+        staggerChildren: 0.1,
+      }
+    },
+  };
+
+  const itemVariants = {
+    initial: { opacity: 0, y: 20 },
+    animate: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.5,
+        ease: [0.25, 0.46, 0.45, 0.94],
+      }
+    },
+  };
+
+  const iconVariants = {
+    initial: { opacity: 0, scale: 0.8, rotate: -10 },
+    animate: {
+      opacity: 1,
+      scale: 1,
+      rotate: 0,
+      transition: {
+        duration: 0.8,
+        ease: [0.25, 0.46, 0.45, 0.94],
+      }
+    },
+    hover: {
+      scale: 1.1,
+      rotate: 10,
+      transition: { duration: 0.3 }
+    }
+  };
+
+  const floatingVariants = {
+    animate: {
+      y: [-4, 4, -4],
+      transition: {
+        duration: 4,
+        repeat: Infinity,
+        ease: 'easeInOut',
+      }
     }
   };
 

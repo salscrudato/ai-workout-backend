@@ -4,15 +4,21 @@ export interface SwipeGestureOptions {
   threshold?: number;
   preventDefaultTouchmoveEvent?: boolean;
   trackMouse?: boolean;
+  velocityThreshold?: number;
+  timeThreshold?: number;
+  enableHapticFeedback?: boolean;
+  resistanceThreshold?: number;
 }
 
 export interface SwipeGestureHandlers {
-  onSwipeLeft?: () => void;
-  onSwipeRight?: () => void;
-  onSwipeUp?: () => void;
-  onSwipeDown?: () => void;
+  onSwipeLeft?: (velocity?: number) => void;
+  onSwipeRight?: (velocity?: number) => void;
+  onSwipeUp?: (velocity?: number) => void;
+  onSwipeDown?: (velocity?: number) => void;
   onSwipeStart?: (event: TouchEvent | MouseEvent) => void;
   onSwipeEnd?: (event: TouchEvent | MouseEvent) => void;
+  onSwipeProgress?: (progress: number, direction: string) => void;
+  onSwipeCancel?: () => void;
 }
 
 export interface SwipeGestureState {
@@ -20,17 +26,21 @@ export interface SwipeGestureState {
   direction: 'left' | 'right' | 'up' | 'down' | null;
   deltaX: number;
   deltaY: number;
+  velocity: number;
+  progress: number;
+  startTime: number;
 }
 
 /**
- * Custom hook for handling swipe gestures on mobile devices
- * 
+ * Enhanced Custom hook for handling swipe gestures on mobile devices
+ *
  * Features:
- * - Touch and mouse support
- * - Configurable swipe threshold
- * - Direction detection
- * - Swipe state tracking
- * - Performance optimized
+ * - Touch and mouse support with velocity tracking
+ * - Configurable swipe threshold and velocity
+ * - Advanced direction detection with progress tracking
+ * - Haptic feedback simulation
+ * - Resistance and momentum calculations
+ * - Performance optimized with RAF
  */
 export const useSwipeGesture = (
   handlers: SwipeGestureHandlers,
@@ -40,6 +50,10 @@ export const useSwipeGesture = (
     threshold = 50,
     preventDefaultTouchmoveEvent = false,
     trackMouse = false,
+    velocityThreshold = 0.3,
+    timeThreshold = 300,
+    enableHapticFeedback = true,
+    resistanceThreshold = 100,
   } = options;
 
   const [swipeState, setSwipeState] = useState<SwipeGestureState>({
@@ -47,6 +61,9 @@ export const useSwipeGesture = (
     direction: null,
     deltaX: 0,
     deltaY: 0,
+    velocity: 0,
+    progress: 0,
+    startTime: 0,
   });
 
   const startPos = useRef<{ x: number; y: number } | null>(null);

@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NavigationProvider } from './contexts/NavigationContext';
@@ -7,6 +7,8 @@ import { ToastProvider } from './contexts/ToastContext';
 import LoadingSpinner from './components/ui/LoadingSpinner';
 import ConnectionStatus from './components/ui/ConnectionStatus';
 import AppLayout from './components/ui/AppLayout';
+
+import { initializeBrowserCompatibility } from './utils/browserCompatibility';
 
 // Lazy load page components for better performance
 const LoginPage = lazy(() => import('./pages/LoginPage'));
@@ -131,6 +133,11 @@ function AppRoutes() {
 }
 
 function App() {
+  // Initialize browser compatibility on app start
+  useEffect(() => {
+    initializeBrowserCompatibility().catch(console.error);
+  }, []);
+
   return (
     <ThemeProvider>
       <ToastProvider>

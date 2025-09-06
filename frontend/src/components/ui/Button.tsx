@@ -23,6 +23,12 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   hapticFeedback?: boolean;
   microInteraction?: boolean;
   children: React.ReactNode;
+  // Enhanced accessibility props
+  ariaLabel?: string;
+  ariaDescribedBy?: string;
+  ariaPressed?: boolean;
+  ariaExpanded?: boolean;
+  loadingText?: string;
 }
 
 /**
@@ -49,6 +55,11 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
   disabled,
   className,
   children,
+  ariaLabel,
+  ariaDescribedBy,
+  ariaPressed,
+  ariaExpanded,
+  loadingText = 'Loading...',
   ...props
 }, ref) => {
   // Enhanced variant styles with sophisticated design system
@@ -141,12 +152,18 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
       ref={ref}
       className={baseStyles}
       disabled={disabled || loading}
+      aria-label={ariaLabel || (loading ? loadingText : undefined)}
+      aria-describedby={ariaDescribedBy}
+      aria-pressed={ariaPressed}
+      aria-expanded={ariaExpanded}
+      aria-busy={loading}
       {...props}
     >
       {/* Loading spinner */}
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center">
           <LoadingSpinner size={size === 'sm' ? 'sm' : 'md'} />
+          <span className="sr-only">{loadingText}</span>
         </div>
       )}
 

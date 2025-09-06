@@ -76,20 +76,27 @@ const Typography = forwardRef<HTMLElement, TypographyProps>(({
     }
   };
 
-  // Variant styles with mobile-first responsive design
+  // Enhanced variant styles with modern typography scale and improved mobile experience
   const variantStyles: Record<TypographyVariant, string> = {
-    display1: 'text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight tracking-tight',
-    display2: 'text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight tracking-tight',
-    h1: 'text-2xl sm:text-3xl lg:text-4xl font-bold leading-tight',
-    h2: 'text-xl sm:text-2xl lg:text-3xl font-semibold leading-tight',
-    h3: 'text-lg sm:text-xl lg:text-2xl font-semibold leading-snug',
-    h4: 'text-base sm:text-lg lg:text-xl font-semibold leading-snug',
-    h5: 'text-sm sm:text-base lg:text-lg font-medium leading-snug',
-    h6: 'text-xs sm:text-sm lg:text-base font-medium leading-snug',
-    body1: 'text-sm sm:text-base leading-relaxed',
-    body2: 'text-xs sm:text-sm leading-relaxed',
-    caption: 'text-xs leading-normal',
-    overline: 'text-xs uppercase tracking-wider leading-normal',
+    // Display variants optimized for hero sections with better mobile scaling
+    display1: 'text-3xl sm:text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-bold leading-none tracking-tight',
+    display2: 'text-2xl sm:text-3xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-tight tracking-tight',
+
+    // Heading hierarchy with refined mobile-first approach
+    h1: 'text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold leading-tight tracking-tight',
+    h2: 'text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-semibold leading-tight tracking-tight',
+    h3: 'text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-semibold leading-snug tracking-tight',
+    h4: 'text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-semibold leading-snug tracking-tight',
+    h5: 'text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl font-medium leading-snug tracking-tight',
+    h6: 'text-xs sm:text-xs md:text-sm lg:text-base xl:text-lg font-medium leading-snug tracking-tight',
+
+    // Body text optimized for readability across all screen sizes
+    body1: 'text-sm sm:text-base md:text-lg leading-relaxed font-normal',
+    body2: 'text-xs sm:text-sm md:text-base leading-relaxed font-normal',
+
+    // Specialized text variants with enhanced mobile considerations
+    caption: 'text-xs sm:text-xs md:text-sm leading-normal font-medium opacity-75',
+    overline: 'text-xs uppercase tracking-wider leading-normal font-semibold opacity-60',
   };
 
   // Enhanced color styles with expanded gradient support
@@ -176,17 +183,17 @@ const Typography = forwardRef<HTMLElement, TypographyProps>(({
     // Base styles with smooth transitions
     'font-inter antialiased transition-all duration-300 ease-out',
 
-    // Variant styles
-    variantStyles[variant],
+    // Variant styles (with fallback)
+    variantStyles[variant] || variantStyles.body1,
 
     // Color styles (gradient takes precedence)
-    gradient ? getGradientClass() : colorStyles[color],
+    gradient ? getGradientClass() : (colorStyles[color] || colorStyles.primary),
 
     // Weight styles (only if not already specified in variant)
-    !variantStyles[variant].includes('font-') && weightStyles[weight],
+    !variantStyles[variant]?.includes('font-') && (weightStyles[weight] || weightStyles.normal),
 
     // Alignment
-    alignStyles[align],
+    alignStyles[align] || alignStyles.left,
 
     // Animation classes
     animate && getAnimationClass(),

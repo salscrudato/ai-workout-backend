@@ -7,6 +7,13 @@ export interface ThemeContextType {
   actualTheme: 'light' | 'dark';
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
+  // Enhanced theming capabilities
+  accentColor: string;
+  setAccentColor: (color: string) => void;
+  highContrast: boolean;
+  setHighContrast: (enabled: boolean) => void;
+  reducedMotion: boolean;
+  setReducedMotion: (enabled: boolean) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -34,6 +41,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
 }) => {
   const [theme, setThemeState] = useState<Theme>(defaultTheme);
   const [actualTheme, setActualTheme] = useState<'light' | 'dark'>('light');
+  const [accentColor, setAccentColorState] = useState('#0ea5e9');
+  const [highContrast, setHighContrastState] = useState(false);
+  const [reducedMotion, setReducedMotionState] = useState(false);
 
   // Get system theme preference
   const getSystemTheme = (): 'light' | 'dark' => {

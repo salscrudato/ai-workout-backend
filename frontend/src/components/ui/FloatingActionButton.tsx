@@ -1,8 +1,17 @@
-import React, { forwardRef, ButtonHTMLAttributes } from 'react';
+import React, { forwardRef, ButtonHTMLAttributes, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 
 export type FABSize = 'sm' | 'md' | 'lg';
 export type FABVariant = 'primary' | 'secondary' | 'accent' | 'gradient' | 'premium' | 'electric' | 'glass';
+
+export interface FABAction {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+}
 
 export interface FloatingActionButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: FABSize;
@@ -14,6 +23,10 @@ export interface FloatingActionButtonProps extends ButtonHTMLAttributes<HTMLButt
   pulse?: boolean;
   glow?: boolean;
   morphing?: boolean;
+  // Enhanced features
+  actions?: FABAction[];
+  expandDirection?: 'up' | 'down' | 'left' | 'right';
+  hapticFeedback?: boolean;
 }
 
 /**

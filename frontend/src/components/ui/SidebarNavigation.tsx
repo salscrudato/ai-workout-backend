@@ -238,7 +238,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ className }) => {
           </div>
         </div>
       )}
-    </aside>
+    </motion.aside>
   );
 };
 

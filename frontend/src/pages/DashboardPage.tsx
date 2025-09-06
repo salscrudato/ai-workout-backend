@@ -101,13 +101,35 @@ const DashboardPage: React.FC = () => {
             gradient="fresh"
             className="mb-3"
           >
-            Welcome back, {user?.email?.split('@')[0]}
+            AI That Adapts to You
           </Display>
           <Body size={1} color="secondary" className="text-lg">
-            Ready for your next workout?
+            Intelligent workouts that evolve with your progress
           </Body>
         </header>
 
+        {/* Primary Action with Enhanced Design - Moved to Top */}
+        <AnimatedContainer variant="premium-card" className="mb-12">
+          <Card variant="glass-blue-premium" className="p-8 text-center">
+            <div className="gradient-blue-premium p-4 rounded-2xl inline-flex items-center justify-center mb-6 shadow-glow-blue-premium">
+              <Zap className="w-8 h-8 text-white" />
+            </div>
+            <Heading level={2} gradient="luxury" className="mb-3">
+              Generate New Workout
+            </Heading>
+            <Body size={1} color="secondary" className="mb-8 max-w-md mx-auto">
+              Create a personalized AI-powered workout tailored to your goals
+            </Body>
+            <Button
+              variant="premium"
+              size="lg"
+              onClick={() => navigate('/generate')}
+              className="px-12"
+            >
+              Get Started
+            </Button>
+          </Card>
+        </AnimatedContainer>
 
         {/* Enhanced Stats Section */}
         <AnimatedContainer variant="enhanced-stagger" className="mb-12">
@@ -152,29 +174,6 @@ const DashboardPage: React.FC = () => {
               }}
             />
           </div>
-        </AnimatedContainer>
-
-        {/* Primary Action with Enhanced Design */}
-        <AnimatedContainer variant="premium-card" className="mb-16">
-          <Card variant="glass-blue-premium" className="p-8 text-center">
-            <div className="gradient-blue-premium p-4 rounded-2xl inline-flex items-center justify-center mb-6 shadow-glow-blue-premium">
-              <Zap className="w-8 h-8 text-white" />
-            </div>
-            <Heading level={2} gradient="luxury" className="mb-3">
-              Generate New Workout
-            </Heading>
-            <Body size={1} color="secondary" className="mb-8 max-w-md mx-auto">
-              Create a personalized AI-powered workout tailored to your goals
-            </Body>
-            <Button
-              variant="premium"
-              size="lg"
-              onClick={() => navigate('/generate')}
-              className="px-12"
-            >
-              Get Started
-            </Button>
-          </Card>
         </AnimatedContainer>
         {/* Enhanced Data Visualizations */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">

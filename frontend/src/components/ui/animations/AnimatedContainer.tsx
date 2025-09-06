@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion, HTMLMotionProps } from 'framer-motion';
+import React, { useEffect, useRef } from 'react';
+import { motion, HTMLMotionProps, useReducedMotion } from 'framer-motion';
 import {
   pageVariants,
   pageFadeScaleVariants,
@@ -40,6 +40,22 @@ const AnimatedContainer: React.FC<AnimatedContainerProps> = ({
   className,
   ...props
 }) => {
+  const shouldReduceMotion = useReducedMotion();
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Performance optimization: set will-change property
+  useEffect(() => {
+    const element = containerRef.current;
+    if (element && !shouldReduceMotion) {
+      element.style.willChange = 'transform, opacity';
+      element.style.backfaceVisibility = 'hidden';
+
+      return () => {
+        element.style.willChange = 'auto';
+        element.style.backfaceVisibility = '';
+      };
+    }
+  }, [shouldReduceMotion]);
   const getVariants = () => {
     switch (variant) {
       case 'page':
@@ -91,8 +107,9 @@ const AnimatedContainer: React.FC<AnimatedContainerProps> = ({
       exit="exit"
       transition={getTransition()}
       style={{
-        transformStyle: 'preserve-3d',
-        backfaceVisibility: 'hidden',
+        transformStyle: shouldReduceMotion ? 'flat' : 'preserve-3d',
+        backfaceVisibility: shouldReduceMotion ? 'visible' : 'hidden',
+        willChange: shouldReduceMotion ? 'auto' : 'transform, opacity',
         ...props.style,
       }}
       {...props}
