@@ -12,6 +12,17 @@ jest.mock('../../../src/models/Profile')
 const mockUserModel = UserModel as jest.Mocked<typeof UserModel>
 const mockProfileModel = ProfileModel as jest.Mocked<typeof ProfileModel>
 
+// Mock pino logger
+jest.mock('pino', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+  })),
+}))
+
 describe('User Controller', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -27,17 +38,31 @@ describe('User Controller', () => {
       }
 
       mockUserModel.create.mockResolvedValue(mockUser as any)
+      mockUserModel.findByEmail.mockResolvedValue(null) // User doesn't exist
 
       const req = createMockRequest({
         body: {
           email: 'test@example.com',
         },
+        headers: {
+          'x-request-id': 'test-request-123'
+        }
       })
       const res = createMockResponse()
       const next = createMockNext()
 
-      await createUser(req, res, next)
+      // Debug: Check if function is being called
+      console.log('About to call createUser')
 
+      try {
+        await createUser(req, res, next)
+        console.log('createUser completed successfully')
+      } catch (error) {
+        console.log('createUser threw error:', error)
+        throw error
+      }
+
+      expect(mockUserModel.findByEmail).toHaveBeenCalledWith('test@example.com')
       expect(mockUserModel.create).toHaveBeenCalledWith({
         email: 'test@example.com',
       })
@@ -45,7 +70,9 @@ describe('User Controller', () => {
       expect(res.json).toHaveBeenCalledWith({
         user: mockUser,
         profile: undefined,
+        timestamp: expect.any(String)
       })
+      expect(next).not.toHaveBeenCalled()
     })
 
     it('should create user with profile data', async () => {
@@ -70,8 +97,9 @@ describe('User Controller', () => {
         updatedAt: new Date(),
       }
 
+      mockUserModel.findByEmail.mockResolvedValue(null) // User doesn't exist
       mockUserModel.create.mockResolvedValue(mockUser as any)
-      mockProfileModel.create.mockResolvedValue(mockProfile as any)
+      mockProfileModel.findOneAndUpdate.mockResolvedValue(mockProfile as any)
 
       const req = createMockRequest({
         body: {
@@ -82,30 +110,45 @@ describe('User Controller', () => {
           health_ack: true,
           data_consent: true,
         },
+        headers: {
+          'x-request-id': 'test-request-123'
+        }
       })
       const res = createMockResponse()
       const next = createMockNext()
 
       await createUser(req, res, next)
 
+      expect(mockUserModel.findByEmail).toHaveBeenCalledWith('test@example.com')
       expect(mockUserModel.create).toHaveBeenCalledWith({
         email: 'test@example.com',
       })
-      expect(mockProfileModel.create).toHaveBeenCalledWith({
-        userId: 'user-123',
-        experience: 'beginner',
-        goals: ['weight_loss'],
-        equipmentAvailable: ['bodyweight'],
-        sex: 'prefer_not_to_say',
-        constraints: [],
-        health_ack: true,
-        data_consent: true,
-      })
+      expect(mockProfileModel.findOneAndUpdate).toHaveBeenCalledWith(
+        { userId: 'user-123' },
+        {
+          userId: 'user-123',
+          experience: 'beginner',
+          goals: ['weight_loss'],
+          equipmentAvailable: ['bodyweight'],
+          sex: 'prefer_not_to_say',
+          constraints: [],
+          health_ack: true,
+          data_consent: true,
+          age: undefined,
+          height_ft: undefined,
+          height_in: undefined,
+          weight_lb: undefined,
+          injury_notes: undefined,
+        },
+        { upsert: true }
+      )
       expect(res.status).toHaveBeenCalledWith(201)
       expect(res.json).toHaveBeenCalledWith({
         user: mockUser,
         profile: mockProfile,
+        timestamp: expect.any(String)
       })
+      expect(next).not.toHaveBeenCalled()
     })
 
     it('should handle existing user', async () => {
@@ -122,6 +165,9 @@ describe('User Controller', () => {
         body: {
           email: 'test@example.com',
         },
+        headers: {
+          'x-request-id': 'test-request-123'
+        }
       })
       const res = createMockResponse()
       const next = createMockNext()
@@ -134,7 +180,9 @@ describe('User Controller', () => {
       expect(res.json).toHaveBeenCalledWith({
         user: existingUser,
         profile: undefined,
+        timestamp: expect.any(String)
       })
+      expect(next).not.toHaveBeenCalled()
     })
   })
 
@@ -181,13 +229,16 @@ describe('User Controller', () => {
         body: {
           idToken: 'valid-firebase-token',
         },
+        headers: {
+          'x-request-id': 'test-request-123'
+        }
       })
       const res = createMockResponse()
       const next = createMockNext()
 
       await authenticateUser(req, res, next)
 
-      expect(mockVerifyIdToken).toHaveBeenCalledWith('valid-firebase-token')
+      expect(mockVerifyIdToken).toHaveBeenCalledWith('valid-firebase-token', true)
       expect(mockUserModel.findByEmail).toHaveBeenCalledWith('test@example.com')
       expect(mockProfileModel.findOne).toHaveBeenCalledWith({ userId: 'user-123' })
       expect(res.json).toHaveBeenCalledWith({
@@ -195,7 +246,9 @@ describe('User Controller', () => {
         profile: mockProfile,
         token: 'valid-firebase-token',
         isNewUser: false,
+        timestamp: expect.any(String)
       })
+      expect(next).not.toHaveBeenCalled()
     })
 
     it('should create new user if not exists', async () => {
@@ -226,6 +279,9 @@ describe('User Controller', () => {
         body: {
           idToken: 'valid-firebase-token',
         },
+        headers: {
+          'x-request-id': 'test-request-123'
+        }
       })
       const res = createMockResponse()
       const next = createMockNext()
@@ -241,11 +297,13 @@ describe('User Controller', () => {
         profile: null,
         token: 'valid-firebase-token',
         isNewUser: true,
+        timestamp: expect.any(String)
       })
+      expect(next).not.toHaveBeenCalled()
     })
 
     it('should handle invalid token', async () => {
-      const mockVerifyIdToken = jest.fn().mockRejectedValue(new Error('Invalid token'))
+      const mockVerifyIdToken = jest.fn().mockRejectedValue(new Error('Firebase ID token has expired'))
       ;(admin.auth as jest.Mock).mockReturnValue({
         verifyIdToken: mockVerifyIdToken,
       })
@@ -254,16 +312,22 @@ describe('User Controller', () => {
         body: {
           idToken: 'invalid-token',
         },
+        headers: {
+          'x-request-id': 'test-request-123'
+        }
       })
       const res = createMockResponse()
       const next = createMockNext()
 
+      // The controller should call next with an AppError due to asyncHandler
       await authenticateUser(req, res, next)
 
-      expect(res.status).toHaveBeenCalledWith(401)
-      expect(res.json).toHaveBeenCalledWith({
-        error: 'Invalid token',
-      })
+      expect(next).toHaveBeenCalledWith(expect.objectContaining({
+        message: 'Invalid or expired token',
+        statusCode: 401,
+        code: 'INVALID_TOKEN'
+      }))
+      expect(res.json).not.toHaveBeenCalled()
     })
   })
 })

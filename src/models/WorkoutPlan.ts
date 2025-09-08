@@ -1,22 +1,75 @@
 import { getFirestore } from '../config/db';
 import { Timestamp } from 'firebase-admin/firestore';
 
+// Proper type definitions for workout plan data
+export interface PreWorkoutData {
+  userId: string;
+  workout_type: string;
+  experience: 'beginner' | 'intermediate' | 'advanced';
+  goals: string[];
+  time_available_min: number;
+  equipment_override?: string[];
+  injury_notes?: string;
+  constraints?: string[];
+}
+
+export interface WorkoutBlock {
+  name: string;
+  exercises: Exercise[];
+  rest_between_exercises_sec?: number;
+  notes?: string;
+}
+
+export interface Exercise {
+  name: string;
+  sets: number;
+  reps?: number | string;
+  weight?: string;
+  duration_sec?: number;
+  rest_sec?: number;
+  notes?: string;
+  equipment?: string[];
+  muscle_groups?: string[];
+}
+
+export interface WorkoutPlanData {
+  title: string;
+  description: string;
+  blocks: WorkoutBlock[];
+  meta: {
+    est_duration_min: number;
+    difficulty_level: 'beginner' | 'intermediate' | 'advanced';
+    equipment_needed: string[];
+    muscle_groups_targeted: string[];
+    calories_estimate?: number;
+  };
+  warm_up?: {
+    exercises: Exercise[];
+    duration_min: number;
+  };
+  cool_down?: {
+    exercises: Exercise[];
+    duration_min: number;
+  };
+}
+
 export interface WorkoutPlan {
   id?: string;
   userId: string;
   model: string;
   promptVersion: string;
-  preWorkout: any;
-  plan: any;
+  preWorkout: PreWorkoutData;
+  plan: WorkoutPlanData;
   createdAt: Timestamp;
+  updatedAt?: Timestamp;
 }
 
 export interface CreateWorkoutPlanInput {
   userId: string;
   model: string;
   promptVersion: string;
-  preWorkout: any;
-  plan: any;
+  preWorkout: PreWorkoutData;
+  plan: WorkoutPlanData;
 }
 
 export class WorkoutPlanModel {
@@ -33,6 +86,7 @@ export class WorkoutPlanModel {
       preWorkout: data.preWorkout,
       plan: data.plan,
       createdAt: now,
+      updatedAt: now,
     };
 
     const docRef = await db.collection(this.collection).add(workoutPlanData);

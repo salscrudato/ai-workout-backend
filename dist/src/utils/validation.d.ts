@@ -11,11 +11,11 @@ export declare const CreateUserSchema: z.ZodObject<{
     email: z.ZodOptional<z.ZodEffects<z.ZodString, string, string>>;
     firebaseUid: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    email?: string;
-    firebaseUid?: string;
+    email?: string | undefined;
+    firebaseUid?: string | undefined;
 }, {
-    email?: string;
-    firebaseUid?: string;
+    email?: string | undefined;
+    firebaseUid?: string | undefined;
 }>;
 export declare const ExperienceSchema: z.ZodEnum<["beginner", "intermediate", "advanced"]>;
 export declare const SexSchema: z.ZodEnum<["male", "female", "prefer_not_to_say"]>;
@@ -39,33 +39,33 @@ export declare const CreateProfileSchema: z.ZodObject<{
     health_ack: z.ZodBoolean;
     data_consent: z.ZodBoolean;
 }, "strip", z.ZodTypeAny, {
-    userId?: string;
-    experience?: "beginner" | "intermediate" | "advanced";
-    goals?: string[];
-    equipmentAvailable?: string[];
-    age?: number;
-    sex?: "male" | "female" | "prefer_not_to_say";
-    height_ft?: number;
-    height_in?: number;
-    weight_lb?: number;
-    injury_notes?: string;
-    constraints?: string[];
-    health_ack?: boolean;
-    data_consent?: boolean;
+    userId: string;
+    experience: "beginner" | "intermediate" | "advanced";
+    goals: string[];
+    equipmentAvailable: string[];
+    sex: "male" | "female" | "prefer_not_to_say";
+    constraints: string[];
+    health_ack: boolean;
+    data_consent: boolean;
+    age?: number | undefined;
+    height_ft?: number | undefined;
+    height_in?: number | undefined;
+    weight_lb?: number | undefined;
+    injury_notes?: string | undefined;
 }, {
-    userId?: string;
-    experience?: "beginner" | "intermediate" | "advanced";
-    goals?: string[];
-    equipmentAvailable?: string[];
-    age?: number;
-    sex?: "male" | "female" | "prefer_not_to_say";
-    height_ft?: number;
-    height_in?: number;
-    weight_lb?: number;
-    injury_notes?: string;
-    constraints?: string[];
-    health_ack?: boolean;
-    data_consent?: boolean;
+    userId: string;
+    experience: "beginner" | "intermediate" | "advanced";
+    goals: string[];
+    equipmentAvailable: string[];
+    sex: "male" | "female" | "prefer_not_to_say";
+    constraints: string[];
+    health_ack: boolean;
+    data_consent: boolean;
+    age?: number | undefined;
+    height_ft?: number | undefined;
+    height_in?: number | undefined;
+    weight_lb?: number | undefined;
+    injury_notes?: string | undefined;
 }>;
 export declare const WorkoutTypeSchema: z.ZodEnum<["full_body", "upper_lower", "push", "pull", "legs", "core", "conditioning", "mobility", "recovery"]>;
 export declare const GenerateWorkoutSchema: z.ZodObject<{
@@ -76,19 +76,19 @@ export declare const GenerateWorkoutSchema: z.ZodObject<{
     duration: z.ZodNumber;
     constraints: z.ZodDefault<z.ZodOptional<z.ZodEffects<z.ZodArray<z.ZodString, "many">, string[], string[]>>>;
 }, "strip", z.ZodTypeAny, {
-    experience?: "beginner" | "intermediate" | "advanced";
-    goals?: string[];
-    equipmentAvailable?: string[];
-    constraints?: string[];
-    workoutType?: string;
-    duration?: number;
+    experience: "beginner" | "intermediate" | "advanced";
+    goals: string[];
+    equipmentAvailable: string[];
+    constraints: string[];
+    workoutType: string;
+    duration: number;
 }, {
-    experience?: "beginner" | "intermediate" | "advanced";
-    goals?: string[];
-    equipmentAvailable?: string[];
-    constraints?: string[];
-    workoutType?: string;
-    duration?: number;
+    experience: "beginner" | "intermediate" | "advanced";
+    goals: string[];
+    equipmentAvailable: string[];
+    workoutType: string;
+    duration: number;
+    constraints?: string[] | undefined;
 }>;
 export declare const CompleteWorkoutSchema: z.ZodObject<{
     feedback: z.ZodOptional<z.ZodEffects<z.ZodString, string, string>>;
@@ -96,15 +96,15 @@ export declare const CompleteWorkoutSchema: z.ZodObject<{
     startedAt: z.ZodOptional<z.ZodString>;
     completedAt: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    feedback?: string;
-    rating?: number;
-    startedAt?: string;
-    completedAt?: string;
+    startedAt?: string | undefined;
+    completedAt?: string | undefined;
+    feedback?: string | undefined;
+    rating?: number | undefined;
 }, {
-    feedback?: string;
-    rating?: number;
-    startedAt?: string;
-    completedAt?: string;
+    startedAt?: string | undefined;
+    completedAt?: string | undefined;
+    feedback?: string | undefined;
+    rating?: number | undefined;
 }>;
 export type CreateUserInput = z.infer<typeof CreateUserSchema>;
 export type CreateProfileInput = z.infer<typeof CreateProfileSchema>;

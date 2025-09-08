@@ -5,7 +5,16 @@
 
 import { WorkoutSessionModel } from '../models/WorkoutSession';
 import { ProfileModel } from '../models/Profile';
-import { biometricIntegrationService } from './biometricIntegration';
+// import { biometricIntegrationService } from './biometricIntegration'; // Temporarily disabled
+
+// Temporary stub for biometricIntegrationService
+const biometricIntegrationService = {
+  analyzeRealTimeData: async (userId: string, data: any) => ({
+    heartRateZone: 'moderate',
+    fatigueLevel: 0.3,
+    recommendations: []
+  })
+};
 
 export interface RealTimeMetrics {
   userId: string;

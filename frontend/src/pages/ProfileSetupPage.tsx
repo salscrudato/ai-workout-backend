@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import { apiClient } from '../services/api';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -58,7 +59,8 @@ const CONSTRAINT_OPTIONS = [
 ];
 
 const ProfileSetupPage: React.FC = () => {
-  const { user, refreshProfile } = useAuth();
+  const { user, profile, isNewUser, refreshProfile } = useAuth();
+  const { showSuccess, showError, showInfo } = useToast();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
@@ -132,17 +134,38 @@ const ProfileSetupPage: React.FC = () => {
 
     try {
       setIsSubmitting(true);
-      
+
       const profileData: CreateProfileInput = {
         userId: user.id,
         ...data,
       };
 
-      await apiClient.createProfile(profileData);
+      // Save profile (intelligently handles create vs update)
+      const isUpdate = !isNewUser && profile;
+      showInfo(
+        isUpdate ? 'Updating Profile' : 'Creating Profile',
+        isUpdate
+          ? 'Saving your profile changes...'
+          : 'Setting up your personalized workout profile...'
+      );
+
+      await apiClient.saveProfile(profileData, isUpdate);
       await refreshProfile();
+
+      showSuccess(
+        isUpdate ? 'Profile Updated!' : 'Profile Created!',
+        'Your workout profile has been saved successfully.'
+      );
+
       navigate('/dashboard');
     } catch (error) {
-      console.error('Failed to create profile:', error);
+      console.error('Failed to save profile:', error);
+      showError(
+        'Profile Save Failed',
+        error instanceof Error
+          ? error.message
+          : 'Failed to save your profile. Please try again.'
+      );
     } finally {
       setIsSubmitting(false);
     }

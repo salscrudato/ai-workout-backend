@@ -15,6 +15,7 @@ class WorkoutPlanModel {
             preWorkout: data.preWorkout,
             plan: data.plan,
             createdAt: now,
+            updatedAt: now,
         };
         const docRef = await db.collection(this.collection).add(workoutPlanData);
         return {

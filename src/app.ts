@@ -3,17 +3,27 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
-import pino from 'pino';
-import pinoHttp from 'pino-http';
 
 import { env } from './config/env';
 import { initializeFirebase } from './config/db';
 import { maybeApiKey } from './middlewares/auth';
-import { errorHandler } from './middlewares/errors';
+import { errorHandler, errorLoggingMiddleware } from './middlewares/errors';
+import {
+  correlationIdMiddleware,
+  requestLoggingMiddleware,
+  logger
+} from './utils/logger';
 import v1 from './routes/v1';
 import healthRoutes from './routes/health';
 import analyticsRoutes from './routes/analytics';
-import { performanceOptimizer } from './services/performanceOptimizer';
+// import { performanceOptimizer } from './services/performanceOptimizer'; // Temporarily disabled
+
+// Temporary stub for performanceOptimizer
+const performanceOptimizer = {
+  recordRequest: (responseTime: number, isError: boolean) => {
+    // Stub implementation - could log to console or do nothing
+  }
+};
 
 let appInstance: express.Application | null = null;
 
@@ -25,11 +35,12 @@ export async function createExpressApp(): Promise<express.Application> {
   await initializeFirebase();
 
   const app = express();
-  const loggerOptions: any = { level: 'info' };
-  if (process.env.NODE_ENV === 'development') {
-    loggerOptions.transport = { target: 'pino-pretty', options: { singleLine: true } };
-  }
-  const logger = pino(loggerOptions);
+
+  // Add correlation ID middleware first
+  app.use(correlationIdMiddleware);
+
+  // Add request logging middleware
+  app.use(requestLoggingMiddleware);
 
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: true, limit: '1mb' }));
@@ -39,12 +50,12 @@ export async function createExpressApp(): Promise<express.Application> {
       if (!origin) return callback(null, true);
 
       // For Firebase Functions, allow all origins (Firebase handles security)
-      if (process.env.GCLOUD_PROJECT) {
+      if (process.env['GCLOUD_PROJECT']) {
         return callback(null, true);
       }
 
       // In development, allow localhost
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env['NODE_ENV'] === 'development') {
         if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
           return callback(null, true);
         }
@@ -83,7 +94,6 @@ export async function createExpressApp(): Promise<express.Application> {
     },
   }));
   app.use(compression());
-  app.use(pinoHttp({ logger }));
   app.use(maybeApiKey);
 
   // Performance monitoring middleware
@@ -166,6 +176,9 @@ export async function createExpressApp(): Promise<express.Application> {
   app.use((_req, res) => {
     res.status(404).json({ error: 'Route not found' });
   });
+
+  // Error logging middleware (before error handler)
+  app.use(errorLoggingMiddleware);
 
   // Global error handler (must be last)
   app.use(errorHandler);

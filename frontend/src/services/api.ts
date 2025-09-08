@@ -15,12 +15,36 @@ import type {
 } from '../types/api';
 
 /**
- * Simple in-memory cache for API responses
+ * Cache entry for API responses with TTL support
  */
 interface CacheEntry<T = any> {
-  data: T;
-  timestamp: number;
-  ttl: number; // Time to live in milliseconds
+  readonly data: T;
+  readonly timestamp: number;
+  readonly ttl: number; // Time to live in milliseconds
+}
+
+/**
+ * API request configuration options
+ */
+interface RequestConfig {
+  readonly cache?: boolean;
+  readonly timeout?: number;
+  readonly retries?: number;
+}
+
+/**
+ * Enhanced error class for API operations
+ */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly code: string,
+    public readonly details?: any
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
 }
 
 /**
@@ -64,11 +88,14 @@ class ApiClient {
     const isDevelopment = import.meta.env.DEV;
     const envApiUrl = import.meta.env.VITE_API_BASE_URL;
 
-    // Always use production URL for now to avoid CORS issues
-    // In development, you can override with VITE_API_BASE_URL environment variable
+    // Use production URL by default to avoid CORS issues
+    // Override with VITE_API_BASE_URL environment variable if needed
     this.baseURL = envApiUrl || 'https://ai-workout-backend-2024.web.app';
 
-    console.log('API Client initialized with baseURL:', this.baseURL);
+    if (isDevelopment) {
+      console.log('🔧 API Client initialized in development mode');
+      console.log('🌐 Base URL:', this.baseURL);
+    }
 
     this.client = axios.create({
       baseURL: this.baseURL,
@@ -79,41 +106,82 @@ class ApiClient {
       withCredentials: false, // Explicitly set for CORS
     });
 
-    // Request interceptor to add auth token
+    // Request interceptor for authentication and logging
     this.client.interceptors.request.use(
       async (config) => {
         const user = auth.currentUser;
-        console.log('API: Current Firebase user:', user ? { uid: user.uid, email: user.email } : 'No user');
 
+        if (isDevelopment) {
+          console.log('🔐 API Request:', {
+            method: config.method?.toUpperCase(),
+            url: config.url,
+            hasUser: !!user
+          });
+        }
+
+        // Add Firebase Auth token if user is authenticated
         if (user) {
           try {
             const token = await user.getIdToken();
-            console.log('API: Got Firebase token:', token ? `${token.substring(0, 50)}...` : 'No token');
             config.headers.Authorization = `Bearer ${token}`;
-            console.log('API: Set Authorization header:', config.headers.Authorization ? 'Yes' : 'No');
+
+            if (isDevelopment) {
+              console.log('✅ Authorization token added');
+            }
           } catch (error) {
-            console.error('API: Failed to get Firebase token:', error);
+            console.error('❌ Failed to get Firebase token:', error);
+            // Don't throw here - let the request proceed without auth
+            // The backend will handle the missing token appropriately
           }
-        } else {
-          console.warn('API: No Firebase user found, request will be unauthenticated');
+        } else if (isDevelopment) {
+          console.warn('⚠️ No Firebase user found, request will be unauthenticated');
         }
+
         return config;
       },
       (error) => {
+        console.error('❌ Request interceptor error:', error);
         return Promise.reject(error);
       }
     );
 
-    // Response interceptor for error handling
+    // Response interceptor for success/error handling
     this.client.interceptors.response.use(
-      (response) => response,
-      (error) => {
-        if (error.response?.status === 401) {
-          // Handle unauthorized - LOG but don't redirect for now
-          console.error('401 Unauthorized - would redirect to login but disabled for debugging');
-          console.error('Full error:', error);
-          // Temporarily disabled: window.location.href = '/';
+      (response) => {
+        if (isDevelopment) {
+          console.log('✅ API Response:', {
+            status: response.status,
+            url: response.config.url,
+            method: response.config.method?.toUpperCase()
+          });
         }
+        return response;
+      },
+      (error) => {
+        const status = error.response?.status;
+        const url = error.config?.url;
+        const method = error.config?.method?.toUpperCase();
+
+        if (isDevelopment) {
+          console.error('❌ API Error:', {
+            status,
+            url,
+            method,
+            message: error.message,
+            data: error.response?.data
+          });
+        }
+
+        // Handle specific error cases
+        if (status === 401) {
+          console.warn('🔒 Unauthorized request - user may need to re-authenticate');
+          // Note: Not automatically redirecting to allow for graceful error handling
+        } else if (status === 403) {
+          console.warn('🚫 Forbidden request - insufficient permissions');
+        } else if (status >= 500) {
+          console.error('🔥 Server error - backend may be experiencing issues');
+        }
+
         return Promise.reject(error);
       }
     );
@@ -121,21 +189,29 @@ class ApiClient {
 
   /**
    * Generate a cache key for a request
+   * @param method - HTTP method
+   * @param url - Request URL
+   * @param data - Request data (for POST/PUT requests)
+   * @returns Unique cache key
    */
   private getCacheKey(method: string, url: string, data?: any): string {
     const dataStr = data ? JSON.stringify(data) : '';
-    return `${method}:${url}:${dataStr}`;
+    return `${method.toLowerCase()}:${url}:${dataStr}`;
   }
 
   /**
-   * Check if cached data is still valid
+   * Check if cached data is still valid based on TTL
+   * @param entry - Cache entry to validate
+   * @returns Whether the cache entry is still valid
    */
   private isCacheValid(entry: CacheEntry): boolean {
     return Date.now() - entry.timestamp < entry.ttl;
   }
 
   /**
-   * Get data from cache if valid
+   * Get data from cache if valid, otherwise return null
+   * @param key - Cache key
+   * @returns Cached data or null if not found/expired
    */
   private getFromCache<T>(key: string): T | null {
     const entry = this.cache.get(key);
@@ -363,6 +439,40 @@ class ApiClient {
       return result;
     } catch (error) {
       this.handleError(error);
+    }
+  }
+
+  /**
+   * Intelligently saves a profile by creating or updating as needed
+   * This method handles the logic of determining whether to create or update
+   * @param profileData - Profile data to save
+   * @param forceUpdate - Force update even if profile doesn't exist
+   * @returns Promise resolving to the saved profile
+   */
+  async saveProfile(profileData: CreateProfileInput, forceUpdate: boolean = false): Promise<Profile> {
+    try {
+      if (forceUpdate) {
+        // Try update first
+        return await this.updateProfile(profileData.userId, profileData);
+      } else {
+        // Try create first
+        return await this.createProfile(profileData);
+      }
+    } catch (error) {
+      // If create fails with conflict, try update
+      if (error instanceof Error && error.message.includes('Profile already exists')) {
+        console.log('Profile exists, attempting update instead...');
+        return await this.updateProfile(profileData.userId, profileData);
+      }
+
+      // If update fails with not found, try create
+      if (error instanceof Error && (error.message.includes('not found') || error.message.includes('404'))) {
+        console.log('Profile not found, attempting create instead...');
+        return await this.createProfile(profileData);
+      }
+
+      // Re-throw other errors
+      throw error;
     }
   }
 

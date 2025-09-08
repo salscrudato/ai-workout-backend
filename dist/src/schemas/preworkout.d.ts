@@ -8,21 +8,21 @@ export declare const PreWorkoutSchema: z.ZodObject<{
     equipment_override: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     new_injuries: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    userId?: string;
-    time_available_min?: number;
-    start_time_iso?: string;
-    energy_level?: number;
-    workout_type?: "push" | "full_body" | "upper_lower" | "pull" | "legs" | "core" | "conditioning" | "mobility" | "recovery";
-    equipment_override?: string[];
-    new_injuries?: string;
+    userId: string;
+    workout_type: "push" | "full_body" | "upper_lower" | "pull" | "legs" | "core" | "conditioning" | "mobility" | "recovery";
+    time_available_min: number;
+    energy_level: number;
+    equipment_override?: string[] | undefined;
+    start_time_iso?: string | undefined;
+    new_injuries?: string | undefined;
 }, {
-    userId?: string;
-    time_available_min?: number;
-    start_time_iso?: string;
-    energy_level?: number;
-    workout_type?: "push" | "full_body" | "upper_lower" | "pull" | "legs" | "core" | "conditioning" | "mobility" | "recovery";
-    equipment_override?: string[];
-    new_injuries?: string;
+    userId: string;
+    workout_type: "push" | "full_body" | "upper_lower" | "pull" | "legs" | "core" | "conditioning" | "mobility" | "recovery";
+    time_available_min: number;
+    energy_level: number;
+    equipment_override?: string[] | undefined;
+    start_time_iso?: string | undefined;
+    new_injuries?: string | undefined;
 }>;
 export type PreWorkout = z.infer<typeof PreWorkoutSchema>;
 //# sourceMappingURL=preworkout.d.ts.map

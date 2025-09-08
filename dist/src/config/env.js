@@ -63,11 +63,11 @@ catch (error) {
 const parsedEnv = Env.parse({
     ...process.env,
     // Support Firebase Functions config format
-    OPENAI_API_KEY: process.env.OPENAI_API_KEY || firebaseConfig.openai?.api_key,
-    OPENAI_MODEL: process.env.OPENAI_MODEL || firebaseConfig.openai?.model || 'gpt-4o-mini',
-    INTERNAL_API_KEY: process.env.INTERNAL_API_KEY || firebaseConfig.internal?.api_key,
+    OPENAI_API_KEY: process.env['OPENAI_API_KEY'] || firebaseConfig.openai?.api_key,
+    OPENAI_MODEL: process.env['OPENAI_MODEL'] || firebaseConfig.openai?.model || 'gpt-4o-mini',
+    INTERNAL_API_KEY: process.env['INTERNAL_API_KEY'] || firebaseConfig.internal?.api_key,
     // Use GCLOUD_PROJECT as FIREBASE_PROJECT_ID in Firebase Functions
-    FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID || process.env.GCLOUD_PROJECT,
+    FIREBASE_PROJECT_ID: process.env['FIREBASE_PROJECT_ID'] || process.env['GCLOUD_PROJECT'],
 });
 exports.env = {
     ...parsedEnv,
