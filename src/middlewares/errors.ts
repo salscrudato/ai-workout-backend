@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import pino from 'pino';
+import { ErrorClassifier, ErrorMetrics, ErrorSeverity } from '../utils/errorClassification';
+import { RetryManager, RetryExhaustedError } from '../utils/circuitBreaker';
 
 // Initialize logger for error handling
 const baseLogger = pino({
@@ -53,13 +55,14 @@ function generateErrorId(): string {
 }
 
 /**
- * Enhanced error handler middleware with structured logging and user-friendly responses
+ * Enhanced error handler middleware with intelligent error classification and structured responses
  *
- * Handles different types of errors with appropriate HTTP status codes and messages:
- * - Validation errors (Zod schema validation)
- * - Database errors (MongoDB/Firestore)
- * - Application errors (custom AppError instances)
- * - Generic errors with fallback handling
+ * Features:
+ * - Automatic error classification and severity assessment
+ * - User-friendly error messages with technical details for debugging
+ * - Error metrics collection for monitoring and alerting
+ * - Structured logging with correlation IDs
+ * - Security-aware error exposure (no sensitive data in production)
  *
  * @param err - Error object
  * @param req - Express request object
@@ -69,13 +72,54 @@ function generateErrorId(): string {
 export function errorHandler(err: any, req: Request, res: Response, _next: NextFunction): void {
   const errorId = generateErrorId();
   const userId = req.user?.uid || 'anonymous';
+  const context = {
+    operation: `${req.method} ${req.path}`,
+    userId
+  };
 
-  // Handle Zod validation errors
+  // Classify the error for appropriate handling
+  const classification = ErrorClassifier.classify(err, context);
+
+  // Record error metrics
+  ErrorMetrics.record(classification, context);
+
+  // Determine HTTP status code
+  let statusCode = 500;
+  if (err instanceof AppError) {
+    statusCode = err.statusCode;
+  } else if (err instanceof ZodError) {
+    statusCode = 400;
+  } else if (err instanceof RetryExhaustedError) {
+    statusCode = 503; // Service Unavailable
+  } else if (err.status || err.statusCode) {
+    statusCode = err.status || err.statusCode;
+  } else {
+    // Determine status based on classification
+    switch (classification.category) {
+      case 'VALIDATION':
+      case 'AUTHENTICATION':
+        statusCode = classification.category === 'VALIDATION' ? 400 : 401;
+        break;
+      case 'RATE_LIMIT':
+        statusCode = 429;
+        break;
+      case 'EXTERNAL_SERVICE':
+      case 'DATABASE':
+      case 'NETWORK':
+        statusCode = 503;
+        break;
+      default:
+        statusCode = 500;
+    }
+  }
+
+  // Handle Zod validation errors with enhanced details
   if (err instanceof ZodError) {
     const validationErrors = err.errors.map(e => ({
       field: e.path.join('.'),
       message: e.message,
-      code: e.code
+      code: e.code,
+      received: (e as any).received
     }));
 
     logger.warn('Validation error', {
@@ -83,14 +127,16 @@ export function errorHandler(err: any, req: Request, res: Response, _next: NextF
       userId,
       url: req.url,
       method: req.method,
-      validationErrors
+      validationErrors,
+      classification
     });
 
     res.status(400).json({
-      error: 'Validation failed',
-      code: 'VALIDATION_ERROR',
+      error: classification.userMessage,
+      code: classification.errorCode,
       details: validationErrors,
-      errorId
+      errorId,
+      timestamp: new Date().toISOString()
     });
     return;
   }
@@ -105,14 +151,38 @@ export function errorHandler(err: any, req: Request, res: Response, _next: NextF
       code: err.code,
       message: err.message,
       statusCode: err.statusCode,
-      isOperational: err.isOperational
+      isOperational: err.isOperational,
+      classification
     });
 
     res.status(err.statusCode).json({
-      error: err.message,
+      error: classification.userMessage || err.message,
       code: err.code,
       errorId,
-      timestamp: err.timestamp
+      timestamp: err.timestamp,
+      ...(classification.suggestedAction && { suggestedAction: classification.suggestedAction })
+    });
+    return;
+  }
+
+  // Handle retry exhausted errors
+  if (err instanceof RetryExhaustedError) {
+    logger.error('Retry exhausted error', {
+      errorId,
+      userId,
+      url: req.url,
+      method: req.method,
+      attempts: err.attempts,
+      originalError: err.originalError.message,
+      classification
+    });
+
+    res.status(503).json({
+      error: classification.userMessage,
+      code: classification.errorCode,
+      errorId,
+      timestamp: new Date().toISOString(),
+      retryAfter: 60 // Suggest retry after 60 seconds
     });
     return;
   }
@@ -127,14 +197,16 @@ export function errorHandler(err: any, req: Request, res: Response, _next: NextF
       url: req.url,
       method: req.method,
       field,
-      value: err.keyValue?.[field]
+      value: err.keyValue?.[field],
+      classification
     });
 
     res.status(409).json({
       error: `${field} already exists`,
       code: 'DUPLICATE_KEY_ERROR',
       field,
-      errorId
+      errorId,
+      timestamp: new Date().toISOString()
     });
     return;
   }
@@ -147,63 +219,80 @@ export function errorHandler(err: any, req: Request, res: Response, _next: NextF
       url: req.url,
       method: req.method,
       path: err.path,
-      value: err.value
+      value: err.value,
+      classification
     });
 
     res.status(400).json({
       error: 'Invalid ID format',
       code: 'INVALID_ID_FORMAT',
       field: err.path,
-      errorId
+      errorId,
+      timestamp: new Date().toISOString()
     });
     return;
   }
 
-  // Handle generic errors
-  const status = err.status || err.statusCode || 500;
-  const message = err.message || 'Internal Server Error';
-  const isServerError = status >= 500;
+  // Handle generic errors with intelligent classification
+  const isServerError = statusCode >= 500;
+  const technicalDetails = ErrorClassifier.getTechnicalDetails(err, classification);
 
-  // Log with appropriate level
-  if (isServerError) {
-    logger.error('Server error', {
-      errorId,
-      userId,
-      url: req.url,
-      method: req.method,
-      status,
-      message,
-      stack: err.stack,
+  // Log with appropriate level based on severity
+  const logLevel = classification.severity === ErrorSeverity.CRITICAL ? 'error' :
+                   classification.severity === ErrorSeverity.HIGH ? 'error' :
+                   classification.severity === ErrorSeverity.MEDIUM ? 'warn' : 'info';
+
+  logger[logLevel]('Request error', {
+    errorId,
+    userId,
+    url: req.url,
+    method: req.method,
+    statusCode,
+    classification,
+    technicalDetails,
+    ...(isServerError && {
       body: req.body,
       params: req.params,
-      query: req.query
-    });
-  } else {
-    logger.warn('Client error', {
-      errorId,
-      userId,
-      url: req.url,
-      method: req.method,
-      status,
-      message
-    });
-  }
+      query: req.query,
+      headers: req.headers
+    })
+  });
 
-  // Prepare response
+  // Prepare user-friendly response
   const response: any = {
-    error: isServerError && process.env.NODE_ENV === 'production'
-      ? 'Internal Server Error'
-      : message,
-    code: err.code || (isServerError ? 'INTERNAL_ERROR' : 'CLIENT_ERROR'),
-    errorId
+    error: process.env.NODE_ENV === 'production' && isServerError
+      ? classification.userMessage
+      : classification.userMessage || err.message || 'An error occurred',
+    code: classification.errorCode,
+    errorId,
+    timestamp: new Date().toISOString()
   };
 
-  // Add stack trace in development
-  if (process.env.NODE_ENV === 'development' && err.stack) {
-    response.stack = err.stack;
+  // Add helpful information for retryable errors
+  if (classification.isRetryable) {
+    response.retryable = true;
+    response.retryAfter = statusCode === 429 ? 60 : 30; // Seconds
   }
 
-  res.status(status).json(response);
+  // Add suggested action if available
+  if (classification.suggestedAction) {
+    response.suggestedAction = classification.suggestedAction;
+  }
+
+  // Add technical details in development
+  if (process.env.NODE_ENV === 'development') {
+    response.technical = {
+      message: err.message,
+      stack: err.stack,
+      classification: {
+        category: classification.category,
+        severity: classification.severity,
+        isRetryable: classification.isRetryable
+      }
+    };
+  }
+
+  res.status(statusCode).json(response);
 }
 
 /**

@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Dumbbell } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Dumbbell, LogOut } from 'lucide-react';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useAuth } from '../../contexts/AuthContext';
 import Button from './Button';
@@ -24,8 +24,16 @@ export interface SidebarNavigationProps {
  */
 const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ className }) => {
   const { navigationItems, activeItem, setActiveItem, isSidebarCollapsed, toggleSidebar } = useNavigation();
-  const { user, profile } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const location = useLocation();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Sign out failed:', error);
+    }
+  };
 
   return (
     <motion.aside
@@ -210,7 +218,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ className }) => {
 
       {/* User Profile Section */}
       {user && (
-        <div className="border-t border-secondary-200 p-4">
+        <div className="border-t border-secondary-200 p-4 space-y-3">
           <div
             className={clsx(
               'flex items-center space-x-3 p-3 rounded-xl',
@@ -224,7 +232,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ className }) => {
                 {user.email?.charAt(0).toUpperCase()}
               </span>
             </div>
-            
+
             {!isSidebarCollapsed && (
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-secondary-900 truncate">
@@ -236,6 +244,29 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ className }) => {
               </div>
             )}
           </div>
+
+          {/* Sign Out Button */}
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSignOut}
+              className={clsx(
+                'w-full justify-start text-secondary-600 hover:text-red-600',
+                'hover:bg-red-50 transition-colors duration-200',
+                isSidebarCollapsed && 'justify-center px-2'
+              )}
+              aria-label="Sign out"
+            >
+              <LogOut className="w-4 h-4" />
+              {!isSidebarCollapsed && (
+                <span className="ml-2">Sign Out</span>
+              )}
+            </Button>
+          </motion.div>
         </div>
       )}
     </motion.aside>

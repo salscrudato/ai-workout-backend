@@ -1,6 +1,10 @@
 import { Router } from 'express';
 import { asyncHandler } from '../middlewares/errors';
 import { promptAnalytics } from '../services/promptAnalytics';
+import { advancedPerformanceMonitor } from '../services/advancedPerformanceMonitor';
+import { cacheManager } from '../services/intelligentCache';
+import { requestDeduplicationService } from '../services/requestDeduplication';
+import { maybeApiKey } from '../middlewares/auth';
 
 const router = Router();
 
@@ -71,6 +75,61 @@ router.get('/ab-test-recommendations', asyncHandler(async (req, res) => {
       totalEstimatedDuration: '6-12 weeks for all tests',
       minimumSampleSize: '100 workouts per variant per test'
     }
+  });
+}));
+
+/**
+ * GET /analytics/performance-metrics
+ * Get advanced performance metrics
+ */
+router.get('/performance-metrics', maybeApiKey, asyncHandler(async (req, res) => {
+  const performanceStats = advancedPerformanceMonitor.getStats();
+  const performanceTrends = advancedPerformanceMonitor.getPerformanceTrends();
+  const recentAlerts = advancedPerformanceMonitor.getRecentAlerts();
+
+  res.json({
+    timestamp: new Date().toISOString(),
+    performance: performanceStats,
+    trends: performanceTrends,
+    alerts: recentAlerts
+  });
+}));
+
+/**
+ * GET /analytics/cache-metrics
+ * Get cache performance metrics
+ */
+router.get('/cache-metrics', maybeApiKey, asyncHandler(async (req, res) => {
+  const cacheMetrics = cacheManager.getAllMetrics();
+
+  res.json({
+    timestamp: new Date().toISOString(),
+    caches: cacheMetrics
+  });
+}));
+
+/**
+ * GET /analytics/system-overview
+ * Get comprehensive system metrics overview
+ */
+router.get('/system-overview', maybeApiKey, asyncHandler(async (req, res) => {
+  const performanceStats = advancedPerformanceMonitor.getStats();
+  const cacheMetrics = cacheManager.getAllMetrics();
+  const deduplicationMetrics = requestDeduplicationService.getMetrics();
+
+  res.json({
+    timestamp: new Date().toISOString(),
+    system: {
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      cpu: process.cpuUsage(),
+      version: process.version,
+      platform: process.platform,
+      arch: process.arch
+    },
+    performance: performanceStats,
+    caching: cacheMetrics,
+    deduplication: deduplicationMetrics
   });
 }));
 

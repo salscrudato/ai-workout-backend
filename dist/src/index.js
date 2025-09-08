@@ -50,7 +50,7 @@ const logger = (0, pino_1.default)({
         }
     })
 });
-// Firebase Functions entry point
+// Firebase Functions entry point - Fixed CORS and dependency issues
 exports.api = (0, https_1.onRequest)({
     region: 'us-central1',
     memory: '512MiB',

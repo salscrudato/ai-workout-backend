@@ -16,14 +16,8 @@ import {
 import v1 from './routes/v1';
 import healthRoutes from './routes/health';
 import analyticsRoutes from './routes/analytics';
-// import { performanceOptimizer } from './services/performanceOptimizer'; // Temporarily disabled
-
-// Temporary stub for performanceOptimizer
-const performanceOptimizer = {
-  recordRequest: (responseTime: number, isError: boolean) => {
-    // Stub implementation - could log to console or do nothing
-  }
-};
+import { advancedPerformanceMonitor } from './services/advancedPerformanceMonitor';
+import { cacheManager } from './services/intelligentCache';
 
 let appInstance: express.Application | null = null;
 
@@ -61,10 +55,16 @@ export async function createExpressApp(): Promise<express.Application> {
         }
       }
 
-      // Allow Firebase hosting domains
+      // Allow Firebase hosting domains and localhost for development
       const allowedOrigins = [
         'https://ai-workout-backend-2024.web.app',
-        'https://ai-workout-backend-2024.firebaseapp.com'
+        'https://ai-workout-backend-2024.firebaseapp.com',
+        'http://localhost:5173',
+        'http://localhost:5174',
+        'http://localhost:3000',
+        'http://127.0.0.1:5173',
+        'http://127.0.0.1:5174',
+        'http://127.0.0.1:3000'
       ];
 
       if (allowedOrigins.includes(origin)) {
@@ -96,16 +96,17 @@ export async function createExpressApp(): Promise<express.Application> {
   app.use(compression());
   app.use(maybeApiKey);
 
-  // Performance monitoring middleware
+  // Advanced performance monitoring middleware
+  app.use(advancedPerformanceMonitor.middleware());
+
+  // Cache optimization middleware
   app.use((req, res, next) => {
-    const startTime = Date.now();
-
-    res.on('finish', () => {
-      const responseTime = Date.now() - startTime;
-      const isError = res.statusCode >= 400;
-      performanceOptimizer.recordRequest(responseTime, isError);
-    });
-
+    // Optimize caches periodically
+    if (Math.random() < 0.01) { // 1% chance to trigger optimization
+      cacheManager.optimizeAll().catch(error => {
+        logger.warn({ error: (error as Error).message }, 'Cache optimization failed');
+      });
+    }
     next();
   });
 

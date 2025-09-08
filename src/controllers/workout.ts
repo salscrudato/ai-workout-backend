@@ -18,16 +18,7 @@ import {
   CompleteWorkoutSchema
 } from '../utils/validation';
 
-// Advanced services
-// Temporarily disabled advanced services
-// import {
-//   generateSetsProgramming,
-//   generateProgressiveReps,
-//   type WorkoutProgrammingOptions
-// } from '../services/workoutProgramming';
-// import { frictionlessUXService } from '../services/frictionlessUX';
-// import { workoutIntelligenceAdvanced } from '../services/workoutIntelligenceAdvanced';
-// import { workoutProgrammingEngine } from '../services/workoutProgrammingEngine';
+
 
 // Initialize logger for this controller
 const baseLogger = pino({
@@ -79,36 +70,7 @@ const generateProgressiveReps = (programming: any, category: string) => {
   return [10, 10, 10];
 };
 
-const frictionlessUXService = {
-  generateQuickWorkoutOptions: async (userId: string) => ({
-    quickStart: {
-      workoutType: 'general_fitness',
-      duration: 30,
-      intensity: 3,
-      equipmentAvailable: ['bodyweight'],
-      constraints: [],
-      timeOfDay: 'morning',
-      reasoning: 'Quick workout option',
-      confidence: 0.8
-    },
-    alternatives: [],
-    reasoning: 'Generated quick workout options based on user preferences'
-  })
-};
 
-const workoutProgrammingEngine = {
-  generateAdaptiveLoading: async (userId: string, options: any) => ({
-    loadAdjustment: 0,
-    volumeAdjustment: 0,
-    intensityAdjustment: 0,
-    reasoning: []
-  }),
-  assessBiomechanicalConsiderations: async (userId: string, options: any) => ({
-    movementPatterns: [],
-    injuryRiskFactors: [],
-    recommendations: []
-  })
-};
 
 /**
  * Current prompt version for workout generation
@@ -241,6 +203,68 @@ function ensureProperSets(
   return exercise;
 }
 
+// Transform database format to frontend format
+function transformDatabasePlanToFrontendFormat(dbPlan: any) {
+  console.log('🔄 Transforming database plan to frontend format:', JSON.stringify(dbPlan, null, 2));
+
+  // Extract warmup exercises
+  const warmupExercises = dbPlan.warm_up?.exercises || dbPlan.warmup || [];
+  console.log('🔥 Warmup exercises found:', warmupExercises.length);
+
+  // Extract main exercises from blocks
+  const mainExercises = dbPlan.blocks?.[0]?.exercises || dbPlan.exercises || [];
+  console.log('💪 Main exercises found:', mainExercises.length);
+
+  // Extract cooldown exercises
+  const cooldownExercises = dbPlan.cool_down?.exercises || dbPlan.cooldown || [];
+  console.log('🧘 Cooldown exercises found:', cooldownExercises.length);
+
+  const transformedPlan = {
+    meta: dbPlan.meta || {},
+    warmup: warmupExercises.map((exercise: any) => ({
+      name: exercise.name || 'Unknown Exercise',
+      sets: exercise.sets || 1,
+      reps: exercise.reps || '10',
+      duration: exercise.duration_sec ? `${exercise.duration_sec}s` : '30s',
+      rest: '30s',
+      notes: exercise.notes || '',
+    })),
+    exercises: mainExercises.map((exercise: any, index: number) => ({
+      name: exercise.name || 'Unknown Exercise',
+      sets: exercise.sets || 1,
+      reps: exercise.reps || '10',
+      weight: exercise.weight || '',
+      duration: exercise.duration_sec ? `${exercise.duration_sec}s` : undefined,
+      rest: exercise.rest_sec ? `${exercise.rest_sec}s` : '60s',
+      notes: exercise.notes || '',
+      equipment: exercise.equipment || [],
+      muscleGroups: exercise.muscle_groups || [],
+      blockName: dbPlan.blocks?.[0]?.name || 'Main Workout',
+      blockIndex: 0,
+      exerciseIndex: index,
+    })),
+    cooldown: cooldownExercises.map((exercise: any) => ({
+      name: exercise.name || 'Unknown Exercise',
+      sets: exercise.sets || 1,
+      reps: exercise.reps || '10',
+      duration: exercise.duration_sec ? `${exercise.duration_sec}s` : '30s',
+      rest: '30s',
+      notes: exercise.notes || '',
+    })),
+    notes: dbPlan.blocks?.[0]?.notes || '',
+    estimatedDuration: dbPlan.meta?.est_duration_min || undefined,
+  };
+
+  console.log('✅ Transformed plan summary:', {
+    warmupCount: transformedPlan.warmup.length,
+    exercisesCount: transformedPlan.exercises.length,
+    cooldownCount: transformedPlan.cooldown.length,
+    estimatedDuration: transformedPlan.estimatedDuration
+  });
+
+  return transformedPlan;
+}
+
 // Transform AI output format to frontend format
 function transformAIPlanToFrontendFormat(aiPlan: any, programmingOptions?: WorkoutProgrammingOptions) {
   const formatRestTime = (restSec: number): string => {
@@ -325,7 +349,7 @@ function transformAIPlanToFrontendFormat(aiPlan: any, programmingOptions?: Worko
     exerciseIndex: index,
   })) || [];
 
-  return {
+  const transformedPlan = {
     meta: aiPlan.meta || {},
     warmup: aiPlan.warmup?.map((exercise: any) => {
       const exerciseWithSets = ensureProperSets(exercise, 'warmup', programmingOptions);
@@ -339,6 +363,19 @@ function transformAIPlanToFrontendFormat(aiPlan: any, programmingOptions?: Worko
     notes: aiPlan.notes || '',
     estimatedDuration: aiPlan.meta?.est_duration_min || undefined,
   };
+
+  console.log('🤖 AI Plan transformation summary:', {
+    originalWarmup: aiPlan.warmup?.length || 0,
+    originalBlocks: aiPlan.blocks?.length || 0,
+    originalFinisher: aiPlan.finisher?.length || 0,
+    originalCooldown: aiPlan.cooldown?.length || 0,
+    transformedWarmup: transformedPlan.warmup.length,
+    transformedExercises: transformedPlan.exercises.length,
+    transformedCooldown: transformedPlan.cooldown.length,
+    estimatedDuration: transformedPlan.estimatedDuration
+  });
+
+  return transformedPlan;
 }
 
 /**
@@ -456,12 +493,8 @@ export const generate = asyncHandler(async (req: Request, res: Response): Promis
       equipmentLevel: determineEquipmentLevel(pre.equipment_override)
     };
 
-    // 8. Get advanced programming recommendations
-    logger.debug('Applying advanced programming', { userId, requestId });
-    const [adaptiveLoading, biomechanicalConsiderations] = await Promise.all([
-      workoutProgrammingEngine.generateAdaptiveLoading(pre.userId, programmingOptions),
-      workoutProgrammingEngine.assessBiomechanicalConsiderations(pre.userId, programmingOptions)
-    ]);
+    // 8. Skip advanced programming (services removed)
+    logger.debug('Skipping advanced programming (services removed)', { userId, requestId });
 
     // 9. Transform AI output to frontend format with advanced programming
     const transformedPlan = transformAIPlanToFrontendFormat(aiPlan, programmingOptions);
@@ -696,13 +729,16 @@ export const getWorkout = asyncHandler(async (req: Request, res: Response): Prom
       responseTime
     });
 
+    // Transform database format to frontend format
+    const transformedPlan = transformDatabasePlanToFrontendFormat(workout.plan);
+
     res.json({
       id: workout.id,
       userId: workout.userId,
       model: workout.model,
       promptVersion: workout.promptVersion,
       preWorkout: workout.preWorkout,
-      plan: workout.plan,
+      plan: transformedPlan,
       createdAt: workout.createdAt.toDate().toISOString(),
       metadata: {
         responseTime,
@@ -744,13 +780,16 @@ export const listWorkouts = asyncHandler(async (req: Request, res: Response): Pr
     try {
       const plan = await WorkoutPlanModel.findById(session.planId);
       if (plan && plan.userId === userId) {
+        // Transform database format to frontend format
+        const transformedPlan = transformDatabasePlanToFrontendFormat(plan.plan);
+
         (workouts as any[]).push({
           id: plan.id,
           userId: plan.userId,
           model: plan.model,
           promptVersion: plan.promptVersion,
           preWorkout: plan.preWorkout,
-          plan: plan.plan,
+          plan: transformedPlan,
           createdAt: plan.createdAt.toDate().toISOString(),
           // Add completion information
           completedAt: session.completedAt?.toDate().toISOString(),
@@ -818,22 +857,17 @@ export const generateQuickWorkout = asyncHandler(async (req: Request, res: Respo
   const userId = user.id!;
 
   try {
-    // Get intelligent workout options
-    const quickOptions = await frictionlessUXService.generateQuickWorkoutOptions(userId);
+    // Use simple defaults for quick workout generation
+    console.log('🚀 Quick workout generation with simple defaults');
 
-    // Use the quick start option for immediate generation
-    const quickStart = quickOptions.quickStart;
-
-    console.log('🚀 Quick workout generation with smart defaults:', quickStart);
-
-    // Convert to backend format
+    // Convert to backend format with defaults
     const pre = {
       userId,
-      time_available_min: quickStart.duration,
+      time_available_min: 30, // Default 30 minutes
       energy_level: 3, // Default to medium energy
-      workout_type: quickStart.workoutType.toLowerCase().replace(/[^a-z0-9]/g, '_') as any,
-      equipment_override: quickStart.equipmentAvailable,
-      new_injuries: quickStart.constraints?.join(', ') || undefined,
+      workout_type: 'general_fitness' as any,
+      equipment_override: ['bodyweight'], // Default to bodyweight
+      new_injuries: undefined,
       experience: 'intermediate', // Will be overridden by profile data
       goals: ['general_fitness'], // Will be overridden by profile data
     };
@@ -841,12 +875,14 @@ export const generateQuickWorkout = asyncHandler(async (req: Request, res: Respo
     // Check for duplicate (idempotency)
     const dup = await WorkoutPlanModel.findOne({ userId: pre.userId, promptVersion: PROMPT_VERSION, preWorkout: pre });
     if (dup) {
+      // Transform database format to frontend format
+      const transformedPlan = transformDatabasePlanToFrontendFormat(dup.plan);
+
       res.json({
         workoutId: dup.id,
-        plan: dup.plan,
+        plan: transformedPlan,
         deduped: true,
-        quickOptions: quickOptions,
-        reasoning: quickOptions.reasoning
+        reasoning: 'Quick workout with default settings'
       });
       return;
     }
@@ -922,9 +958,8 @@ export const generateQuickWorkout = asyncHandler(async (req: Request, res: Respo
     res.status(201).json({
       workoutId: wp.id,
       plan: transformedPlan,
-      quickOptions: quickOptions,
-      reasoning: quickOptions.reasoning,
-      confidence: quickStart.confidence
+      reasoning: 'Quick workout with default settings',
+      confidence: 0.8
     });
 
   } catch (error) {

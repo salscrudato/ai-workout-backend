@@ -101,25 +101,6 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
-    // Development bypass for testing
-    if (process.env.NODE_ENV === 'development' && token === 'test-dev-token') {
-      req.user = {
-        uid: 'test-user-dev',
-        email: 'test@example.com',
-        email_verified: true,
-        exp: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
-        aud: 'test-project',
-        auth_time: Math.floor(Date.now() / 1000),
-        firebase: { identities: {}, sign_in_provider: 'custom' },
-        iat: Math.floor(Date.now() / 1000),
-        iss: 'https://securetoken.google.com/test-project',
-        sub: 'test-user-dev'
-      };
-      console.log('Auth: Development bypass used');
-      next();
-      return;
-    }
-
     // Basic token format validation
     if (!token || token.length < 100) {
       console.log('Auth failed: Invalid token format');

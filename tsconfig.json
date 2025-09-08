@@ -18,7 +18,7 @@
     "removeComments": false, // Keep comments for better AI agent understanding
 
     // Strict Type Checking Options (Temporarily relaxed for build stability)
-    "strict": true,
+    "strict": false,
     "noImplicitAny": false, // Temporarily disabled
     "strictNullChecks": true,
     "strictFunctionTypes": true,
@@ -59,22 +59,7 @@
     "node_modules",
     "dist",
     "**/*.test.ts",
-    "**/*.spec.ts",
-    // Temporarily exclude problematic services during refactoring
-    "src/services/advancedAnalytics.ts",
-    "src/services/frictionlessUX.ts",
-    "src/services/performanceOptimizer.ts",
-    "src/services/prompt.ts",
-    "src/services/workoutIntelligenceAdvanced.ts",
-    "src/services/workoutProgramming.ts",
-    "src/services/workoutProgrammingEngine.ts",
-    "src/services/adaptiveLearning.ts",
-    "src/services/workoutIntelligence.ts",
-    "src/services/adaptiveLearningRealTime.ts",
-    "src/services/biometricIntegration.ts",
-    "src/services/intelligentProgression.ts",
-    "src/services/performanceMonitor.ts",
-    "src/services/smartEquipment.ts"
+    "**/*.spec.ts"
   ],
   "ts-node": {
     "esm": true

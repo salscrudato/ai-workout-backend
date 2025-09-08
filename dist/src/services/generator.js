@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.generateWorkoutWithOptimization = generateWorkoutWithOptimization;
 exports.generateWorkout = generateWorkout;
 const pino_1 = __importDefault(require("pino"));
 // Core dependencies
@@ -12,6 +13,9 @@ const workoutOutput_1 = require("../schemas/workoutOutput");
 const promptVersioning_1 = require("./promptVersioning");
 const circuitBreaker_1 = require("../utils/circuitBreaker");
 const logger_1 = require("../utils/logger");
+const gracefulDegradation_1 = require("./gracefulDegradation");
+const intelligentCache_1 = require("./intelligentCache");
+const requestDeduplication_1 = require("./requestDeduplication");
 // Initialize logger for this service
 const baseLogger = (0, pino_1.default)({
     name: 'workout-generator',
@@ -36,6 +40,63 @@ const openaiCircuitBreaker = circuitBreaker_1.circuitBreakerRegistry.getBreaker(
         }
         return true;
     }
+});
+// Initialize retry manager for OpenAI API calls
+const retryManager = new circuitBreaker_1.RetryManager({
+    maxAttempts: 3,
+    baseDelay: 1000,
+    maxDelay: 10000,
+    backoffMultiplier: 2,
+    jitter: true,
+    retryCondition: (error) => {
+        // Retry on rate limits and server errors
+        const message = error.message.toLowerCase();
+        return message.includes('rate limit') ||
+            message.includes('timeout') ||
+            message.includes('503') ||
+            message.includes('502') ||
+            message.includes('500');
+    }
+});
+// Initialize graceful degradation manager
+const degradationManager = new gracefulDegradation_1.GracefulDegradationManager([
+    {
+        name: 'openai',
+        fallbackStrategy: gracefulDegradation_1.FallbackStrategy.SIMPLIFIED_RESPONSE,
+        fallbackData: {
+            plan: {
+                name: 'Basic Workout Plan',
+                description: 'A simple workout plan generated during service degradation',
+                exercises: [
+                    {
+                        name: 'Push-ups',
+                        sets: 3,
+                        reps: '10-15',
+                        rest_seconds: 60,
+                        instructions: 'Standard push-ups focusing on form'
+                    },
+                    {
+                        name: 'Bodyweight Squats',
+                        sets: 3,
+                        reps: '15-20',
+                        rest_seconds: 60,
+                        instructions: 'Keep your back straight and go down until thighs are parallel to floor'
+                    }
+                ]
+            }
+        },
+        maxQueueSize: 50,
+        healthCheckInterval: 30000 // 30 seconds
+    }
+]);
+// Initialize intelligent cache for workout generation
+const workoutCache = intelligentCache_1.cacheManager.getCache('workout-generation', {
+    strategy: intelligentCache_1.CacheStrategy.ADAPTIVE,
+    maxSize: 500,
+    ttl: 1800000, // 30 minutes
+    tier: intelligentCache_1.CacheTier.L1_MEMORY,
+    compressionEnabled: true,
+    metricsEnabled: true
 });
 /**
  * AI generation error with additional context
@@ -80,6 +141,59 @@ function getOptimalModelParameters(options = {}) {
     return { temperature, topP };
 }
 /**
+ * Generate cache key for workout generation
+ */
+function generateCacheKey(promptData, options) {
+    const keyData = {
+        promptHash: promptData.prompt.substring(0, 100), // First 100 chars for uniqueness
+        variant: promptData.variant?.name || 'default',
+        workoutType: options.workoutType,
+        experience: options.experience,
+        duration: options.duration
+    };
+    return `workout:${Buffer.from(JSON.stringify(keyData)).toString('base64')}`;
+}
+/**
+ * Enhanced workout generation with caching and deduplication
+ */
+// @deduplicate({ timeout: 60000 }) // 1 minute timeout for deduplication - temporarily disabled
+async function generateWorkoutWithOptimization(promptData, options = {}) {
+    const startTime = Date.now();
+    const requestId = `workout-gen-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const cacheKey = generateCacheKey(promptData, options);
+    logger.info('Starting optimized AI workout generation', {
+        requestId,
+        cacheKey,
+        workoutType: options.workoutType,
+        experience: options.experience,
+        duration: options.duration,
+        promptLength: promptData.prompt.length,
+        serviceHealth: degradationManager.getServiceHealth('openai')
+    });
+    // Check cache first
+    const cachedResult = await workoutCache.get(cacheKey);
+    if (cachedResult) {
+        logger.info('Workout served from cache', {
+            requestId,
+            cacheKey,
+            responseTime: Date.now() - startTime
+        });
+        return cachedResult;
+    }
+    // Use request deduplication for the actual generation
+    return await requestDeduplication_1.requestDeduplicationService.execute(async () => {
+        const result = await generateWorkout(promptData, options);
+        // Cache the successful result
+        await workoutCache.set(cacheKey, result, 1800000); // 30 minutes
+        logger.info('Workout generated and cached', {
+            requestId,
+            cacheKey,
+            responseTime: Date.now() - startTime
+        });
+        return result;
+    }, { promptData, options }, { key: cacheKey, timeout: 60000 });
+}
+/**
  * Generates a personalized workout plan using OpenAI's GPT model
  *
  * This function orchestrates the complete AI workout generation process:
@@ -96,24 +210,29 @@ function getOptimalModelParameters(options = {}) {
  */
 async function generateWorkout(promptData, options = {}) {
     const startTime = Date.now();
+    const requestId = `workout-gen-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    logger.info('Starting AI workout generation with enhanced resilience', {
+        requestId,
+        workoutType: options.workoutType,
+        experience: options.experience,
+        duration: options.duration,
+        promptLength: promptData.prompt.length,
+        serviceHealth: degradationManager.getServiceHealth('openai')
+    });
     try {
-        logger.info('Starting AI workout generation', {
-            workoutType: options.workoutType,
-            experience: options.experience,
-            duration: options.duration,
-            promptLength: promptData.prompt.length
-        });
-        // 1. Calculate optimal model parameters
-        const baseModelParams = getOptimalModelParameters(options);
-        const modelParams = promptVersioning_1.promptVersioning.getModelParameters(promptData.variant, baseModelParams);
-        logger.debug('Model parameters calculated', { modelParams });
-        // 2. Prepare AI request with structured output
-        const aiRequest = {
-            model: env_1.env.OPENAI_MODEL,
-            messages: [
-                {
-                    role: 'system',
-                    content: `You are Dr. Sarah Chen, a world-renowned exercise physiologist and strength coach with 25+ years of experience. You've trained Olympic athletes, developed evidence-based training protocols, and published research on exercise adaptation.
+        // Execute with graceful degradation and resilience patterns
+        return await degradationManager.executeWithDegradation('openai', async () => {
+            // 1. Calculate optimal model parameters
+            const baseModelParams = getOptimalModelParameters(options);
+            const modelParams = promptVersioning_1.promptVersioning.getModelParameters(promptData.variant, baseModelParams);
+            logger.debug('Model parameters calculated', { requestId, modelParams });
+            // 2. Prepare AI request with structured output
+            const aiRequest = {
+                model: env_1.env.OPENAI_MODEL,
+                messages: [
+                    {
+                        role: 'system',
+                        content: `You are Dr. Sarah Chen, a world-renowned exercise physiologist and strength coach with 25+ years of experience. You've trained Olympic athletes, developed evidence-based training protocols, and published research on exercise adaptation.
 
 ADVANCED EXERCISE SCIENCE PRINCIPLES:
 - Apply SAID Principle (Specific Adaptations to Imposed Demands) for targeted adaptations
@@ -156,91 +275,152 @@ EXERCISE SELECTION MASTERY:
 Generate scientifically-optimized workout plans that maximize training adaptations while ensuring safety and adherence. Always consider the individual's complete profile, training history, and current state when designing programs.
 
 Output must be valid JSON matching the provided schema exactly. Focus on progressive overload, movement quality, and sustainable training practices.`
-                },
-                {
-                    role: 'user',
-                    content: promptData.prompt
+                    },
+                    {
+                        role: 'user',
+                        content: promptData.prompt
+                    }
+                ],
+                temperature: modelParams.temperature,
+                top_p: modelParams.topP,
+                response_format: {
+                    type: 'json_schema',
+                    json_schema: {
+                        name: 'workout_plan',
+                        schema: workoutOutput_1.WorkoutPlanJsonSchema,
+                        strict: true
+                    }
                 }
-            ],
-            temperature: modelParams.temperature,
-            top_p: modelParams.topP,
-            response_format: {
-                type: 'json_schema',
-                json_schema: {
-                    name: 'workout_plan',
-                    schema: workoutOutput_1.WorkoutPlanJsonSchema,
-                    strict: true
+            };
+            // 3. Execute with retry and circuit breaker protection
+            return await retryManager.execute(async () => {
+                logger.debug('Calling OpenAI API with circuit breaker protection', {
+                    requestId,
+                    model: env_1.env.OPENAI_MODEL
+                });
+                const response = await (0, logger_1.measureExecutionTime)('openai_api_call', () => openaiCircuitBreaker.execute(() => openai_1.openai.chat.completions.create(aiRequest)), { model: env_1.env.OPENAI_MODEL, promptLength: promptData.prompt.length });
+                // Log successful API call
+                logger_1.structuredLogger.logExternalServiceCall('openai', 'chat.completions.create', Date.now() - startTime, true, { model: env_1.env.OPENAI_MODEL, requestId });
+                return response;
+            }, { serviceName: 'openai', operation: 'workout_generation' });
+        }, {
+            cacheKey: `workout-${options.workoutType}-${options.experience}-${options.duration}`,
+            fallbackData: {
+                plan: {
+                    name: 'Emergency Workout Plan',
+                    description: 'A basic workout plan generated during service outage',
+                    exercises: [
+                        {
+                            name: 'Push-ups',
+                            sets: 3,
+                            reps: '8-12',
+                            rest_seconds: 60,
+                            instructions: 'Keep your body in a straight line, lower until chest nearly touches ground'
+                        },
+                        {
+                            name: 'Bodyweight Squats',
+                            sets: 3,
+                            reps: '12-15',
+                            rest_seconds: 60,
+                            instructions: 'Feet shoulder-width apart, lower until thighs parallel to ground'
+                        },
+                        {
+                            name: 'Plank',
+                            sets: 3,
+                            reps: '30-60 seconds',
+                            rest_seconds: 60,
+                            instructions: 'Hold a straight line from head to heels, engage core'
+                        }
+                    ]
                 }
             }
-        };
-        // 3. Call OpenAI API with circuit breaker protection
-        logger.debug('Calling OpenAI API', { model: env_1.env.OPENAI_MODEL });
-        const response = await (0, logger_1.measureExecutionTime)('openai_api_call', () => openaiCircuitBreaker.execute(() => openai_1.openai.chat.completions.create(aiRequest)), { model: env_1.env.OPENAI_MODEL, promptLength: promptData.prompt.length });
-        // Log successful API call
-        logger_1.structuredLogger.logExternalServiceCall('openai', 'chat.completions.create', Date.now() - startTime, true, { model: env_1.env.OPENAI_MODEL });
-        // 4. Validate response
-        // Type guard to ensure we have a ChatCompletion response
-        if (!('choices' in response)) {
-            throw new Error('Unexpected response format from OpenAI API');
-        }
-        const text = response.choices[0]?.message?.content;
-        if (!text) {
-            throw new WorkoutGenerationError('No response content from OpenAI', 'EMPTY_RESPONSE');
-        }
-        // 5. Parse JSON response
-        let parsedWorkout;
-        try {
-            parsedWorkout = JSON.parse(text);
-        }
-        catch (parseError) {
-            logger.error('Failed to parse AI response as JSON', {
-                error: parseError instanceof Error ? parseError.message : 'Unknown parse error',
-                responseLength: text.length,
-                responsePreview: text.substring(0, 200)
+        }).then(async (response) => {
+            // 4. Validate response
+            // Type guard to ensure we have a ChatCompletion response
+            if (!('choices' in response)) {
+                throw new Error('Unexpected response format from OpenAI API');
+            }
+            const text = response.choices[0]?.message?.content;
+            if (!text) {
+                throw new WorkoutGenerationError('No response content from OpenAI', 'EMPTY_RESPONSE');
+            }
+            // 5. Parse JSON response
+            let parsedWorkout;
+            try {
+                parsedWorkout = JSON.parse(text);
+            }
+            catch (parseError) {
+                logger.error('Failed to parse AI response as JSON', {
+                    requestId,
+                    error: parseError instanceof Error ? parseError.message : 'Unknown parse error',
+                    responseLength: text.length,
+                    responsePreview: text.substring(0, 200)
+                });
+                throw new WorkoutGenerationError('AI returned invalid JSON format', 'INVALID_JSON', parseError instanceof Error ? parseError : new Error('Parse error'));
+            }
+            // 6. Log successful generation
+            const responseTime = Date.now() - startTime;
+            logger.info('AI workout generation completed successfully', {
+                requestId,
+                responseTime,
+                workoutType: options.workoutType,
+                exerciseCount: parsedWorkout.blocks?.length || 0,
+                estimatedDuration: parsedWorkout.meta?.est_duration_min
             });
-            throw new WorkoutGenerationError('AI returned invalid JSON format', 'INVALID_JSON', parseError instanceof Error ? parseError : new Error('Parse error'));
-        }
-        // 6. Log successful generation
-        const responseTime = Date.now() - startTime;
-        logger.info('AI workout generation completed successfully', {
-            responseTime,
-            workoutType: options.workoutType,
-            exerciseCount: parsedWorkout.blocks?.length || 0,
-            estimatedDuration: parsedWorkout.meta?.est_duration_min
+            return parsedWorkout;
         });
-        return parsedWorkout;
     }
     catch (error) {
         const responseTime = Date.now() - startTime;
+        // Enhanced error handling with classification
+        logger.error('Workout generation failed with enhanced error handling', {
+            requestId,
+            error: error.message || 'Unknown error',
+            errorType: error.constructor.name,
+            responseTime,
+            serviceHealth: degradationManager.getServiceHealth('openai')
+        });
         // Handle our custom errors
         if (error instanceof WorkoutGenerationError) {
-            logger.error('Workout generation failed', {
-                code: error.code,
-                message: error.message,
-                responseTime
-            });
             throw error;
         }
-        // Handle OpenAI API errors
+        // Handle graceful degradation errors
+        if (error.name === 'GracefulDegradationError') {
+            throw new WorkoutGenerationError('AI service is temporarily unavailable. Using fallback response.', 'SERVICE_DEGRADED', error);
+        }
+        // Handle retry exhausted errors
+        if (error.name === 'RetryExhaustedError') {
+            throw new WorkoutGenerationError('AI service failed after multiple attempts. Please try again later.', 'RETRY_EXHAUSTED', error);
+        }
+        // Handle circuit breaker errors
+        if (error.name === 'CircuitBreakerError') {
+            throw new WorkoutGenerationError('AI service is temporarily unavailable due to high failure rate.', 'CIRCUIT_BREAKER_OPEN', error);
+        }
+        // Handle OpenAI API errors with enhanced classification
         if (error.status) {
-            logger.error('OpenAI API error', {
-                status: error.status,
-                message: error.message,
-                responseTime
-            });
-            throw new WorkoutGenerationError(`AI service error: ${error.message}`, 'AI_SERVICE_ERROR', error);
+            const statusCode = error.status;
+            let errorCode = 'AI_SERVICE_ERROR';
+            let userMessage = 'AI service error occurred';
+            if (statusCode === 429) {
+                errorCode = 'RATE_LIMIT_ERROR';
+                userMessage = 'AI service is busy. Please try again in a moment.';
+            }
+            else if (statusCode >= 500) {
+                errorCode = 'AI_SERVICE_UNAVAILABLE';
+                userMessage = 'AI service is temporarily unavailable. Please try again.';
+            }
+            else if (statusCode === 401 || statusCode === 403) {
+                errorCode = 'AI_SERVICE_AUTH_ERROR';
+                userMessage = 'AI service authentication error.';
+            }
+            throw new WorkoutGenerationError(userMessage, errorCode, error);
         }
         // Handle network/timeout errors
         if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-            logger.error('AI service timeout', { responseTime });
-            throw new WorkoutGenerationError('AI service request timed out', 'TIMEOUT_ERROR', error);
+            throw new WorkoutGenerationError('AI service request timed out. Please try again.', 'TIMEOUT_ERROR', error);
         }
-        // Generic error handling
-        logger.error('Unexpected error in workout generation', {
-            error: error.message || 'Unknown error',
-            responseTime
-        });
-        throw new WorkoutGenerationError('Failed to generate workout plan', 'GENERATION_ERROR', error);
+        // Generic error handling with fallback
+        throw new WorkoutGenerationError('Failed to generate workout plan. Please try again.', 'GENERATION_ERROR', error);
     }
 }
 //# sourceMappingURL=generator.js.map

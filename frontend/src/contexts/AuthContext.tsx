@@ -13,6 +13,7 @@ import {
 import { auth, googleProvider } from '../config/firebase';
 import { apiClient } from '../services/api';
 import type { User, Profile } from '../types/api';
+import { normalizeProfile } from '../utils/profileUtils';
 
 interface AuthContextType {
   // Firebase user
@@ -72,7 +73,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           
           setFirebaseUser(firebaseUser);
           setUser(authResponse.user);
-          setProfile(authResponse.profile || null);
+          setProfile(normalizeProfile(authResponse.profile));
           setIsNewUser(authResponse.isNewUser);
         } catch (error: any) {
           console.error('Backend authentication failed:', error);
@@ -168,7 +169,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     try {
       const updatedProfile = await apiClient.getProfile(user.id);
-      setProfile(updatedProfile);
+      setProfile(normalizeProfile(updatedProfile));
       setIsNewUser(false);
     } catch (error) {
       console.error('Failed to refresh profile:', error);

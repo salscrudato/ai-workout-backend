@@ -104,9 +104,6 @@ const ConversationalWorkoutGenerator: React.FC<ConversationalWorkoutGeneratorPro
   };
 
   const processUserInput = async (input: string): Promise<Omit<ConversationMessage, 'id' | 'timestamp'>> => {
-    // Simulate AI processing (in real app, this would call your AI service)
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
     const lowerInput = input.toLowerCase();
     
     // Extract workout parameters from user input

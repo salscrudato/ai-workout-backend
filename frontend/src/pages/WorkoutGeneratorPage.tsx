@@ -35,6 +35,9 @@ import { useToast } from '../contexts/ToastContext';
 // Types
 import type { GenerateWorkoutRequest } from '../types/api';
 
+// Utils
+import { safeArrayFrom } from '../utils/profileUtils';
+
 /**
  * Validation schema for workout generation form
  * Ensures all required fields are present and valid
@@ -106,9 +109,9 @@ const WorkoutGeneratorPage: React.FC = () => {
   // Memoized default values to prevent form re-initialization
   const defaultValues = useMemo(() => ({
     workoutType: '',
-    equipmentAvailable: Array.from(profile?.equipmentAvailable || []),
+    equipmentAvailable: safeArrayFrom(profile?.equipmentAvailable),
     duration: 30,
-    constraints: Array.from(profile?.constraints || []),
+    constraints: safeArrayFrom(profile?.constraints),
   }), [profile]);
 
   // Form setup with React Hook Form
@@ -129,8 +132,8 @@ const WorkoutGeneratorPage: React.FC = () => {
   // Update form when profile changes (memoized to prevent unnecessary updates)
   useEffect(() => {
     if (profile) {
-      setValue('equipmentAvailable', Array.from(profile.equipmentAvailable));
-      setValue('constraints', Array.from(profile.constraints));
+      setValue('equipmentAvailable', safeArrayFrom(profile.equipmentAvailable));
+      setValue('constraints', safeArrayFrom(profile.constraints));
     }
   }, [profile, setValue]);
 
@@ -165,7 +168,7 @@ const WorkoutGeneratorPage: React.FC = () => {
    * Handles workout generation form submission
    * Includes retry logic, progress tracking, and comprehensive error handling
    */
-  const onSubmit = useCallback(async (data: WorkoutFormData, attempt = 1) => {
+  const onSubmit = useCallback(async (data: WorkoutFormData, attempt: number = 1) => {
     console.log(`🚀 Workout generation started (Attempt ${attempt})`);
     console.log('📋 Form data:', data);
 
@@ -195,7 +198,7 @@ const WorkoutGeneratorPage: React.FC = () => {
 
       const workoutRequest: GenerateWorkoutRequest = {
         experience: profile.experience,
-        goals: Array.from(profile.goals),
+        goals: safeArrayFrom(profile.goals),
         workoutType: data.workoutType,
         equipmentAvailable: data.equipmentAvailable,
         duration: data.duration,
@@ -258,6 +261,11 @@ const WorkoutGeneratorPage: React.FC = () => {
       setLoadingProgress(0);
     }
   }, [user, profile, navigate, showError, showInfo, showSuccess, simulateProgress]);
+
+  // Wrapper function for form submission that ensures proper parameter handling
+  const handleFormSubmit = useCallback((data: WorkoutFormData) => {
+    onSubmit(data, 1);
+  }, [onSubmit]);
 
   // Show loading state while profile is being loaded
   if (!profile) {
@@ -401,7 +409,7 @@ const WorkoutGeneratorPage: React.FC = () => {
               <button
                 type="button"
                 disabled={isGenerating}
-                onClick={handleSubmit(onSubmit as any)}
+                onClick={handleSubmit(handleFormSubmit)}
                 className={clsx(
                   'w-full flex items-center justify-center px-6 py-4 text-lg font-semibold',
                   'rounded-xl transition-all duration-300 transform mobile-touch',

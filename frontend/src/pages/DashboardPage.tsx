@@ -27,30 +27,100 @@ const DashboardPage: React.FC = () => {
     totalMinutes: 0,
     streak: 0,
   });
+  const [workoutData, setWorkoutData] = useState<Array<{label: string, value: number, color: string}>>([]);
+  const [progressData, setProgressData] = useState<Array<{label: string, value: number}>>([]);
+  const [goalData, setGoalData] = useState<Array<{label: string, value: number}>>([]);
 
-  // Mock data for enhanced visualizations
-  const workoutData = [
-    { label: 'Mon', value: 45, color: 'gradient-blue' },
-    { label: 'Tue', value: 60, color: 'gradient-blue-electric' },
-    { label: 'Wed', value: 30, color: 'gradient-blue-premium' },
-    { label: 'Thu', value: 75, color: 'gradient-blue-ocean' },
-    { label: 'Fri', value: 50, color: 'gradient-blue-cyan' },
-    { label: 'Sat', value: 90, color: 'gradient-premium' },
-    { label: 'Sun', value: 40, color: 'gradient-blue' },
-  ];
+  // Generate real workout data from user's workouts
+  const generateWorkoutData = (workouts: any[]) => {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const colors = [
+      'gradient-blue', 'gradient-blue-electric', 'gradient-blue-premium',
+      'gradient-blue-ocean', 'gradient-blue-cyan', 'gradient-premium', 'gradient-blue'
+    ];
 
-  const progressData = [
-    { label: 'Strength Training', value: 85 },
-    { label: 'Cardio Fitness', value: 72 },
-    { label: 'Flexibility', value: 68 },
-    { label: 'Endurance', value: 79 },
-  ];
+    // Initialize with zeros for each day
+    const weeklyData = days.map((day, index) => ({
+      label: day,
+      value: 0,
+      color: colors[index]
+    }));
 
-  const goalData = [
-    { label: 'Weekly Goal', value: 5 },
-    { label: 'Monthly Goal', value: 20 },
-    { label: 'Streak Goal', value: 7 },
-  ];
+    // Aggregate workout minutes by day of week from recent workouts
+    workouts.slice(0, 20).forEach(workout => {
+      const workoutDate = new Date(workout.createdAt);
+      const dayIndex = workoutDate.getDay();
+      const duration = workout.plan?.estimatedDuration || workout.preWorkout?.duration || 30;
+      weeklyData[dayIndex].value += duration;
+    });
+
+    return weeklyData;
+  };
+
+  // Generate progress data based on workout types
+  const generateProgressData = (workouts: any[]) => {
+    if (workouts.length === 0) return [];
+
+    const categories = {
+      'Strength Training': 0,
+      'Cardio Fitness': 0,
+      'Flexibility': 0,
+      'Endurance': 0
+    };
+
+    // Analyze workout types and calculate progress
+    workouts.forEach(workout => {
+      const exercises = workout.plan?.exercises || [];
+      exercises.forEach((exercise: any) => {
+        const type = exercise.type?.toLowerCase() || '';
+        if (type.includes('strength') || type.includes('weight')) {
+          categories['Strength Training']++;
+        } else if (type.includes('cardio') || type.includes('running')) {
+          categories['Cardio Fitness']++;
+        } else if (type.includes('stretch') || type.includes('flexibility')) {
+          categories['Flexibility']++;
+        } else if (type.includes('endurance') || type.includes('hiit')) {
+          categories['Endurance']++;
+        }
+      });
+    });
+
+    // Convert to percentage based on total exercises
+    const total = Object.values(categories).reduce((sum, count) => sum + count, 0);
+    if (total === 0) return [];
+
+    return Object.entries(categories).map(([label, count]) => ({
+      label,
+      value: Math.round((count / total) * 100)
+    }));
+  };
+
+  // Generate goal data based on user's activity
+  const generateGoalData = (workouts: any[], stats: any) => {
+    const weeklyGoal = 4; // Target 4 workouts per week
+    const monthlyGoal = 16; // Target 16 workouts per month
+    const streakGoal = 7; // Target 7-day streak
+
+    const currentWeekWorkouts = workouts.filter(w => {
+      const workoutDate = new Date(w.createdAt);
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      return workoutDate >= weekAgo;
+    }).length;
+
+    const currentMonthWorkouts = workouts.filter(w => {
+      const workoutDate = new Date(w.createdAt);
+      const monthAgo = new Date();
+      monthAgo.setMonth(monthAgo.getMonth() - 1);
+      return workoutDate >= monthAgo;
+    }).length;
+
+    return [
+      { label: 'Weekly Goal', value: Math.min(Math.round((currentWeekWorkouts / weeklyGoal) * 100), 100) },
+      { label: 'Monthly Goal', value: Math.min(Math.round((currentMonthWorkouts / monthlyGoal) * 100), 100) },
+      { label: 'Streak Goal', value: Math.min(Math.round((stats.streak / streakGoal) * 100), 100) },
+    ];
+  };
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -60,7 +130,7 @@ const DashboardPage: React.FC = () => {
         setIsLoading(true);
         const workoutsResponse = await apiClient.listWorkouts(user.id);
         const workouts = workoutsResponse.workouts || [];
-        
+
         setRecentWorkouts(workouts.slice(0, 3));
 
         // Calculate simple stats
@@ -68,13 +138,24 @@ const DashboardPage: React.FC = () => {
           return sum + (w.plan.estimatedDuration || w.preWorkout.duration || 30);
         }, 0);
 
-        setStats({
+        const calculatedStats = {
           totalWorkouts: workouts.length,
           totalMinutes,
           streak: Math.min(workouts.length, 7), // Simple streak calculation
-        });
+        };
+
+        setStats(calculatedStats);
+
+        // Generate real data from workouts
+        setWorkoutData(generateWorkoutData(workouts));
+        setProgressData(generateProgressData(workouts));
+        setGoalData(generateGoalData(workouts, calculatedStats));
       } catch (error) {
         console.error('Failed to load dashboard data:', error);
+        // Set empty states on error
+        setWorkoutData([]);
+        setProgressData([]);
+        setGoalData([]);
       } finally {
         setIsLoading(false);
       }

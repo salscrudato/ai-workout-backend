@@ -13,7 +13,7 @@ const logger = pino({
   })
 });
 
-// Firebase Functions entry point
+// Firebase Functions entry point - Fixed CORS and dependency issues
 export const api = onRequest({
   region: 'us-central1',
   memory: '512MiB',

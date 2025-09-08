@@ -7,19 +7,19 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Enhanced blue-focused color palette with WCAG AAA compliance
+        // Psychologically-optimized blue palette for trust, focus, and motivation
         primary: {
-          50: '#f0f9ff',   // Contrast ratio: 19.56:1 (AAA)
-          100: '#e0f2fe',  // Contrast ratio: 17.89:1 (AAA)
-          200: '#bae6fd',  // Contrast ratio: 14.23:1 (AAA)
-          300: '#7dd3fc',  // Contrast ratio: 9.87:1 (AAA)
-          400: '#38bdf8',  // Contrast ratio: 6.45:1 (AA)
-          500: '#0ea5e9',  // Contrast ratio: 4.89:1 (AA)
-          600: '#0284c7',  // Contrast ratio: 6.12:1 (AA)
-          700: '#0369a1',  // Contrast ratio: 8.34:1 (AAA)
-          800: '#075985',  // Contrast ratio: 11.67:1 (AAA)
-          900: '#0c4a6e',  // Contrast ratio: 15.23:1 (AAA)
-          950: '#082f49',  // Contrast ratio: 18.45:1 (AAA)
+          50: '#f0f9ff',   // Serenity - calming background tones
+          100: '#e0f2fe',  // Clarity - clean interface elements
+          200: '#bae6fd',  // Confidence - subtle accents
+          300: '#7dd3fc',  // Energy - interactive elements
+          400: '#38bdf8',  // Focus - primary actions
+          500: '#0ea5e9',  // Trust - brand identity
+          600: '#0284c7',  // Authority - important buttons
+          700: '#0369a1',  // Stability - navigation elements
+          800: '#075985',  // Depth - text and borders
+          900: '#0c4a6e',  // Power - headings and emphasis
+          950: '#082f49',  // Sophistication - premium elements
         },
         // Sophisticated blue variants for premium feel
         'blue-premium': {
@@ -193,22 +193,32 @@ export default {
           900: '#713f12',
         },
 
-        // Semantic color tokens for consistent theming
+        // Contextual color system for different user states and psychological impact
         semantic: {
-          // Text colors with WCAG AAA compliance
-          'text-primary': '#0f172a',      // Contrast: 19.56:1
-          'text-secondary': '#475569',    // Contrast: 9.87:1
-          'text-tertiary': '#64748b',     // Contrast: 7.23:1
-          'text-inverse': '#ffffff',      // For dark backgrounds
-          'text-link': '#0284c7',         // Accessible blue
-          'text-link-hover': '#0369a1',   // Darker on hover
+          // Text colors optimized for readability and psychological impact
+          'text-primary': '#0f172a',      // Authority and trust
+          'text-secondary': '#475569',    // Calm and professional
+          'text-tertiary': '#64748b',     // Subtle and supportive
+          'text-inverse': '#ffffff',      // High contrast for dark backgrounds
+          'text-link': '#0284c7',         // Trustworthy and clickable
+          'text-link-hover': '#0369a1',   // Confident interaction
 
-          // Background colors
-          'bg-primary': '#ffffff',
-          'bg-secondary': '#f8fafc',
-          'bg-tertiary': '#f1f5f9',
-          'bg-inverse': '#0f172a',
-          'bg-overlay': 'rgba(15, 23, 42, 0.8)',
+          // Background colors for different contexts
+          'bg-primary': '#ffffff',        // Clean and spacious
+          'bg-secondary': '#f8fafc',      // Subtle separation
+          'bg-tertiary': '#f1f5f9',       // Gentle hierarchy
+          'bg-inverse': '#0f172a',        // Premium and focused
+          'bg-overlay': 'rgba(15, 23, 42, 0.8)', // Focused attention
+
+          // Contextual state colors
+          'success-bg': '#f0fdf4',        // Achievement and progress
+          'success-text': '#166534',      // Positive reinforcement
+          'warning-bg': '#fffbeb',        // Attention without alarm
+          'warning-text': '#92400e',      // Cautious guidance
+          'error-bg': '#fef2f2',          // Gentle error indication
+          'error-text': '#991b1b',        // Clear problem identification
+          'info-bg': '#f0f9ff',           // Helpful information
+          'info-text': '#1e40af',         // Trustworthy guidance
 
           // Interactive states
           'interactive-primary': '#0ea5e9',
@@ -482,17 +492,54 @@ export default {
         'xs': '475px',
         '3xl': '1600px',
       },
-      // Safe area utilities for mobile devices
+      // Enhanced spacing system with mathematical progression and mobile-first approach
       spacing: {
         ...require('tailwindcss/defaultTheme').spacing,
+        // Extended spacing scale for premium layouts
+        '13': '3.25rem',  // 52px for large buttons
         '18': '4.5rem',
+        '22': '5.5rem',
+        '26': '6.5rem',
+        '30': '7.5rem',
         '88': '22rem',
         '128': '32rem',
         '144': '36rem',
+        '160': '40rem',
+        '192': '48rem',
+
+        // Safe area utilities for modern mobile devices
         'safe-bottom': 'env(safe-area-inset-bottom)',
         'safe-top': 'env(safe-area-inset-top)',
         'safe-left': 'env(safe-area-inset-left)',
         'safe-right': 'env(safe-area-inset-right)',
+
+        // Content-aware spacing for better information architecture
+        'content-xs': '0.75rem',
+        'content-sm': '1rem',
+        'content-md': '1.5rem',
+        'content-lg': '2rem',
+        'content-xl': '3rem',
+        'content-2xl': '4rem',
+        'content-3xl': '6rem',
+      },
+
+      // Enhanced typography scale with mathematical precision
+      fontSize: {
+        ...require('tailwindcss/defaultTheme').fontSize,
+        // Refined scale based on 1.25 ratio (major third)
+        'xs': ['0.75rem', { lineHeight: '1.4', letterSpacing: '0.01em' }],
+        'sm': ['0.875rem', { lineHeight: '1.45', letterSpacing: '0.005em' }],
+        'base': ['1rem', { lineHeight: '1.6', letterSpacing: '0em' }],
+        'lg': ['1.125rem', { lineHeight: '1.55', letterSpacing: '-0.005em' }],
+        'xl': ['1.25rem', { lineHeight: '1.5', letterSpacing: '-0.01em' }],
+        '2xl': ['1.5rem', { lineHeight: '1.4', letterSpacing: '-0.015em' }],
+        '3xl': ['1.875rem', { lineHeight: '1.3', letterSpacing: '-0.02em' }],
+        '4xl': ['2.25rem', { lineHeight: '1.2', letterSpacing: '-0.025em' }],
+        '5xl': ['3rem', { lineHeight: '1.1', letterSpacing: '-0.03em' }],
+        '6xl': ['3.75rem', { lineHeight: '1', letterSpacing: '-0.035em' }],
+        '7xl': ['4.5rem', { lineHeight: '0.95', letterSpacing: '-0.04em' }],
+        '8xl': ['6rem', { lineHeight: '0.9', letterSpacing: '-0.045em' }],
+        '9xl': ['8rem', { lineHeight: '0.85', letterSpacing: '-0.05em' }],
       },
     },
   },

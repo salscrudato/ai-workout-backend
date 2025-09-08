@@ -7,6 +7,13 @@ interface GenerationOptions {
     readonly duration?: number;
 }
 /**
+ * Enhanced workout generation with caching and deduplication
+ */
+export declare function generateWorkoutWithOptimization(promptData: {
+    prompt: string;
+    variant: any;
+}, options?: GenerationOptions): Promise<any>;
+/**
  * Generates a personalized workout plan using OpenAI's GPT model
  *
  * This function orchestrates the complete AI workout generation process:

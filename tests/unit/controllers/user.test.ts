@@ -12,6 +12,17 @@ jest.mock('../../../src/models/Profile')
 const mockUserModel = UserModel as jest.Mocked<typeof UserModel>
 const mockProfileModel = ProfileModel as jest.Mocked<typeof ProfileModel>
 
+// Mock Firebase Admin Auth
+const mockVerifyIdToken = jest.fn()
+const mockAuth = jest.fn(() => ({
+  verifyIdToken: mockVerifyIdToken,
+}))
+
+jest.mock('firebase-admin', () => ({
+  auth: mockAuth,
+  apps: [],
+}))
+
 // Mock pino logger
 jest.mock('pino', () => ({
   __esModule: true,
@@ -21,6 +32,16 @@ jest.mock('pino', () => ({
     warn: jest.fn(),
     debug: jest.fn(),
   })),
+}))
+
+// Mock the logger utility
+jest.mock('../../../src/utils/logger', () => ({
+  logger: {
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+  }
 }))
 
 describe('User Controller', () => {

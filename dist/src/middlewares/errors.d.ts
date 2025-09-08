@@ -11,13 +11,14 @@ export declare class AppError extends Error {
     constructor(message: string, statusCode?: number, code?: string, isOperational?: boolean);
 }
 /**
- * Enhanced error handler middleware with structured logging and user-friendly responses
+ * Enhanced error handler middleware with intelligent error classification and structured responses
  *
- * Handles different types of errors with appropriate HTTP status codes and messages:
- * - Validation errors (Zod schema validation)
- * - Database errors (MongoDB/Firestore)
- * - Application errors (custom AppError instances)
- * - Generic errors with fallback handling
+ * Features:
+ * - Automatic error classification and severity assessment
+ * - User-friendly error messages with technical details for debugging
+ * - Error metrics collection for monitoring and alerting
+ * - Structured logging with correlation IDs
+ * - Security-aware error exposure (no sensitive data in production)
  *
  * @param err - Error object
  * @param req - Express request object

@@ -76,37 +76,40 @@ const Typography = forwardRef<HTMLElement, TypographyProps>(({
     }
   };
 
-  // Enhanced variant styles with modern typography scale and improved mobile experience
+  // Premium typography scale with sophisticated visual hierarchy and enhanced mobile experience
   const variantStyles: Record<TypographyVariant, string> = {
-    // Display variants optimized for hero sections with better mobile scaling
-    display1: 'text-3xl sm:text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-bold leading-none tracking-tight',
-    display2: 'text-2xl sm:text-3xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-tight tracking-tight',
+    // Display variants with refined scaling and premium feel
+    display1: 'text-4xl sm:text-5xl md:text-7xl lg:text-8xl xl:text-9xl font-black leading-[0.85] tracking-[-0.02em] text-balance',
+    display2: 'text-3xl sm:text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-bold leading-[0.9] tracking-[-0.015em] text-balance',
 
-    // Heading hierarchy with refined mobile-first approach
-    h1: 'text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold leading-tight tracking-tight',
-    h2: 'text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-semibold leading-tight tracking-tight',
-    h3: 'text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-semibold leading-snug tracking-tight',
-    h4: 'text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-semibold leading-snug tracking-tight',
-    h5: 'text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl font-medium leading-snug tracking-tight',
-    h6: 'text-xs sm:text-xs md:text-sm lg:text-base xl:text-lg font-medium leading-snug tracking-tight',
+    // Heading hierarchy with mathematical scale (1.25 ratio) and enhanced readability
+    h1: 'text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-[1.1] tracking-[-0.01em] text-balance',
+    h2: 'text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-semibold leading-[1.15] tracking-[-0.008em] text-balance',
+    h3: 'text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-semibold leading-[1.2] tracking-[-0.006em] text-balance',
+    h4: 'text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-semibold leading-[1.25] tracking-[-0.004em] text-balance',
+    h5: 'text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-medium leading-[1.3] tracking-[-0.002em] text-balance',
+    h6: 'text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl font-medium leading-[1.35] tracking-normal text-balance',
 
-    // Body text optimized for readability across all screen sizes
-    body1: 'text-sm sm:text-base md:text-lg leading-relaxed font-normal',
-    body2: 'text-xs sm:text-sm md:text-base leading-relaxed font-normal',
+    // Body text with optimal reading experience and enhanced line spacing
+    body1: 'text-base sm:text-lg md:text-xl leading-[1.6] font-normal tracking-[0.002em] text-pretty',
+    body2: 'text-sm sm:text-base md:text-lg leading-[1.65] font-normal tracking-[0.001em] text-pretty',
 
-    // Specialized text variants with enhanced mobile considerations
-    caption: 'text-xs sm:text-xs md:text-sm leading-normal font-medium opacity-75',
-    overline: 'text-xs uppercase tracking-wider leading-normal font-semibold opacity-60',
+    // Specialized text variants with refined styling
+    caption: 'text-xs sm:text-sm md:text-base leading-[1.4] font-medium tracking-[0.01em] opacity-80',
+    overline: 'text-xs sm:text-xs md:text-sm uppercase tracking-[0.1em] leading-[1.2] font-semibold opacity-70',
   };
 
-  // Enhanced color styles with expanded gradient support
+  // Sophisticated color system with psychological impact and enhanced accessibility
   const colorStyles: Record<TypographyColor, string> = {
-    primary: 'text-secondary-900',
-    secondary: 'text-secondary-600',
-    accent: 'text-primary-600',
-    muted: 'text-secondary-500',
-    blue: 'text-blue-600',
-    deep: 'text-secondary-800',
+    // Primary text colors with enhanced contrast and readability
+    primary: 'text-slate-900 dark:text-slate-100',
+    secondary: 'text-slate-600 dark:text-slate-400',
+    accent: 'text-blue-600 dark:text-blue-400',
+    muted: 'text-slate-500 dark:text-slate-500',
+    blue: 'text-blue-700 dark:text-blue-300',
+    deep: 'text-slate-800 dark:text-slate-200',
+
+    // Advanced gradient colors with sophisticated blending
     'gradient-blue': 'gradient-text-blue',
     'gradient-accent': 'gradient-text-accent',
     'gradient-deep': 'gradient-text-deep',

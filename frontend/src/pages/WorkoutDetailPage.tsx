@@ -63,10 +63,15 @@ const WorkoutDetailPage: React.FC = () => {
   useEffect(() => {
     const loadWorkout = async () => {
       if (!id) return;
-      
+
       try {
         setIsLoading(true);
         const workoutData = await apiClient.getWorkout(id);
+        console.log('🏋️ Loaded workout data:', workoutData);
+        console.log('📋 Workout plan structure:', workoutData?.plan);
+        console.log('🔥 Warmup exercises:', workoutData?.plan?.warmup);
+        console.log('💪 Main exercises:', workoutData?.plan?.exercises);
+        console.log('🧘 Cooldown exercises:', workoutData?.plan?.cooldown);
         setWorkout(workoutData);
       } catch (error) {
         console.error('Failed to load workout:', error);
@@ -261,12 +266,30 @@ const WorkoutDetailPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-primary-600">
-                    {(workout.plan.warmup?.length || 0) + (workout.plan.exercises?.length || 0) + (workout.plan.cooldown?.length || 0)}
+                    {(() => {
+                      const warmupCount = workout.plan.warmup?.length || 0;
+                      const exercisesCount = workout.plan.exercises?.length || 0;
+                      const cooldownCount = workout.plan.cooldown?.length || 0;
+                      const total = warmupCount + exercisesCount + cooldownCount;
+                      console.log('📊 Exercise counts:', { warmupCount, exercisesCount, cooldownCount, total });
+                      return total;
+                    })()}
                   </div>
                   <div className="text-sm text-secondary-600">Total Exercises</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-primary-600">{workout.plan?.estimatedDuration || workout.preWorkout?.duration || 'N/A'}</div>
+                  <div className="text-2xl font-bold text-primary-600">
+                    {(() => {
+                      const duration = workout.plan?.estimatedDuration || workout.preWorkout?.duration || workout.plan?.metadata?.est_duration_min || 'N/A';
+                      console.log('⏱️ Duration calculation:', {
+                        planEstimated: workout.plan?.estimatedDuration,
+                        preWorkoutDuration: workout.preWorkout?.duration,
+                        metadataDuration: workout.plan?.metadata?.est_duration_min,
+                        final: duration
+                      });
+                      return duration;
+                    })()}
+                  </div>
                   <div className="text-sm text-secondary-600">Minutes</div>
                 </div>
               </div>

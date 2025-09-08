@@ -1,7 +1,7 @@
 import React, { forwardRef, HTMLAttributes } from 'react';
 import { clsx } from 'clsx';
 
-export type CardVariant = 'default' | 'outlined' | 'elevated' | 'flat' | 'outline' | 'glass' | 'glass-light' | 'glass-subtle' | 'glass-blue' | 'glass-blue-premium' | 'glass-blue-electric' | 'glass-cyan' | 'glass-ocean' | 'gradient' | 'gradient-premium';
+export type CardVariant = 'default' | 'outlined' | 'elevated' | 'flat' | 'outline' | 'glass' | 'glass-light' | 'glass-subtle' | 'glass-blue' | 'glass-blue-premium' | 'glass-blue-electric' | 'glass-cyan' | 'glass-ocean' | 'gradient' | 'gradient-premium' | 'luxury' | 'premium-elevated' | 'minimal' | 'sophisticated';
 export type CardPadding = 'none' | 'sm' | 'md' | 'lg';
 
 export interface CardProps extends HTMLAttributes<HTMLDivElement> {
@@ -60,6 +60,10 @@ const Card = forwardRef<HTMLDivElement, CardProps>(({
     'glass-ocean': 'glass-ocean hover:bg-blue-ocean-500/15 border border-blue-ocean-500/20 hover:shadow-glow-blue-ocean',
     gradient: 'gradient-blue-light border border-primary-200 hover:shadow-glow-blue',
     'gradient-premium': 'gradient-premium border border-blue-premium-200 hover:shadow-glow-blue-premium',
+    luxury: 'bg-gradient-to-br from-slate-50 to-white border border-slate-200/50 shadow-xl hover:shadow-2xl hover:from-slate-100 hover:to-slate-50 transition-all duration-500',
+    'premium-elevated': 'bg-white shadow-2xl border border-slate-100 hover:shadow-3xl hover:-translate-y-1 transition-all duration-300 backdrop-blur-sm',
+    minimal: 'bg-white border border-slate-100 hover:border-slate-200 hover:shadow-sm transition-all duration-200',
+    sophisticated: 'bg-gradient-to-br from-white via-slate-50/30 to-white border border-slate-200/60 shadow-lg hover:shadow-xl hover:border-slate-300/60 transition-all duration-400',
   };
 
   // Padding styles

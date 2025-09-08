@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NavigationProvider } from './contexts/NavigationContext';
@@ -7,6 +7,11 @@ import { ToastProvider } from './contexts/ToastContext';
 import LoadingSpinner from './components/ui/LoadingSpinner';
 import ConnectionStatus from './components/ui/ConnectionStatus';
 import AppLayout from './components/ui/AppLayout';
+import SkipLinks from './components/ui/SkipLinks';
+import PerformanceDashboard from './components/ui/PerformanceDashboard';
+import KeyboardShortcutsHelp from './components/ui/KeyboardShortcutsHelp';
+import { ToastProvider as EnhancedToastProvider } from './components/ui/ToastManager';
+import { useGlobalShortcuts } from './hooks/useKeyboardShortcuts';
 
 import { initializeBrowserCompatibility } from './utils/browserCompatibility';
 
@@ -132,6 +137,62 @@ function AppRoutes() {
   );
 }
 
+// Enhanced App component with new features
+function EnhancedAppContent() {
+  const [showPerformanceDashboard, setShowPerformanceDashboard] = useState(false);
+  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+
+  // Global keyboard shortcuts
+  const { shortcuts } = useGlobalShortcuts();
+
+  // Enhanced shortcuts with app-specific actions
+  const enhancedShortcuts = [
+    ...shortcuts,
+    {
+      key: 'p',
+      ctrlKey: true,
+      shiftKey: true,
+      action: () => setShowPerformanceDashboard(!showPerformanceDashboard),
+      description: 'Toggle performance dashboard',
+      category: 'Debug',
+    },
+    {
+      key: '?',
+      shiftKey: true,
+      action: () => setShowKeyboardHelp(!showKeyboardHelp),
+      description: 'Show keyboard shortcuts help',
+      category: 'Help',
+    },
+  ];
+
+  return (
+    <>
+      {/* Skip links for accessibility */}
+      <SkipLinks />
+
+      {/* Main app content */}
+      <div id="main-content">
+        <AppRoutes />
+      </div>
+
+      {/* Enhanced UI components */}
+      <PerformanceDashboard
+        isOpen={showPerformanceDashboard}
+        onClose={() => setShowPerformanceDashboard(false)}
+      />
+
+      <KeyboardShortcutsHelp
+        isOpen={showKeyboardHelp}
+        onClose={() => setShowKeyboardHelp(false)}
+        shortcuts={enhancedShortcuts}
+      />
+
+      {/* Connection status indicator */}
+      <ConnectionStatus />
+    </>
+  );
+}
+
 function App() {
   // Initialize browser compatibility on app start
   useEffect(() => {
@@ -140,13 +201,15 @@ function App() {
 
   return (
     <ThemeProvider>
-      <ToastProvider>
-        <AuthProvider>
-          <Router>
-            <AppRoutes />
-          </Router>
-        </AuthProvider>
-      </ToastProvider>
+      <EnhancedToastProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <Router>
+              <EnhancedAppContent />
+            </Router>
+          </AuthProvider>
+        </ToastProvider>
+      </EnhancedToastProvider>
     </ThemeProvider>
   );
 }

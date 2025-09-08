@@ -1,9 +1,32 @@
 import { Variants } from 'framer-motion';
 
 /**
- * Animation variants for consistent motion design
- * Following Material Design and Apple Human Interface Guidelines
+ * Premium animation variants for sophisticated motion design
+ * Following Material Design, Apple Human Interface Guidelines, and modern web standards
+ * Enhanced with custom easing curves and micro-interactions
  */
+
+// Premium easing curves for sophisticated animations
+export const easingCurves = {
+  // Apple-inspired easing
+  appleEase: [0.25, 0.1, 0.25, 1],
+  appleSpring: [0.68, -0.55, 0.265, 1.55],
+
+  // Google Material easing
+  materialStandard: [0.4, 0.0, 0.2, 1],
+  materialDecelerate: [0.0, 0.0, 0.2, 1],
+  materialAccelerate: [0.4, 0.0, 1, 1],
+
+  // Custom premium curves
+  premiumSmooth: [0.25, 0.46, 0.45, 0.94],
+  premiumBounce: [0.68, -0.55, 0.265, 1.55],
+  premiumElastic: [0.175, 0.885, 0.32, 1.275],
+
+  // Micro-interaction curves
+  microFast: [0.25, 1, 0.5, 1],
+  microGentle: [0.16, 1, 0.3, 1],
+  microSpring: [0.34, 1.56, 0.64, 1],
+} as const;
 
 // Enhanced page transition variants with sophisticated effects
 export const pageVariants: Variants = {
@@ -515,7 +538,89 @@ export const enhancedStaggerItem: Variants = {
     filter: 'blur(0px)',
     transition: {
       duration: 0.5,
-      ease: [0.25, 0.46, 0.45, 0.94],
+      ease: easingCurves.premiumSmooth,
     },
   },
 };
+
+// Sophisticated micro-interaction variants for premium user experience
+export const microInteractionVariants = {
+  // Premium button interactions with sophisticated feedback
+  premiumButton: {
+    initial: { scale: 1, boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)' },
+    hover: {
+      scale: 1.02,
+      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+      transition: { duration: 0.2, ease: easingCurves.microGentle }
+    },
+    tap: {
+      scale: 0.98,
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+      transition: { duration: 0.1, ease: easingCurves.microFast }
+    },
+  },
+
+  // Luxury card interactions with 3D transforms
+  luxuryCard: {
+    initial: {
+      scale: 1,
+      rotateX: 0,
+      rotateY: 0,
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)'
+    },
+    hover: {
+      scale: 1.03,
+      rotateX: 2,
+      rotateY: 2,
+      boxShadow: '0 12px 40px rgba(0, 0, 0, 0.12)',
+      transition: { duration: 0.3, ease: easingCurves.premiumElastic }
+    },
+    tap: {
+      scale: 0.97,
+      transition: { duration: 0.1, ease: easingCurves.microFast }
+    },
+  },
+
+  // Sophisticated floating elements for hero sections
+  floatingElement: {
+    initial: { y: 0, rotate: 0 },
+    animate: {
+      y: [-2, 2, -2],
+      rotate: [-0.5, 0.5, -0.5],
+      transition: {
+        duration: 4,
+        ease: 'easeInOut',
+        repeat: Infinity,
+        repeatType: 'reverse' as const,
+      }
+    },
+  },
+
+  // Premium loading states with bounce
+  premiumLoader: {
+    initial: { scale: 0.8, opacity: 0 },
+    animate: {
+      scale: [0.8, 1.1, 1],
+      opacity: [0, 1, 1],
+      transition: {
+        duration: 0.6,
+        ease: easingCurves.premiumBounce,
+        times: [0, 0.6, 1],
+      }
+    },
+  },
+
+  // Delightful success feedback
+  successFeedback: {
+    initial: { scale: 1, rotate: 0 },
+    animate: {
+      scale: [1, 1.2, 1],
+      rotate: [0, 5, 0],
+      transition: {
+        duration: 0.5,
+        ease: easingCurves.appleSpring,
+        times: [0, 0.6, 1],
+      }
+    },
+  },
+} as const;

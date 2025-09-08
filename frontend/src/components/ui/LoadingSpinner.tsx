@@ -4,24 +4,37 @@ import { Loader2 } from 'lucide-react';
 
 interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
-  variant?: 'default' | 'dots' | 'pulse' | 'gradient' | 'premium';
+  variant?: 'default' | 'dots' | 'pulse' | 'gradient' | 'premium' | 'progress' | 'wave';
   className?: string;
   text?: string;
   color?: string;
+  progress?: number; // 0-100 for progress variant
+  estimatedTime?: string;
+  status?: 'loading' | 'success' | 'error';
+  showProgress?: boolean;
 }
 
 /**
- * A memoized loading spinner component that prevents unnecessary re-renders
- * @param size - Size of the spinner (sm, md, lg)
+ * Enhanced Loading Spinner Component with Progress Tracking
+ * @param size - Size of the spinner (sm, md, lg, xl)
+ * @param variant - Spinner variant including new progress and wave options
  * @param className - Additional CSS classes
  * @param text - Optional text to display below the spinner
+ * @param progress - Progress value (0-100) for progress variant
+ * @param estimatedTime - Estimated completion time
+ * @param status - Loading status for different visual states
+ * @param showProgress - Whether to show progress percentage
  */
 const LoadingSpinner: React.FC<LoadingSpinnerProps> = memo(({
   size = 'md',
   variant = 'default',
   className = '',
   text,
-  color
+  color,
+  progress = 0,
+  estimatedTime,
+  status = 'loading',
+  showProgress = false
 }) => {
   // Memoize size classes to prevent recreation on every render
   const sizeClasses = useMemo(() => ({
@@ -99,6 +112,84 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = memo(({
           </motion.div>
         );
 
+      case 'progress':
+        const radius = size === 'sm' ? 16 : size === 'md' ? 20 : size === 'lg' ? 24 : 28;
+        const circumference = 2 * Math.PI * radius;
+        const strokeDashoffset = circumference - (progress / 100) * circumference;
+
+        return (
+          <motion.div
+            className="relative"
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 300 }}
+          >
+            <svg className={baseClasses} viewBox="0 0 60 60">
+              {/* Background circle */}
+              <circle
+                cx="30"
+                cy="30"
+                r={radius}
+                stroke="currentColor"
+                strokeWidth="3"
+                fill="none"
+                className="text-secondary-200"
+              />
+              {/* Progress circle */}
+              <motion.circle
+                cx="30"
+                cy="30"
+                r={radius}
+                stroke="url(#progressGradient)"
+                strokeWidth="3"
+                fill="none"
+                strokeDasharray={circumference}
+                strokeDashoffset={strokeDashoffset}
+                strokeLinecap="round"
+                className="transform -rotate-90 origin-center"
+                initial={{ strokeDashoffset: circumference }}
+                animate={{ strokeDashoffset }}
+                transition={{ duration: 0.5, ease: 'easeOut' }}
+              />
+              <defs>
+                <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#0ea5e9" />
+                  <stop offset="100%" stopColor="#06b6d4" />
+                </linearGradient>
+              </defs>
+            </svg>
+            {showProgress && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-xs font-medium text-primary-600">
+                  {Math.round(progress)}%
+                </span>
+              </div>
+            )}
+          </motion.div>
+        );
+
+      case 'wave':
+        return (
+          <div className="flex space-x-1">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <motion.div
+                key={i}
+                className={`rounded-full bg-current ${size === 'sm' ? 'w-1 h-4' : size === 'md' ? 'w-1.5 h-6' : 'w-2 h-8'}`}
+                animate={{
+                  scaleY: [1, 2, 1],
+                  opacity: [0.5, 1, 0.5],
+                }}
+                transition={{
+                  duration: 1,
+                  repeat: Infinity,
+                  delay: i * 0.1,
+                  ease: 'easeInOut',
+                }}
+              />
+            ))}
+          </div>
+        );
+
       default:
         return (
           <motion.div
@@ -131,15 +222,29 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = memo(({
       transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
       {renderSpinner()}
-      {text && (
-        <motion.p
-          className="mt-3 text-sm text-secondary-600 font-medium"
+      {(text || estimatedTime || (showProgress && variant !== 'progress')) && (
+        <motion.div
+          className="mt-3 text-center space-y-1"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.3 }}
         >
-          {text}
-        </motion.p>
+          {text && (
+            <p className="text-sm text-secondary-600 font-medium">
+              {text}
+            </p>
+          )}
+          {estimatedTime && (
+            <p className="text-xs text-secondary-500">
+              {estimatedTime}
+            </p>
+          )}
+          {showProgress && variant !== 'progress' && (
+            <p className="text-xs font-medium text-primary-600">
+              {Math.round(progress)}%
+            </p>
+          )}
+        </motion.div>
       )}
     </motion.div>
   );

@@ -40,74 +40,8 @@ const workout_1 = require("../controllers/workout");
 const Equipment_1 = require("../models/Equipment");
 const errors_1 = require("../middlewares/errors");
 const auth_1 = require("../middlewares/auth");
-// import { performanceOptimizer } from '../services/performanceOptimizer';
 const adaptiveLearning_simple_1 = require("../services/adaptiveLearning.simple");
-// import { generateWorkoutIntelligence } from '../services/workoutIntelligence';
 const r = (0, express_1.Router)();
-// Add performance monitoring middleware to all routes
-// import { performanceOptimizer } from '../services/performanceOptimizer'; // Temporarily disabled
-// Temporary stub implementations for disabled services
-const frictionlessUXService = {
-    generatePredictiveSchedule: async (userId, daysAhead) => ({
-        schedule: [],
-        recommendations: []
-    }),
-    generateSmartDefaults: async (userId) => ({
-        workoutType: 'general_fitness',
-        duration: 30,
-        intensity: 3,
-        equipment: ['bodyweight']
-    }),
-    generateQuickStartOptions: async (userId) => ({
-        quickStart: {
-            workoutType: 'general_fitness',
-            duration: 30,
-            intensity: 3
-        },
-        alternatives: []
-    }),
-    processConversationalInput: (input, context) => ({
-        intent: 'workout_request',
-        parameters: {},
-        response: 'I understand you want to work out.'
-    })
-};
-const advancedAnalyticsService = {
-    generateUserAnalytics: async (userId) => ({
-        performance: {},
-        trends: [],
-        insights: []
-    }),
-    analyzeWorkoutEffectiveness: async (workoutId) => ({
-        effectiveness: 0.8,
-        factors: [],
-        recommendations: []
-    }),
-    generateLearningInsights: async (userId) => ({
-        insights: [],
-        adaptations: []
-    })
-};
-const performanceOptimizer = {
-    getPerformanceMetrics: () => ({
-        responseTime: 100,
-        errorRate: 0.01,
-        throughput: 1000
-    }),
-    getCacheStatistics: () => ({
-        hitRate: 0.9,
-        missRate: 0.1,
-        size: 1000
-    }),
-    generateOptimizationRecommendations: () => ({
-        recommendations: []
-    }),
-    optimizeRequest: () => (req, res, next) => next(),
-    cacheMiddleware: (ttl) => (req, res, next) => next()
-};
-r.use(performanceOptimizer.optimizeRequest());
-// Add intelligent caching for GET requests (5 minute cache)
-r.use(performanceOptimizer.cacheMiddleware(5 * 60 * 1000));
 // Authentication routes
 r.post('/auth/google', user_1.authenticateUser);
 // Debug auth endpoint (manual verification)
@@ -182,75 +116,6 @@ r.get('/workouts/test', (0, errors_1.asyncHandler)(async (req, res) => {
             quickGenerate: 'POST /v1/workouts/quick-generate (requires auth)'
         }
     });
-}));
-// NEW: Advanced AI Enhancement Routes - Frictionless UX
-r.get('/workouts/predictive-schedule', auth_1.requireAuth, (0, errors_1.asyncHandler)(async (req, res) => {
-    const userId = req.user?.uid;
-    if (!userId) {
-        res.status(401).json({ error: 'User not authenticated' });
-        return;
-    }
-    const daysAhead = parseInt(req.query.days) || 7;
-    // const { frictionlessUXService } = await import('../services/frictionlessUX'); // Using stub
-    const schedule = await frictionlessUXService.generatePredictiveSchedule(userId, daysAhead);
-    res.json({ schedule });
-}));
-// Smart defaults for quick workout generation
-r.get('/workouts/smart-defaults', auth_1.requireAuth, (0, errors_1.asyncHandler)(async (req, res) => {
-    const userId = req.user?.uid;
-    if (!userId) {
-        res.status(401).json({ error: 'User not authenticated' });
-        return;
-    }
-    // const { frictionlessUXService } = await import('../services/frictionlessUX'); // Using stub
-    const smartDefaults = await frictionlessUXService.generateSmartDefaults(userId);
-    res.json({ smartDefaults });
-}));
-// One-tap workout options
-r.get('/workouts/quick-start-options', auth_1.requireAuth, (0, errors_1.asyncHandler)(async (req, res) => {
-    const userId = req.user?.uid;
-    if (!userId) {
-        res.status(401).json({ error: 'User not authenticated' });
-        return;
-    }
-    // const { frictionlessUXService } = await import('../services/frictionlessUX'); // Using stub
-    const quickStartOptions = await frictionlessUXService.generateQuickStartOptions(userId);
-    res.json({ quickStartOptions });
-}));
-// Conversational workout generation
-r.post('/workouts/conversational', auth_1.requireAuth, (0, errors_1.asyncHandler)(async (req, res) => {
-    const userId = req.user?.uid;
-    if (!userId) {
-        res.status(401).json({ error: 'User not authenticated' });
-        return;
-    }
-    const { input, context } = req.body;
-    if (!input) {
-        res.status(400).json({ error: 'Input text is required' });
-        return;
-    }
-    // const { frictionlessUXService } = await import('../services/frictionlessUX'); // Using stub
-    const conversationalContext = frictionlessUXService.processConversationalInput(input, context);
-    res.json({ conversationalContext });
-}));
-r.post('/workouts/:workoutId/adapt', auth_1.requireAuth, (0, errors_1.asyncHandler)(async (req, res) => {
-    const userId = req.user?.uid;
-    const { workoutId } = req.params;
-    const currentMetrics = req.body;
-    if (!userId) {
-        res.status(401).json({ error: 'User not authenticated' });
-        return;
-    }
-    // Mock user for now - implement UserModel later
-    const user = { id: req.user?.uid || 'mock-user-id' };
-    // Mock adaptation - implement frictionlessUXService later
-    const adaptation = {
-        exerciseSwaps: [],
-        restAdjustments: [],
-        intensityChanges: [],
-        reasoning: 'Mock adaptation based on current metrics',
-    };
-    res.json({ adaptation });
 }));
 // Enhanced AI and Analytics routes (protected)
 r.get('/workouts/recommendations/:userId', auth_1.requireAuth, (0, errors_1.asyncHandler)(async (req, res) => {
@@ -342,63 +207,6 @@ r.post('/workouts/:workoutId/feedback', auth_1.requireAuth, (0, errors_1.asyncHa
         notes: notes || undefined
     });
     res.json({ success: true, message: 'Feedback recorded successfully' });
-}));
-// Advanced Analytics Routes
-r.get('/analytics/user/:userId', auth_1.requireAuth, (0, errors_1.asyncHandler)(async (req, res) => {
-    const { userId } = req.params;
-    // Verify user can access this data
-    if (req.user?.uid !== userId) {
-        res.status(403).json({ error: 'Access denied' });
-        return;
-    }
-    // const { advancedAnalyticsService } = await import('../services/advancedAnalytics'); // Using stub
-    const analytics = await advancedAnalyticsService.generateUserAnalytics(userId);
-    res.json({ analytics });
-}));
-r.get('/analytics/workout/:workoutId/effectiveness', auth_1.requireAuth, (0, errors_1.asyncHandler)(async (req, res) => {
-    const { workoutId } = req.params;
-    if (!workoutId) {
-        res.status(400).json({ error: 'Workout ID is required' });
-        return;
-    }
-    // const { advancedAnalyticsService } = await import('../services/advancedAnalytics'); // Using stub
-    const effectiveness = await advancedAnalyticsService.analyzeWorkoutEffectiveness(workoutId);
-    res.json({ effectiveness });
-}));
-r.get('/analytics/learning-insights/:userId', auth_1.requireAuth, (0, errors_1.asyncHandler)(async (req, res) => {
-    const { userId } = req.params;
-    // Verify user can access this data
-    if (req.user?.uid !== userId) {
-        res.status(403).json({ error: 'Access denied' });
-        return;
-    }
-    // const { advancedAnalyticsService } = await import('../services/advancedAnalytics'); // Using stub
-    const insights = await advancedAnalyticsService.generateLearningInsights(userId);
-    res.json({ insights });
-}));
-// Performance and health monitoring routes
-r.get('/health/performance', (0, errors_1.asyncHandler)(async (_req, res) => {
-    // const { performanceOptimizer } = await import('../services/performanceOptimizer'); // Using stub
-    const metrics = performanceOptimizer.getPerformanceMetrics();
-    const cacheStats = performanceOptimizer.getCacheStatistics();
-    const health = {
-        status: 'healthy',
-        uptime: process.uptime(),
-        memory: process.memoryUsage(),
-        performance: metrics,
-        cache: cacheStats
-    };
-    res.json(health);
-}));
-r.get('/health/metrics', (0, errors_1.asyncHandler)(async (_req, res) => {
-    // const { performanceOptimizer } = await import('../services/performanceOptimizer'); // Using stub
-    const metrics = performanceOptimizer.getPerformanceMetrics();
-    res.json({ metrics });
-}));
-r.get('/health/optimization-recommendations', (0, errors_1.asyncHandler)(async (_req, res) => {
-    // const { performanceOptimizer } = await import('../services/performanceOptimizer'); // Using stub
-    const recommendations = performanceOptimizer.generateOptimizationRecommendations();
-    res.json({ recommendations });
 }));
 // Parameterized workout routes (must be last to avoid conflicts)
 r.get('/workouts/:workoutId', auth_1.requireAuth, workout_1.getWorkout);

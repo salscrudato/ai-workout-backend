@@ -13,6 +13,169 @@ const logger = {
   debug: (msg: string, obj?: any) => baseLogger.debug(obj || {}, msg),
 };
 
+/**
+ * Retry configuration options
+ */
+export interface RetryOptions {
+  maxAttempts: number;
+  baseDelay: number;
+  maxDelay: number;
+  backoffMultiplier: number;
+  jitter: boolean;
+  retryCondition?: (error: Error) => boolean;
+}
+
+/**
+ * Enhanced retry mechanism with exponential backoff and jitter
+ */
+export class RetryManager {
+  private readonly options: RetryOptions;
+
+  constructor(options: Partial<RetryOptions> = {}) {
+    this.options = {
+      maxAttempts: options.maxAttempts || 3,
+      baseDelay: options.baseDelay || 1000,
+      maxDelay: options.maxDelay || 30000,
+      backoffMultiplier: options.backoffMultiplier || 2,
+      jitter: options.jitter !== false,
+      retryCondition: options.retryCondition || this.defaultRetryCondition
+    };
+  }
+
+  /**
+   * Execute function with retry logic
+   */
+  async execute<T>(
+    fn: () => Promise<T>,
+    context: { serviceName: string; operation: string }
+  ): Promise<T> {
+    let lastError: Error;
+
+    for (let attempt = 1; attempt <= this.options.maxAttempts; attempt++) {
+      try {
+        const result = await fn();
+
+        if (attempt > 1) {
+          logger.info('Retry succeeded', {
+            serviceName: context.serviceName,
+            operation: context.operation,
+            attempt,
+            totalAttempts: this.options.maxAttempts
+          });
+        }
+
+        return result;
+      } catch (error) {
+        lastError = error as Error;
+
+        logger.warn('Retry attempt failed', {
+          serviceName: context.serviceName,
+          operation: context.operation,
+          attempt,
+          totalAttempts: this.options.maxAttempts,
+          error: lastError.message
+        });
+
+        // Check if we should retry this error
+        if (!this.options.retryCondition!(lastError)) {
+          logger.debug('Error not retryable, failing immediately', {
+            serviceName: context.serviceName,
+            operation: context.operation,
+            error: lastError.message
+          });
+          throw lastError;
+        }
+
+        // Don't delay after the last attempt
+        if (attempt < this.options.maxAttempts) {
+          const delay = this.calculateDelay(attempt);
+          logger.debug('Waiting before retry', {
+            serviceName: context.serviceName,
+            operation: context.operation,
+            attempt,
+            delay
+          });
+          await this.sleep(delay);
+        }
+      }
+    }
+
+    logger.error('All retry attempts exhausted', {
+      serviceName: context.serviceName,
+      operation: context.operation,
+      totalAttempts: this.options.maxAttempts,
+      finalError: lastError!.message
+    });
+
+    throw new RetryExhaustedError(
+      `Failed after ${this.options.maxAttempts} attempts: ${lastError!.message}`,
+      lastError!,
+      this.options.maxAttempts
+    );
+  }
+
+  private defaultRetryCondition(error: Error): boolean {
+    // Retry on network errors, timeouts, and 5xx server errors
+    const retryableErrors = [
+      'ECONNRESET',
+      'ECONNABORTED',
+      'ETIMEDOUT',
+      'ENOTFOUND',
+      'EAI_AGAIN'
+    ];
+
+    // Check error code
+    if ('code' in error && retryableErrors.includes((error as any).code)) {
+      return true;
+    }
+
+    // Check HTTP status codes
+    if ('status' in error) {
+      const status = (error as any).status;
+      return status >= 500 || status === 429; // Server errors or rate limiting
+    }
+
+    // Check error message for common patterns
+    const message = error.message.toLowerCase();
+    return message.includes('timeout') ||
+           message.includes('network') ||
+           message.includes('connection');
+  }
+
+  private calculateDelay(attempt: number): number {
+    let delay = this.options.baseDelay * Math.pow(this.options.backoffMultiplier, attempt - 1);
+    delay = Math.min(delay, this.options.maxDelay);
+
+    // Add jitter to prevent thundering herd
+    if (this.options.jitter) {
+      delay = delay * (0.5 + Math.random() * 0.5);
+    }
+
+    return Math.floor(delay);
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+}
+
+/**
+ * Custom error for retry exhaustion
+ */
+export class RetryExhaustedError extends Error {
+  public readonly originalError: Error;
+  public readonly attempts: number;
+  public readonly code: string = 'RETRY_EXHAUSTED';
+
+  constructor(message: string, originalError: Error, attempts: number) {
+    super(message);
+    this.name = 'RetryExhaustedError';
+    this.originalError = originalError;
+    this.attempts = attempts;
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
 export enum CircuitState {
   CLOSED = 'CLOSED',
   OPEN = 'OPEN',

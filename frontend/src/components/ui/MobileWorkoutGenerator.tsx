@@ -140,8 +140,8 @@ const MobileWorkoutGenerator: React.FC<MobileWorkoutGeneratorProps> = ({ classNa
   // Update form when profile changes
   useEffect(() => {
     if (profile) {
-      setValue('equipmentAvailable', Array.from(profile.equipmentAvailable));
-      setValue('constraints', Array.from(profile.constraints));
+      setValue('equipmentAvailable', Array.from(profile.equipmentAvailable || []));
+      setValue('constraints', Array.from(profile.constraints || []));
     }
   }, [profile, setValue]);
 
@@ -195,18 +195,15 @@ const MobileWorkoutGenerator: React.FC<MobileWorkoutGeneratorProps> = ({ classNa
 
       const workoutRequest: GenerateWorkoutRequest = {
         experience: profile.experience,
-        goals: Array.from(profile.goals),
+        goals: Array.from(profile.goals || []),
         workoutType: data.workoutType,
         equipmentAvailable: data.equipmentAvailable,
         duration: data.duration,
         constraints: data.constraints,
       };
 
-      // Simulate realistic generation time
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setGenerationProgress(100);
-
       const response = await apiClient.generateWorkout(workoutRequest);
+      setGenerationProgress(100);
       navigate(`/workout/${response.workoutId}`);
     } catch (error) {
       console.error('Failed to generate workout:', error);
