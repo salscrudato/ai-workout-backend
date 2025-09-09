@@ -38,6 +38,31 @@ import type { GenerateWorkoutRequest } from '../types/api';
 // Utils
 import { safeArrayFrom } from '../utils/profileUtils';
 
+// Enhanced Components
+import {
+  ResponsiveContainer,
+  ResponsiveGrid,
+  ResponsiveStack,
+  OptimizedFadeIn,
+  OptimizedProgressBar,
+  OptimizedLoadingOverlay,
+  microInteractionVariants,
+  SkipLink,
+  AccessibleFormField,
+  AccessibleButton,
+  useScreenReaderAnnouncement,
+  ValidationSummary,
+  AccessibleProgress,
+  GlassCard,
+  PremiumButton,
+  PremiumCard,
+  VisualHeading,
+  VisualSeparator,
+  PremiumLoading,
+  shadowStyles,
+  gradientStyles
+} from '../components/ui/enhanced';
+
 /**
  * Validation schema for workout generation form
  * Ensures all required fields are present and valid
@@ -121,8 +146,7 @@ const WorkoutGeneratorPage: React.FC = () => {
     watch,
     setValue,
     formState: { errors, isValid },
-  } = useForm<WorkoutFormData>({
-    resolver: zodResolver(workoutSchema),
+  } = useForm({
     defaultValues,
     mode: 'onChange', // Enable real-time validation
   });

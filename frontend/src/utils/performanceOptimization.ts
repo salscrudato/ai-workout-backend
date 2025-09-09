@@ -112,7 +112,7 @@ export const isTouchDevice = (): boolean => {
 // Optimize scroll performance
 export const optimizeScroll = (element: HTMLElement): void => {
   element.style.willChange = 'scroll-position';
-  element.style.webkitOverflowScrolling = 'touch';
+  (element.style as any).webkitOverflowScrolling = 'touch';
 };
 
 // Layout shift prevention
@@ -226,7 +226,7 @@ export const shouldComponentUpdate = (
 };
 
 // Memory usage monitoring
-export const getMemoryUsage = (): MemoryInfo | null => {
+export const getMemoryUsage = (): any | null => {
   if ('memory' in performance) {
     return (performance as any).memory;
   }

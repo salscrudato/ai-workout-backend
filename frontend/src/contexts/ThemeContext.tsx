@@ -127,6 +127,12 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     actualTheme,
     setTheme,
     toggleTheme,
+    accentColor,
+    setAccentColor: setAccentColorState,
+    highContrast,
+    setHighContrast: setHighContrastState,
+    reducedMotion,
+    setReducedMotion: setReducedMotionState,
   };
 
   return (

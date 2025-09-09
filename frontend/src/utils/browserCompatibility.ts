@@ -196,7 +196,7 @@ export const polyfills = {
       // Provide a basic fallback without trying to load external polyfill
       console.warn('Web Animations API not supported, using fallback');
       if (!('animate' in Element.prototype)) {
-        Element.prototype.animate = function() {
+        (Element.prototype as any).animate = function() {
           return {
             cancel: () => {},
             finish: () => {},

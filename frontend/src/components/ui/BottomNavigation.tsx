@@ -215,7 +215,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ className }) => {
                         exit={{ scale: 0, opacity: 0 }}
                         className="absolute -top-1 -right-1 min-w-[16px] h-[16px] bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg"
                       >
-                        {item.badge > 99 ? '99+' : item.badge}
+                        {typeof item.badge === 'number' && item.badge > 99 ? '99+' : item.badge}
                       </motion.div>
                     )}
                   </AnimatePresence>

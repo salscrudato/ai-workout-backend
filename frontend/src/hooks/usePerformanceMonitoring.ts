@@ -62,7 +62,7 @@ export const usePerformanceMonitoring = (config: PerformanceConfig = {}) => {
   const frameCountRef = useRef(0);
   const lastTimeRef = useRef(performance.now());
   const fpsHistoryRef = useRef<number[]>([]);
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number | undefined>(undefined);
 
   // Core Web Vitals monitoring
   const measureCoreWebVitals = useCallback(() => {
@@ -180,8 +180,8 @@ export const usePerformanceMonitoring = (config: PerformanceConfig = {}) => {
     const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
     if (navigation) {
       const ttfb = navigation.responseStart - navigation.requestStart;
-      const domContentLoaded = navigation.domContentLoadedEventEnd - navigation.navigationStart;
-      const loadComplete = navigation.loadEventEnd - navigation.navigationStart;
+      const domContentLoaded = navigation.domContentLoadedEventEnd - navigation.fetchStart;
+      const loadComplete = navigation.loadEventEnd - navigation.fetchStart;
 
       setMetrics(prev => ({
         ...prev,

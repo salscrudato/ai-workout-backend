@@ -141,7 +141,7 @@ const ProfileSetupPage: React.FC = () => {
       };
 
       // Save profile (intelligently handles create vs update)
-      const isUpdate = !isNewUser && profile;
+      const isUpdate = Boolean(!isNewUser && profile);
       showInfo(
         isUpdate ? 'Updating Profile' : 'Creating Profile',
         isUpdate

@@ -585,8 +585,8 @@ export const microInteractionVariants = {
   floatingElement: {
     initial: { y: 0, rotate: 0 },
     animate: {
-      y: [-2, 2, -2],
-      rotate: [-0.5, 0.5, -0.5],
+      y: [-2, 2, -2] as number[],
+      rotate: [-0.5, 0.5, -0.5] as number[],
       transition: {
         duration: 4,
         ease: 'easeInOut',
@@ -614,12 +614,12 @@ export const microInteractionVariants = {
   successFeedback: {
     initial: { scale: 1, rotate: 0 },
     animate: {
-      scale: [1, 1.2, 1],
-      rotate: [0, 5, 0],
+      scale: [1, 1.2, 1] as number[],
+      rotate: [0, 5, 0] as number[],
       transition: {
         duration: 0.5,
-        ease: easingCurves.appleSpring,
-        times: [0, 0.6, 1],
+        ease: easingCurves.appleSpring as any,
+        times: [0, 0.6, 1] as number[],
       }
     },
   },

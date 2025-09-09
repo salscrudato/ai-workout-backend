@@ -15,11 +15,28 @@ import Card from '../components/ui/Card';
 import DataVisualization from '../components/ui/DataVisualization';
 import AnimatedContainer from '../components/ui/animations/AnimatedContainer';
 import { Display, Heading, Body } from '../components/ui/Typography';
+import {
+  ResponsiveContainer,
+  ResponsiveGrid,
+  ResponsiveStack,
+  TouchButton,
+  OptimizedFadeIn,
+  OptimizedStagger,
+  OptimizedHoverScale,
+  microInteractionVariants,
+  SkipLink,
+  AccessibleButton,
+  useScreenReaderAnnouncement,
+  AccessibleBreadcrumb
+} from '../components/ui/enhanced';
 import type { WorkoutPlanResponse } from '../types/api';
 
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  // Accessibility features
+  const { announce, AnnouncementRegion } = useScreenReaderAnnouncement();
   const [recentWorkouts, setRecentWorkouts] = useState<WorkoutPlanResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -173,48 +190,73 @@ const DashboardPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-6 py-12">
-        {/* Clean Header */}
-        <header className="mb-12">
-          <Display
-            level={1}
-            gradient="fresh"
-            className="mb-3"
-          >
-            AI That Adapts to You
-          </Display>
-          <Body size={1} color="secondary" className="text-lg">
-            Intelligent workouts that evolve with your progress
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50">
+      <SkipLink href="#main-content">Skip to main content</SkipLink>
+      <AnnouncementRegion />
+
+      <ResponsiveContainer maxWidth="2xl" padding="md" className="py-8 lg:py-12">
+        <OptimizedFadeIn delay={0.1} duration={0.8}>
+          <main id="main-content">
+          {/* Enhanced Header with better spacing */}
+          <header className="mb-16 text-center lg:text-left">
+          <div className="relative inline-block">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-cyan-600/20 blur-3xl rounded-full"></div>
+            <Display
+              level={1}
+              gradient="fresh"
+              className="relative mb-4 text-4xl lg:text-5xl font-bold"
+            >
+              AI That Adapts to You
+            </Display>
+          </div>
+          <Body size={1} color="secondary" className="text-xl text-slate-600 max-w-2xl mx-auto lg:mx-0">
+            Intelligent workouts that evolve with your progress and goals
           </Body>
         </header>
 
-        {/* Primary Action with Enhanced Design - Moved to Top */}
-        <AnimatedContainer variant="premium-card" className="mb-12">
-          <Card variant="glass-blue-premium" className="p-8 text-center">
-            <div className="gradient-blue-premium p-4 rounded-2xl inline-flex items-center justify-center mb-6 shadow-glow-blue-premium">
-              <Zap className="w-8 h-8 text-white" />
-            </div>
-            <Heading level={2} gradient="luxury" className="mb-3">
-              Generate New Workout
-            </Heading>
-            <Body size={1} color="secondary" className="mb-8 max-w-md mx-auto">
-              Create a personalized AI-powered workout tailored to your goals
-            </Body>
-            <Button
-              variant="premium"
-              size="lg"
-              onClick={() => navigate('/generate')}
-              className="px-12"
-            >
-              Get Started
-            </Button>
-          </Card>
-        </AnimatedContainer>
+        {/* Enhanced Primary Action Card */}
+        <OptimizedHoverScale scale={1.02} className="mb-16">
+          <div className="relative">
+            {/* Background glow effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-cyan-600/20 to-blue-600/20 blur-3xl rounded-3xl"></div>
+
+            <Card variant="glass-blue-premium" className="relative p-10 text-center bg-white/90 backdrop-blur-xl border border-white/20 shadow-2xl shadow-blue-500/10">
+              <div className="relative mb-8">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-3xl blur-lg opacity-75 animate-pulse"></div>
+                <div className="relative gradient-blue-premium p-6 rounded-3xl inline-flex items-center justify-center shadow-2xl shadow-blue-500/25">
+                  <Zap className="w-10 h-10 text-white" />
+                </div>
+              </div>
+
+              <Heading level={2} gradient="luxury" className="mb-4 text-3xl font-bold">
+                Generate New Workout
+              </Heading>
+              <Body size={1} color="secondary" className="mb-10 max-w-lg mx-auto text-lg text-slate-600">
+                Create a personalized AI-powered workout tailored to your goals, experience level, and available equipment
+              </Body>
+
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl blur opacity-75"></div>
+                <Button
+                  variant="premium"
+                  size="lg"
+                  onClick={() => navigate('/generate')}
+                  className="relative px-16 py-4 text-lg font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]"
+                >
+                  Get Started
+                </Button>
+              </div>
+            </Card>
+          </div>
+        </OptimizedHoverScale>
 
         {/* Enhanced Stats Section */}
-        <AnimatedContainer variant="enhanced-stagger" className="mb-12">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <OptimizedStagger staggerDelay={0.1} className="mb-12">
+          <ResponsiveGrid
+            cols={{ default: 1, md: 3 }}
+            gap="md"
+            className="mb-8"
+          >
             <StatCard
               title="Total Workouts"
               value={stats.totalWorkouts}
@@ -254,10 +296,14 @@ const DashboardPage: React.FC = () => {
                 label: 'personal best'
               }}
             />
-          </div>
-        </AnimatedContainer>
+          </ResponsiveGrid>
+        </OptimizedStagger>
         {/* Enhanced Data Visualizations */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+        <ResponsiveGrid
+          cols={{ default: 1, lg: 2 }}
+          gap="lg"
+          className="mb-12"
+        >
           <AnimatedContainer variant="page-fade-scale" delay={0.2}>
             <DataVisualization
               type="bar"
@@ -278,18 +324,18 @@ const DashboardPage: React.FC = () => {
               variant="glass"
             />
           </AnimatedContainer>
-        </div>
 
-        <AnimatedContainer variant="page-fade-scale" delay={0.4} className="mb-12">
-          <DataVisualization
-            type="radial"
-            title="Goals Achievement"
-            subtitle="Track your progress towards fitness goals"
-            data={goalData}
-            variant="premium"
-            height={300}
-          />
-        </AnimatedContainer>
+          <AnimatedContainer variant="page-fade-scale" delay={0.4}>
+            <DataVisualization
+              type="radial"
+              title="Goals Achievement"
+              subtitle="Track your progress towards fitness goals"
+              data={goalData}
+              variant="premium"
+              height={300}
+            />
+          </AnimatedContainer>
+        </ResponsiveGrid>
 
         {/* Recent Activity */}
         <div className="mb-12">
@@ -365,7 +411,6 @@ const DashboardPage: React.FC = () => {
           )}
         </div>
 
-
         {/* Quick Stats */}
         {stats.totalWorkouts > 0 && (
           <div className="grid grid-cols-3 gap-6 mb-12">
@@ -414,7 +459,9 @@ const DashboardPage: React.FC = () => {
             <div className="text-sm text-gray-500">Update preferences</div>
           </button>
         </div>
-      </div>
+          </main>
+        </OptimizedFadeIn>
+      </ResponsiveContainer>
     </div>
   );
 };

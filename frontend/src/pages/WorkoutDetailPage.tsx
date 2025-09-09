@@ -280,11 +280,11 @@ const WorkoutDetailPage: React.FC = () => {
                 <div className="text-center">
                   <div className="text-2xl font-bold text-primary-600">
                     {(() => {
-                      const duration = workout.plan?.estimatedDuration || workout.preWorkout?.duration || workout.plan?.metadata?.est_duration_min || 'N/A';
+                      const duration = workout.plan?.estimatedDuration || workout.preWorkout?.duration || workout.plan?.meta?.est_duration_min || 'N/A';
                       console.log('⏱️ Duration calculation:', {
                         planEstimated: workout.plan?.estimatedDuration,
                         preWorkoutDuration: workout.preWorkout?.duration,
-                        metadataDuration: workout.plan?.metadata?.est_duration_min,
+                        metaDuration: workout.plan?.meta?.est_duration_min,
                         final: duration
                       });
                       return duration;

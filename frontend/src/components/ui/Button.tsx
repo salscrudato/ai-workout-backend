@@ -286,7 +286,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
       whileTap={{ scale: 0.95 }}
       whileHover={{ scale: 1.02 }}
       transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-      {...props}
+      {...(props as any)}
     >
       <AnimatePresence mode="wait">
         {renderContent()}

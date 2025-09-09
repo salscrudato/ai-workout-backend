@@ -56,7 +56,7 @@ const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
       transition: {
         duration: 1.5,
         repeat: Infinity,
-        ease: 'easeInOut',
+        ease: 'easeInOut' as any,
         delay,
       },
     },

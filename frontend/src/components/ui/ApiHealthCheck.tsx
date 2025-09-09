@@ -140,22 +140,22 @@ const ApiHealthCheck: React.FC<ApiHealthCheckProps> = ({
         key={health.timestamp.getTime()} // Re-animate on status change
       >
         <div className="flex items-center justify-between mb-2">
-          <Body size={3} weight="medium">
+          <Body size={2} weight="medium">
             Status: {health.status.charAt(0).toUpperCase() + health.status.slice(1)}
           </Body>
-          
+
           {health.responseTime && (
-            <Body size={3} color="secondary">
+            <Body size={2} color="secondary">
               {health.responseTime}ms
             </Body>
           )}
         </div>
-        
-        <Body size={3} color="secondary" className="mb-2">
+
+        <Body size={2} color="secondary" className="mb-2">
           {health.message}
         </Body>
-        
-        <Body size={4} color="secondary">
+
+        <Body size={1} color="secondary">
           Last checked: {formatTimestamp(health.timestamp)}
         </Body>
       </motion.div>
@@ -166,7 +166,7 @@ const ApiHealthCheck: React.FC<ApiHealthCheckProps> = ({
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
         >
-          <Body size={3} color="secondary">
+          <Body size={2} color="secondary">
             <strong>Troubleshooting Tips:</strong>
           </Body>
           <ul className="mt-2 space-y-1 text-sm text-gray-600">
@@ -180,7 +180,7 @@ const ApiHealthCheck: React.FC<ApiHealthCheckProps> = ({
 
       {autoCheck && (
         <div className="mt-3 pt-3 border-t border-gray-200">
-          <Body size={4} color="secondary">
+          <Body size={1} color="secondary">
             Auto-checking every {Math.round(interval / 1000)} seconds
           </Body>
         </div>

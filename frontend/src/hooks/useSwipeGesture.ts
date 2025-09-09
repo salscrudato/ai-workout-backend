@@ -92,6 +92,9 @@ export const useSwipeGesture = (
       direction: null,
       deltaX: 0,
       deltaY: 0,
+      velocity: 0,
+      progress: 0,
+      startTime: Date.now(),
     });
 
     handlers.onSwipeStart?.(event);
@@ -148,6 +151,9 @@ export const useSwipeGesture = (
       direction,
       deltaX,
       deltaY,
+      velocity: 0,
+      progress: 100,
+      startTime: Date.now(),
     });
 
     handlers.onSwipeEnd?.(event);
