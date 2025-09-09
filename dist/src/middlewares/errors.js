@@ -7,7 +7,6 @@ exports.asyncHandler = exports.errorLoggingMiddleware = exports.AppError = void 
 exports.errorHandler = errorHandler;
 const zod_1 = require("zod");
 const pino_1 = __importDefault(require("pino"));
-const errorClassification_1 = require("../utils/errorClassification");
 const circuitBreaker_1 = require("../utils/circuitBreaker");
 // Initialize logger for error handling
 const baseLogger = (0, pino_1.default)({
@@ -49,21 +48,6 @@ exports.AppError = AppError;
 function generateErrorId() {
     return `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
-/**
- * Enhanced error handler middleware with intelligent error classification and structured responses
- *
- * Features:
- * - Automatic error classification and severity assessment
- * - User-friendly error messages with technical details for debugging
- * - Error metrics collection for monitoring and alerting
- * - Structured logging with correlation IDs
- * - Security-aware error exposure (no sensitive data in production)
- *
- * @param err - Error object
- * @param req - Express request object
- * @param res - Express response object
- * @param _next - Express next function (unused)
- */
 function errorHandler(err, req, res, _next) {
     const errorId = generateErrorId();
     const userId = req.user?.uid || 'anonymous';
@@ -71,11 +55,7 @@ function errorHandler(err, req, res, _next) {
         operation: `${req.method} ${req.path}`,
         userId
     };
-    // Classify the error for appropriate handling
-    const classification = errorClassification_1.ErrorClassifier.classify(err, context);
-    // Record error metrics
-    errorClassification_1.ErrorMetrics.record(classification, context);
-    // Determine HTTP status code
+    const isDev = process.env.NODE_ENV === 'development';
     let statusCode = 500;
     if (err instanceof AppError) {
         statusCode = err.statusCode;
@@ -84,29 +64,13 @@ function errorHandler(err, req, res, _next) {
         statusCode = 400;
     }
     else if (err instanceof circuitBreaker_1.RetryExhaustedError) {
-        statusCode = 503; // Service Unavailable
+        statusCode = 503;
     }
-    else if (err.status || err.statusCode) {
-        statusCode = err.status || err.statusCode;
+    else if (typeof err.status === 'number') {
+        statusCode = err.status;
     }
-    else {
-        // Determine status based on classification
-        switch (classification.category) {
-            case 'VALIDATION':
-            case 'AUTHENTICATION':
-                statusCode = classification.category === 'VALIDATION' ? 400 : 401;
-                break;
-            case 'RATE_LIMIT':
-                statusCode = 429;
-                break;
-            case 'EXTERNAL_SERVICE':
-            case 'DATABASE':
-            case 'NETWORK':
-                statusCode = 503;
-                break;
-            default:
-                statusCode = 500;
-        }
+    else if (typeof err.statusCode === 'number') {
+        statusCode = err.statusCode;
     }
     // Handle Zod validation errors with enhanced details
     if (err instanceof zod_1.ZodError) {
@@ -122,11 +86,10 @@ function errorHandler(err, req, res, _next) {
             url: req.url,
             method: req.method,
             validationErrors,
-            classification
         });
         res.status(400).json({
-            error: classification.userMessage,
-            code: classification.errorCode,
+            error: 'Invalid request parameters',
+            code: 'VALIDATION_ERROR',
             details: validationErrors,
             errorId,
             timestamp: new Date().toISOString()
@@ -144,14 +107,12 @@ function errorHandler(err, req, res, _next) {
             message: err.message,
             statusCode: err.statusCode,
             isOperational: err.isOperational,
-            classification
         });
         res.status(err.statusCode).json({
-            error: classification.userMessage || err.message,
+            error: err.message,
             code: err.code,
             errorId,
-            timestamp: err.timestamp,
-            ...(classification.suggestedAction && { suggestedAction: classification.suggestedAction })
+            timestamp: err.timestamp
         });
         return;
     }
@@ -164,109 +125,53 @@ function errorHandler(err, req, res, _next) {
             method: req.method,
             attempts: err.attempts,
             originalError: err.originalError.message,
-            classification
         });
         res.status(503).json({
-            error: classification.userMessage,
-            code: classification.errorCode,
+            error: 'Service temporarily unavailable. Please try again.',
+            code: 'RETRY_EXHAUSTED',
             errorId,
             timestamp: new Date().toISOString(),
             retryAfter: 60 // Suggest retry after 60 seconds
         });
         return;
     }
-    // Handle MongoDB/Firestore duplicate key errors
-    if (err.code === 11000) {
-        const field = Object.keys(err.keyValue || {})[0] || 'field';
-        logger.warn('Duplicate key error', {
-            errorId,
-            userId,
-            url: req.url,
-            method: req.method,
-            field,
-            value: err.keyValue?.[field],
-            classification
-        });
-        res.status(409).json({
-            error: `${field} already exists`,
-            code: 'DUPLICATE_KEY_ERROR',
-            field,
-            errorId,
-            timestamp: new Date().toISOString()
-        });
-        return;
-    }
-    // Handle MongoDB cast errors (invalid ObjectId format)
-    if (err.name === 'CastError') {
-        logger.warn('Cast error (invalid ID format)', {
-            errorId,
-            userId,
-            url: req.url,
-            method: req.method,
-            path: err.path,
-            value: err.value,
-            classification
-        });
-        res.status(400).json({
-            error: 'Invalid ID format',
-            code: 'INVALID_ID_FORMAT',
-            field: err.path,
-            errorId,
-            timestamp: new Date().toISOString()
-        });
-        return;
-    }
-    // Handle generic errors with intelligent classification
     const isServerError = statusCode >= 500;
-    const technicalDetails = errorClassification_1.ErrorClassifier.getTechnicalDetails(err, classification);
-    // Log with appropriate level based on severity
-    const logLevel = classification.severity === errorClassification_1.ErrorSeverity.CRITICAL ? 'error' :
-        classification.severity === errorClassification_1.ErrorSeverity.HIGH ? 'error' :
-            classification.severity === errorClassification_1.ErrorSeverity.MEDIUM ? 'warn' : 'info';
-    logger[logLevel]('Request error', {
+    // Log the error with appropriate level
+    const logPayload = {
         errorId,
         userId,
         url: req.url,
         method: req.method,
         statusCode,
-        classification,
-        technicalDetails,
-        ...(isServerError && {
-            body: req.body,
-            params: req.params,
-            query: req.query,
-            headers: req.headers
-        })
-    });
-    // Prepare user-friendly response
+        message: err?.message,
+    };
+    if (isDev) {
+        logPayload.stack = err?.stack;
+    }
+    if (isServerError) {
+        logger.error('Request error', logPayload);
+    }
+    else {
+        logger.warn('Request error', logPayload);
+    }
+    // Minimal user-facing message
+    const defaultMessages = {
+        400: 'Invalid request',
+        401: 'Authentication failed',
+        403: 'Access denied',
+        404: 'Not found',
+        429: 'Too many requests',
+        503: 'Service temporarily unavailable. Please try again.',
+        500: 'Internal server error',
+    };
     const response = {
-        error: process.env.NODE_ENV === 'production' && isServerError
-            ? classification.userMessage
-            : classification.userMessage || err.message || 'An error occurred',
-        code: classification.errorCode,
+        error: err instanceof AppError ? err.message : (defaultMessages[statusCode] || defaultMessages[500]),
+        code: err instanceof AppError ? err.code : `HTTP_${statusCode}`,
         errorId,
         timestamp: new Date().toISOString()
     };
-    // Add helpful information for retryable errors
-    if (classification.isRetryable) {
-        response.retryable = true;
-        response.retryAfter = statusCode === 429 ? 60 : 30; // Seconds
-    }
-    // Add suggested action if available
-    if (classification.suggestedAction) {
-        response.suggestedAction = classification.suggestedAction;
-    }
-    // Add technical details in development
-    if (process.env.NODE_ENV === 'development') {
-        response.technical = {
-            message: err.message,
-            stack: err.stack,
-            classification: {
-                category: classification.category,
-                severity: classification.severity,
-                isRetryable: classification.isRetryable
-            }
-        };
+    if (isDev && err && err.stack) {
+        response.technical = { stack: err.stack };
     }
     res.status(statusCode).json(response);
 }
@@ -300,11 +205,12 @@ exports.errorLoggingMiddleware = errorLoggingMiddleware;
  *
  * @example
  * ```typescript
- * export const getUser = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+* export const getUser = asyncHandler(async (req: Request, res: Response): Promise<void> => {
  *   const user = await UserModel.findById(req.params.id);
  *   res.json(user);
  * });
- * ```
+ *
+```
  */
 const asyncHandler = (fn) => (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch(next);

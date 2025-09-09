@@ -58,10 +58,7 @@ const FILE_DESCRIPTIONS = {
   'routes/health.ts': 'Health check routes for monitoring application status',
   'routes/v1.ts': 'Main API v1 routes configuration and endpoint definitions',
   
-  // Schemas
-  'schemas/preworkout.ts': 'Pre-workout data validation schemas',
-  'schemas/validation.ts': 'General validation schemas for API requests',
-  'schemas/workoutOutput.ts': 'Workout output validation schemas for AI-generated content',
+  // Note: Schema files have been consolidated into utils/validation.ts for better performance
   
   // Security
   'security/advancedRateLimit.ts': 'Advanced rate limiting implementation for API protection',

@@ -1,6 +1,5 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const db_1 = require("../src/config/db");
 const Equipment_1 = require("../src/models/Equipment");
 const EQUIPMENT = [
     ['bodyweight', 'Bodyweight'],
@@ -16,17 +15,9 @@ const EQUIPMENT = [
     ['rower', 'Rower'],
 ];
 async function main() {
-    await (0, db_1.initializeFirebase)();
-    for (const [slug, label] of EQUIPMENT) {
-        try {
-            await Equipment_1.EquipmentModel.updateOne({ slug }, { slug, label }, { upsert: true });
-        }
-        catch (error) {
-            // If equipment already exists, that's fine
-            console.log(`Equipment ${slug} already exists or created`);
-        }
-    }
-    console.log('Equipment seeded.');
+    // Equipment is now a static catalog, no database seeding needed
+    console.log('Equipment catalog is static - no seeding required.');
+    console.log('Available equipment:', Equipment_1.EQUIPMENT_CATALOG.map(e => `${e.slug}: ${e.label}`).join(', '));
     process.exit(0);
 }
 main().catch(e => { console.error(e); process.exit(1); });

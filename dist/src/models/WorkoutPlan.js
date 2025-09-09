@@ -3,11 +3,30 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.WorkoutPlanModel = void 0;
 const db_1 = require("../config/db");
 const firestore_1 = require("firebase-admin/firestore");
+const hash_1 = require("../libs/hash");
 class WorkoutPlanModel {
     static collection = 'workoutPlans';
     static async create(data) {
         const db = (0, db_1.getFirestore)();
         const now = firestore_1.Timestamp.now();
+        const base = data.preWorkout;
+        const canonical = {
+            userId: data.userId,
+            workout_type: base.workout_type,
+            experience: base.experience,
+            time_available_min: base.time_available_min,
+            goals: Array.isArray(base.goals) ? [...base.goals].sort() : [],
+            equipment_override: Array.isArray(base.equipment_override) ? [...base.equipment_override].sort() : [],
+        };
+        const dedupKey = data.dedupKey || (0, hash_1.sha256)(canonical);
+        const summary = data.summary || {
+            workoutType: base.workout_type,
+            experience: base.experience,
+            durationMin: base.time_available_min,
+            goals: Array.isArray(base.goals) ? [...base.goals].sort() : [],
+            equipment: Array.isArray(base.equipment_override) ? [...base.equipment_override].sort() : [],
+        };
+        // NOTE: Consider adding Firestore indexes on: userId, promptVersion, dedupKey, and summary.workoutType/experience if needed.
         const workoutPlanData = {
             userId: data.userId,
             model: data.model,
@@ -16,6 +35,8 @@ class WorkoutPlanModel {
             plan: data.plan,
             createdAt: now,
             updatedAt: now,
+            dedupKey,
+            summary,
         };
         const docRef = await db.collection(this.collection).add(workoutPlanData);
         return {
@@ -42,6 +63,15 @@ class WorkoutPlanModel {
         }
         if (filter.promptVersion) {
             query = query.where('promptVersion', '==', filter.promptVersion);
+        }
+        if (filter.dedupKey) {
+            query = query.where('dedupKey', '==', filter.dedupKey);
+            const snapshot = await query.limit(1).get();
+            if (snapshot.empty) {
+                return null;
+            }
+            const doc = snapshot.docs[0];
+            return { id: doc.id, ...doc.data() };
         }
         // Note: Firestore doesn't support deep object equality queries
         // We'll need to handle preWorkout matching in the application layer

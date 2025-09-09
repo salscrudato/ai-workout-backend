@@ -618,3 +618,5 @@ export class SocialGamificationService {
 }
 
 export const socialGamificationService = new SocialGamificationService();
+
+// File cleaned up - removed duplicate class definitions

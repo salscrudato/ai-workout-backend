@@ -1,4 +1,3 @@
-import 'dotenv/config';
 export declare const env: {
     FIREBASE_PROJECT_ID: string;
     NODE_ENV: string;

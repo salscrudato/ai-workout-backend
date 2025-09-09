@@ -5,6 +5,7 @@ import pino from 'pino';
 import { asyncHandler } from '../middlewares/errors';
 // import { buildWorkoutPrompt } from '../services/prompt'; // Temporarily disabled
 import { generateWorkout } from '../services/generator';
+import { sha256 } from '../libs/hash';
 
 // Data models
 import { WorkoutPlanModel } from '../models/WorkoutPlan';
@@ -48,27 +49,34 @@ type WorkoutProgrammingOptions = {
 
 // Temporary stub implementations for disabled services
 const buildWorkoutPrompt = async (userId: string, preWorkout: any) => {
-  return {
-    prompt: `Create a ${preWorkout.workout_type} workout for ${preWorkout.time_available_min} minutes at ${preWorkout.experience} level.`,
-    variant: preWorkout
-  };
+  const goals =
+    Array.isArray(preWorkout.goals) && preWorkout.goals.length
+      ? preWorkout.goals.join(', ')
+      : 'general_fitness';
+  const equipment =
+    Array.isArray(preWorkout.equipment_override) && preWorkout.equipment_override.length
+      ? preWorkout.equipment_override.join(', ')
+      : 'bodyweight only';
+  const constraints = preWorkout.new_injuries ? String(preWorkout.new_injuries) : '';
+
+  const prompt = `User: ${userId}
+Context:
+- Experience: ${preWorkout.experience}
+- Workout type: ${preWorkout.workout_type}
+- Duration: ${preWorkout.time_available_min} minutes
+- Goals: ${goals}
+- Equipment available: ${equipment}${constraints ? `\n- Constraints/Injuries: ${constraints}` : ''}
+Requirements:
+- Produce a single-session workout optimized for the above.
+- Respect the provided duration budget.
+- Choose safe, common movements available with the listed equipment.
+- Use progressive overload appropriate for ${preWorkout.experience}.
+- Output only JSON conforming to the provided schema.`;
+
+  return { prompt, variant: null };
 };
 
-const generateSetsProgramming = (category: string, options: any) => {
-  return {
-    sets: 3,
-    reps: [10, 10, 10],
-    rest: 60,
-    restSeconds: 60,
-    tempoPattern: '2-1-2-1',
-    intensityProgression: ['moderate', 'moderate', 'moderate'],
-    rpeProgression: [6, 7, 8]
-  };
-};
-
-const generateProgressiveReps = (programming: any, category: string) => {
-  return [10, 10, 10];
-};
+// Removed unused functions generateSetsProgramming and generateProgressiveReps
 
 
 
@@ -78,22 +86,14 @@ const generateProgressiveReps = (programming: any, category: string) => {
  */
 const PROMPT_VERSION = 'v2.1.0';
 
-/**
- * Configuration constants for workout generation
- */
-const WORKOUT_CONFIG = {
-  MAX_GENERATION_TIME_MS: 120_000, // 2 minutes
-  CACHE_TTL_MS: 5 * 60 * 1000, // 5 minutes
-  MAX_RETRY_ATTEMPTS: 3,
-  DEFAULT_TIMEOUT_MS: 30_000
-} as const;
+// Removed unused WORKOUT_CONFIG
 
 /**
  * Generates a unique request ID for tracking and logging
  * @returns Unique request identifier
  */
 function generateRequestId(): string {
-  return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return `req_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 }
 
 /**
@@ -137,6 +137,24 @@ function determineEquipmentLevel(equipmentOverride?: string[]): 'minimal' | 'mod
 }
 
 /**
+ * Computes a canonical deduplication key for a workout request.
+ * @param userId - User ID
+ * @param pre - Pre-workout object
+ * @returns SHA256 hash string of canonicalized input
+ */
+function computeDedupKey(userId: string, pre: any): string {
+  const canonical = {
+    userId,
+    workout_type: pre.workout_type,
+    experience: pre.experience,
+    time_available_min: pre.time_available_min,
+    goals: Array.isArray(pre.goals) ? [...pre.goals].sort() : [],
+    equipment_override: Array.isArray(pre.equipment_override) ? [...pre.equipment_override].sort() : [],
+  };
+  return sha256(canonical);
+}
+
+/**
  * Ensure exercises have proper sets programming using advanced programming service
  * Applies intelligent programming based on exercise type and user experience level
  */
@@ -166,8 +184,17 @@ function ensureProperSets(
 
     // Use advanced programming if options provided, otherwise use defaults
     if (programmingOptions && exerciseType === 'main') {
-      const programming = generateSetsProgramming(category, programmingOptions);
-      const progressiveReps = generateProgressiveReps(programming, category);
+      // Simple programming logic inline
+      const programming = {
+        sets: 3,
+        reps: [10, 10, 10],
+        rest: 60,
+        restSeconds: 60,
+        tempoPattern: '2-1-2-1',
+        intensityProgression: ['moderate', 'moderate', 'moderate'],
+        rpeProgression: [6, 7, 8]
+      };
+      const progressiveReps = [10, 10, 10];
 
       exercise.sets = progressiveReps.map((reps, i) => ({
         reps: category === 'cardio' ? 0 : reps,
@@ -205,19 +232,12 @@ function ensureProperSets(
 
 // Transform database format to frontend format
 function transformDatabasePlanToFrontendFormat(dbPlan: any) {
-  console.log('🔄 Transforming database plan to frontend format:', JSON.stringify(dbPlan, null, 2));
-
   // Extract warmup exercises
   const warmupExercises = dbPlan.warm_up?.exercises || dbPlan.warmup || [];
-  console.log('🔥 Warmup exercises found:', warmupExercises.length);
-
   // Extract main exercises from blocks
   const mainExercises = dbPlan.blocks?.[0]?.exercises || dbPlan.exercises || [];
-  console.log('💪 Main exercises found:', mainExercises.length);
-
   // Extract cooldown exercises
   const cooldownExercises = dbPlan.cool_down?.exercises || dbPlan.cooldown || [];
-  console.log('🧘 Cooldown exercises found:', cooldownExercises.length);
 
   const transformedPlan = {
     meta: dbPlan.meta || {},
@@ -231,7 +251,8 @@ function transformDatabasePlanToFrontendFormat(dbPlan: any) {
     })),
     exercises: mainExercises.map((exercise: any, index: number) => ({
       name: exercise.name || 'Unknown Exercise',
-      sets: exercise.sets || 1,
+      // Use setsData if available (from AI generation), otherwise fall back to sets number
+      sets: exercise.setsData || exercise.sets || 1,
       reps: exercise.reps || '10',
       weight: exercise.weight || '',
       duration: exercise.duration_sec ? `${exercise.duration_sec}s` : undefined,
@@ -254,13 +275,6 @@ function transformDatabasePlanToFrontendFormat(dbPlan: any) {
     notes: dbPlan.blocks?.[0]?.notes || '',
     estimatedDuration: dbPlan.meta?.est_duration_min || undefined,
   };
-
-  console.log('✅ Transformed plan summary:', {
-    warmupCount: transformedPlan.warmup.length,
-    exercisesCount: transformedPlan.exercises.length,
-    cooldownCount: transformedPlan.cooldown.length,
-    estimatedDuration: transformedPlan.estimatedDuration
-  });
 
   return transformedPlan;
 }
@@ -364,17 +378,6 @@ function transformAIPlanToFrontendFormat(aiPlan: any, programmingOptions?: Worko
     estimatedDuration: aiPlan.meta?.est_duration_min || undefined,
   };
 
-  console.log('🤖 AI Plan transformation summary:', {
-    originalWarmup: aiPlan.warmup?.length || 0,
-    originalBlocks: aiPlan.blocks?.length || 0,
-    originalFinisher: aiPlan.finisher?.length || 0,
-    originalCooldown: aiPlan.cooldown?.length || 0,
-    transformedWarmup: transformedPlan.warmup.length,
-    transformedExercises: transformedPlan.exercises.length,
-    transformedCooldown: transformedPlan.cooldown.length,
-    estimatedDuration: transformedPlan.estimatedDuration
-  });
-
   return transformedPlan;
 }
 
@@ -443,11 +446,14 @@ export const generate = asyncHandler(async (req: Request, res: Response): Promis
 
     logger.debug('Pre-workout data prepared', { userId, requestId, pre });
 
+    // Compute deduplication key for this workout request
+    const dedupKey = computeDedupKey(pre.userId, pre);
+
     // 4. Check for duplicate requests (idempotency)
     const existingWorkout = await WorkoutPlanModel.findOne({
       userId: pre.userId,
       promptVersion: PROMPT_VERSION,
-      preWorkout: pre
+      dedupKey
     });
 
     if (existingWorkout) {
@@ -501,7 +507,7 @@ export const generate = asyncHandler(async (req: Request, res: Response): Promis
 
     // 10. Store workout plan in database
     logger.debug('Storing workout plan', { userId, requestId });
-    // Transform to proper WorkoutPlanData format
+    // Transform to proper WorkoutPlanData format - preserve sets array structure
     const workoutPlanData = {
       title: `${pre.workout_type} Workout`,
       description: `Personalized ${pre.workout_type.toLowerCase()} workout for ${pre.experience} level`,
@@ -509,7 +515,9 @@ export const generate = asyncHandler(async (req: Request, res: Response): Promis
         name: 'Main Workout',
         exercises: transformedPlan.exercises.map((ex: any) => ({
           name: ex.name,
-          sets: ex.sets || 1,
+          // Preserve the sets array structure from AI generation
+          sets: Array.isArray(ex.sets) ? ex.sets.length : (ex.sets || 3),
+          setsData: Array.isArray(ex.sets) ? ex.sets : undefined, // Store the actual sets data
           reps: ex.reps,
           weight: ex.weight,
           duration_sec: ex.duration,
@@ -557,7 +565,8 @@ export const generate = asyncHandler(async (req: Request, res: Response): Promis
       model: process.env['OPENAI_MODEL'] || 'gpt-4o-mini',
       promptVersion: PROMPT_VERSION,
       preWorkout: pre,
-      plan: workoutPlanData
+      plan: workoutPlanData,
+      dedupKey
     });
 
     // 11. Return successful response
@@ -858,7 +867,6 @@ export const generateQuickWorkout = asyncHandler(async (req: Request, res: Respo
 
   try {
     // Use simple defaults for quick workout generation
-    console.log('🚀 Quick workout generation with simple defaults');
 
     // Convert to backend format with defaults
     const pre = {
@@ -872,8 +880,10 @@ export const generateQuickWorkout = asyncHandler(async (req: Request, res: Respo
       goals: ['general_fitness'], // Will be overridden by profile data
     };
 
+    // Compute deduplication key for this quick workout
+    const dedupKey = computeDedupKey(pre.userId, pre);
     // Check for duplicate (idempotency)
-    const dup = await WorkoutPlanModel.findOne({ userId: pre.userId, promptVersion: PROMPT_VERSION, preWorkout: pre });
+    const dup = await WorkoutPlanModel.findOne({ userId: pre.userId, promptVersion: PROMPT_VERSION, dedupKey });
     if (dup) {
       // Transform database format to frontend format
       const transformedPlan = transformDatabasePlanToFrontendFormat(dup.plan);
@@ -894,19 +904,6 @@ export const generateQuickWorkout = asyncHandler(async (req: Request, res: Respo
       duration: pre.time_available_min
     });
 
-    // Validation and programming options (same as regular generation)
-    if (aiPlan.blocks) {
-      aiPlan.blocks.forEach((block: any) => {
-        if (block.exercises) {
-          block.exercises.forEach((exercise: any) => {
-            if (!exercise.sets || exercise.sets.length < 2) {
-              console.warn(`⚠️ Quick AI generated ${exercise.sets?.length || 0} sets for main exercise: ${exercise.display_name || exercise.name}`);
-            }
-          });
-        }
-      });
-    }
-
     const programmingOptions: WorkoutProgrammingOptions = {
       experience: pre.experience as 'beginner' | 'intermediate' | 'advanced',
       primaryGoal: pre.goals?.[0] || 'general_fitness',
@@ -918,7 +915,7 @@ export const generateQuickWorkout = asyncHandler(async (req: Request, res: Respo
 
     const transformedPlan = transformAIPlanToFrontendFormat(aiPlan, programmingOptions);
 
-    // Transform to proper WorkoutPlanData format
+    // Transform to proper WorkoutPlanData format - preserve sets array structure
     const workoutPlanData = {
       title: `${pre.workout_type} Workout`,
       description: `Personalized ${pre.workout_type.toLowerCase()} workout for ${pre.experience} level`,
@@ -926,7 +923,9 @@ export const generateQuickWorkout = asyncHandler(async (req: Request, res: Respo
         name: 'Main Workout',
         exercises: transformedPlan.exercises.map((ex: any) => ({
           name: ex.name,
-          sets: ex.sets || 1,
+          // Preserve the sets array structure from AI generation
+          sets: Array.isArray(ex.sets) ? ex.sets.length : (ex.sets || 3),
+          setsData: Array.isArray(ex.sets) ? ex.sets : undefined, // Store the actual sets data
           reps: ex.reps,
           weight: ex.weight,
           duration_sec: ex.duration,
@@ -952,7 +951,8 @@ export const generateQuickWorkout = asyncHandler(async (req: Request, res: Respo
       model: process.env['OPENAI_MODEL'] || 'gpt-4o-mini',
       promptVersion: PROMPT_VERSION,
       preWorkout: pre as any, // Type assertion for compatibility
-      plan: workoutPlanData as any // Type assertion for compatibility
+      plan: workoutPlanData as any, // Type assertion for compatibility
+      dedupKey
     });
 
     res.status(201).json({

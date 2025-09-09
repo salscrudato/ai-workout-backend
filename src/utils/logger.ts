@@ -2,6 +2,8 @@ import pino from 'pino';
 import { Request, Response, NextFunction } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 
+const IS_DEV = process.env['NODE_ENV'] === 'development';
+
 // Extend Express Request interface to include correlation ID and logger
 declare global {
   namespace Express {
@@ -20,7 +22,7 @@ declare global {
  * Logger configuration based on environment
  */
 const createLogger = (name?: string) => {
-  const isDevelopment = process.env['NODE_ENV'] === 'development';
+  const isDevelopment = IS_DEV;
   
   return pino({
     name: name || 'ai-workout-backend',
@@ -106,11 +108,11 @@ export const requestLoggingMiddleware = (req: Request, res: Response, next: Next
   const startTime = req.startTime || Date.now();
   const requestLogger = req.log || logger.child({ correlationId: req.correlationId });
 
-  // Log incoming request
-  requestLogger.info({
-    req,
-    msg: 'Incoming request'
-  });
+  if (IS_DEV) {
+    requestLogger.info({ req, msg: 'Incoming request' });
+  } else {
+    requestLogger.debug({ req, msg: 'Incoming request' });
+  }
 
   // Override res.end to log response
   const originalEnd = res.end;
@@ -226,14 +228,16 @@ export class PerformanceLogger {
    * Start periodic metric aggregation
    */
   startPeriodicAggregation(intervalMs: number = 60000): void {
-    setInterval(() => {
+    const timer = setInterval(() => {
       this.logAggregatedMetrics();
     }, intervalMs);
-
-    this.logger.info({
-      intervalMs,
-      msg: 'Started periodic metric aggregation'
-    });
+    // Allow serverless instances to scale down when idle
+    if (typeof (timer as any).unref === 'function') {
+      (timer as any).unref();
+    }
+    if (IS_DEV) {
+      this.logger.info({ intervalMs, msg: 'Started periodic metric aggregation' });
+    }
   }
 }
 
@@ -331,8 +335,10 @@ export class StructuredLogger {
 export const performanceLogger = PerformanceLogger.getInstance();
 export const structuredLogger = new StructuredLogger();
 
-// Start periodic metric aggregation
-performanceLogger.startPeriodicAggregation();
+// Start periodic metric aggregation in development only
+if (IS_DEV) {
+  performanceLogger.startPeriodicAggregation();
+}
 
 /**
  * Utility function to measure execution time

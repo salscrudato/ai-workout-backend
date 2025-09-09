@@ -1,5 +1,6 @@
 import { getFirestore } from '../config/db';
 import { Timestamp } from 'firebase-admin/firestore';
+import { sha256 } from '../libs/hash';
 
 // Proper type definitions for workout plan data
 export interface PreWorkoutData {
@@ -23,6 +24,17 @@ export interface WorkoutBlock {
 export interface Exercise {
   name: string;
   sets: number;
+  setsData?: Array<{
+    reps: number;
+    time_sec: number;
+    rest_sec: number;
+    tempo: string;
+    intensity: string;
+    notes: string;
+    weight_guidance: string;
+    rpe: number;
+    rest_type: string;
+  }>; // Store the detailed sets data from AI generation
   reps?: number | string;
   weight?: string;
   duration_sec?: number;
@@ -62,6 +74,14 @@ export interface WorkoutPlan {
   plan: WorkoutPlanData;
   createdAt: Timestamp;
   updatedAt?: Timestamp;
+  dedupKey?: string;
+  summary?: {
+    workoutType: string;
+    experience: 'beginner' | 'intermediate' | 'advanced';
+    durationMin: number;
+    goals: string[];
+    equipment: string[];
+  };
 }
 
 export interface CreateWorkoutPlanInput {
@@ -70,6 +90,14 @@ export interface CreateWorkoutPlanInput {
   promptVersion: string;
   preWorkout: PreWorkoutData;
   plan: WorkoutPlanData;
+  dedupKey?: string;
+  summary?: {
+    workoutType: string;
+    experience: 'beginner' | 'intermediate' | 'advanced';
+    durationMin: number;
+    goals: string[];
+    equipment: string[];
+  };
 }
 
 export class WorkoutPlanModel {
@@ -79,6 +107,27 @@ export class WorkoutPlanModel {
     const db = getFirestore();
     const now = Timestamp.now();
 
+    const base = data.preWorkout;
+    const canonical = {
+      userId: data.userId,
+      workout_type: base.workout_type,
+      experience: base.experience,
+      time_available_min: base.time_available_min,
+      goals: Array.isArray(base.goals) ? [...base.goals].sort() : [],
+      equipment_override: Array.isArray(base.equipment_override) ? [...base.equipment_override].sort() : [],
+    };
+    const dedupKey = data.dedupKey || sha256(canonical);
+
+    const summary = data.summary || {
+      workoutType: base.workout_type,
+      experience: base.experience,
+      durationMin: base.time_available_min,
+      goals: Array.isArray(base.goals) ? [...base.goals].sort() : [],
+      equipment: Array.isArray(base.equipment_override) ? [...base.equipment_override].sort() : [],
+    };
+
+    // NOTE: Consider adding Firestore indexes on: userId, promptVersion, dedupKey, and summary.workoutType/experience if needed.
+
     const workoutPlanData: Omit<WorkoutPlan, 'id'> = {
       userId: data.userId,
       model: data.model,
@@ -87,6 +136,8 @@ export class WorkoutPlanModel {
       plan: data.plan,
       createdAt: now,
       updatedAt: now,
+      dedupKey,
+      summary,
     };
 
     const docRef = await db.collection(this.collection).add(workoutPlanData);
@@ -115,6 +166,7 @@ export class WorkoutPlanModel {
     userId?: string;
     promptVersion?: string;
     preWorkout?: any;
+    dedupKey?: string;
   }): Promise<WorkoutPlan | null> {
     const db = getFirestore();
     let query = db.collection(this.collection) as any;
@@ -124,6 +176,15 @@ export class WorkoutPlanModel {
     }
     if (filter.promptVersion) {
       query = query.where('promptVersion', '==', filter.promptVersion);
+    }
+    if (filter.dedupKey) {
+      query = query.where('dedupKey', '==', filter.dedupKey);
+      const snapshot = await query.limit(1).get();
+      if (snapshot.empty) {
+        return null;
+      }
+      const doc = snapshot.docs[0];
+      return { id: doc.id, ...doc.data() } as WorkoutPlan;
     }
     // Note: Firestore doesn't support deep object equality queries
     // We'll need to handle preWorkout matching in the application layer

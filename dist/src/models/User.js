@@ -14,11 +14,14 @@ class UserModel {
             createdAt: now,
             updatedAt: now,
         };
+        if (data.firebaseUid) {
+            const docRef = db.collection(this.collection).doc(data.firebaseUid);
+            await docRef.set(userData, { merge: true });
+            const saved = await docRef.get();
+            return { id: saved.id, ...saved.data() };
+        }
         const docRef = await db.collection(this.collection).add(userData);
-        return {
-            id: docRef.id,
-            ...userData,
-        };
+        return { id: docRef.id, ...userData };
     }
     static async findByEmail(email) {
         const db = (0, db_1.getFirestore)();
@@ -42,6 +45,17 @@ class UserModel {
             ...data,
         };
     }
+    // NOTE: Ensure a Firestore index on `users.email` exists for production performance.
+    static async findByFirebaseUid(firebaseUid) {
+        const db = (0, db_1.getFirestore)();
+        const doc = await db.collection(this.collection).doc(firebaseUid).get();
+        if (!doc.exists)
+            return null;
+        const data = doc.data();
+        if (!data)
+            return null;
+        return { id: doc.id, ...data };
+    }
     static async findById(id) {
         const db = (0, db_1.getFirestore)();
         const doc = await db.collection(this.collection).doc(id).get();
@@ -63,35 +77,40 @@ class UserModel {
     static async findOneAndUpdate(filter, update, options = {}) {
         const db = (0, db_1.getFirestore)();
         const now = firestore_1.Timestamp.now();
+        // Ensure we never overwrite timestamps incorrectly
+        const patch = { ...update, updatedAt: now };
+        if (filter.id) {
+            const docRef = db.collection(this.collection).doc(filter.id);
+            if (!options.upsert) {
+                const exists = await docRef.get();
+                if (!exists.exists)
+                    throw new Error('User not found and upsert not enabled');
+            }
+            await docRef.set(patch, { merge: true });
+            const saved = await docRef.get();
+            return { id: saved.id, ...saved.data() };
+        }
         if (filter.email) {
+            // Try fast path: find by email
             const existing = await this.findByEmail(filter.email);
             if (existing) {
-                const updatedData = {
-                    ...update,
-                    updatedAt: now,
-                };
-                await db.collection(this.collection).doc(existing.id).update(updatedData);
-                return {
-                    ...existing,
-                    ...updatedData,
-                };
+                const docRef = db.collection(this.collection).doc(existing.id);
+                await docRef.set(patch, { merge: true });
+                const saved = await docRef.get();
+                return { id: saved.id, ...saved.data() };
             }
-            else if (options.upsert) {
-                return this.create({ email: filter.email });
-            }
-        }
-        if (filter.id) {
-            const existing = await this.findById(filter.id);
-            if (existing) {
-                const updatedData = {
-                    ...update,
-                    updatedAt: now,
-                };
-                await db.collection(this.collection).doc(filter.id).update(updatedData);
-                return {
-                    ...existing,
-                    ...updatedData,
-                };
+            if (options.upsert) {
+                // Create new doc; prefer firebaseUid if provided in update
+                const uid = (update && update.firebaseUid) ? String(update.firebaseUid) : undefined;
+                if (uid) {
+                    const docRef = db.collection(this.collection).doc(uid);
+                    await docRef.set({ email: filter.email, firebaseUid: uid, createdAt: now, updatedAt: now }, { merge: true });
+                    const saved = await docRef.get();
+                    return { id: saved.id, ...saved.data() };
+                }
+                else {
+                    return this.create({ email: filter.email });
+                }
             }
         }
         throw new Error('User not found and upsert not enabled');

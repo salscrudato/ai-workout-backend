@@ -1,3 +1,4 @@
+const isProd = process.env.NODE_ENV === 'production';
 import admin from 'firebase-admin';
 import { env } from './env';
 
@@ -14,7 +15,9 @@ export async function initializeFirebase(): Promise<admin.firestore.Firestore> {
         admin.initializeApp({
           projectId: env.FIREBASE_PROJECT_ID,
         });
-        console.log('Firebase Admin initialized with default credentials (Firebase Functions)');
+        if (!isProd) {
+          console.log('Firebase Admin initialized with default credentials (Firebase Functions)');
+        }
       } else {
         // Use service account for local development
         let serviceAccount: admin.ServiceAccount;
@@ -38,14 +41,16 @@ export async function initializeFirebase(): Promise<admin.firestore.Firestore> {
             clientEmail: env.FIREBASE_CLIENT_EMAIL,
           };
         } else {
-          throw new Error('Firebase credentials not properly configured');
+          throw new Error('Firebase Admin credentials missing. Set FIREBASE_SERVICE_ACCOUNT_KEY (JSON or path) or FIREBASE_PRIVATE_KEY and FIREBASE_CLIENT_EMAIL.');
         }
 
         admin.initializeApp({
           credential: admin.credential.cert(serviceAccount),
           projectId: env.FIREBASE_PROJECT_ID,
         });
-        console.log('Firebase Admin initialized with service account (local development)');
+        if (!isProd) {
+          console.log('Firebase Admin initialized with service account (local development)');
+        }
       }
     }
 
@@ -56,10 +61,17 @@ export async function initializeFirebase(): Promise<admin.firestore.Firestore> {
       ignoreUndefinedProperties: true,
     });
 
-    console.log('Firestore connected successfully');
+    if (!isProd) {
+      console.log('Firestore connected successfully');
+    }
     return db;
   } catch (error) {
-    console.error('Failed to initialize Firebase:', error);
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.toLowerCase().includes('credential')) {
+      console.error('Failed to initialize Firebase: invalid or missing credentials.');
+    } else {
+      console.error('Failed to initialize Firebase:', error);
+    }
     throw error;
   }
 }
@@ -73,6 +85,8 @@ export function getFirestore(): admin.firestore.Firestore {
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
-  console.log('Closing Firebase connection...');
+  if (!isProd) {
+    console.log('Closing Firebase connection...');
+  }
   process.exit(0);
 });

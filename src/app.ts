@@ -16,8 +16,6 @@ import {
 import v1 from './routes/v1';
 import healthRoutes from './routes/health';
 import analyticsRoutes from './routes/analytics';
-import { advancedPerformanceMonitor } from './services/advancedPerformanceMonitor';
-import { cacheManager } from './services/intelligentCache';
 
 let appInstance: express.Application | null = null;
 
@@ -96,19 +94,7 @@ export async function createExpressApp(): Promise<express.Application> {
   app.use(compression());
   app.use(maybeApiKey);
 
-  // Advanced performance monitoring middleware
-  app.use(advancedPerformanceMonitor.middleware());
-
-  // Cache optimization middleware
-  app.use((req, res, next) => {
-    // Optimize caches periodically
-    if (Math.random() < 0.01) { // 1% chance to trigger optimization
-      cacheManager.optimizeAll().catch(error => {
-        logger.warn({ error: (error as Error).message }, 'Cache optimization failed');
-      });
-    }
-    next();
-  });
+  // (Advanced performance monitoring and cache optimization middleware removed)
 
   // Health check endpoint
   app.get('/health', (_req, res) => res.json({
@@ -168,7 +154,10 @@ export async function createExpressApp(): Promise<express.Application> {
   app.use('/health', healthRoutes);
 
   // Analytics routes (internal use)
-  app.use('/analytics', analyticsRoutes);
+  const enableAnalyticsRoutes = Boolean(env.INTERNAL_API_KEY);
+  if (enableAnalyticsRoutes) {
+    app.use('/analytics', analyticsRoutes);
+  }
 
   // API routes
   app.use('/v1', v1);

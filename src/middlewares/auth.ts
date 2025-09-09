@@ -1,3 +1,4 @@
+const isProd = process.env.NODE_ENV === 'production';
 import { Request, Response, NextFunction } from 'express';
 import admin from 'firebase-admin';
 import { env } from '../config/env';
@@ -58,12 +59,20 @@ class TokenCache {
       }
     }
   }
+
+  delete(token: string): void {
+    this.cache.delete(token);
+  }
 }
 
 const tokenCache = new TokenCache();
 
 // Clean up cache every 10 minutes
-setInterval(() => tokenCache.cleanup(), 10 * 60 * 1000);
+const cleanupInterval = setInterval(() => tokenCache.cleanup(), 10 * 60 * 1000);
+// Allow function instances to scale down when idle
+if (cleanupInterval && typeof (cleanupInterval as any).unref === 'function') {
+  (cleanupInterval as any).unref();
+}
 
 export function maybeApiKey(req: Request, res: Response, next: NextFunction) {
   // If no internal API key is configured, skip authentication
@@ -91,7 +100,9 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.log('Auth failed: No authorization header or invalid format');
+      if (!isProd) {
+        console.log('Auth failed: No authorization header or invalid format');
+      }
       res.status(401).json({
         error: 'Authorization header required',
         code: 'AUTH_HEADER_MISSING'
@@ -103,7 +114,9 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 
     // Basic token format validation
     if (!token || token.length < 100) {
-      console.log('Auth failed: Invalid token format');
+      if (!isProd) {
+        console.log('Auth failed: Invalid token format');
+      }
       res.status(401).json({
         error: 'Invalid token format',
         code: 'INVALID_TOKEN_FORMAT'
@@ -111,7 +124,9 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       return;
     }
 
-    console.log('Auth: Attempting to verify token:', token.substring(0, 50) + '...');
+    if (!isProd) {
+      console.log('Auth: Attempting to verify token:', token.substring(0, 50) + '...');
+    }
 
     // Check cache first
     let decodedToken = tokenCache.get(token);
@@ -126,7 +141,9 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 
     // Additional security checks
     if (!decodedToken.email_verified) {
-      console.log('Auth failed: Email not verified for user:', decodedToken.uid);
+      if (!isProd) {
+        console.log('Auth failed: Email not verified for user:', decodedToken.uid);
+      }
       res.status(401).json({
         error: 'Email verification required',
         code: 'EMAIL_NOT_VERIFIED'
@@ -140,11 +157,15 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     const bufferTime = 5 * 60; // 5 minutes buffer
 
     if (tokenExp - now < bufferTime) {
-      console.log('Auth warning: Token expires soon for user:', decodedToken.uid);
+      if (!isProd) {
+        console.log('Auth warning: Token expires soon for user:', decodedToken.uid);
+      }
       // Still allow the request but log for monitoring
     }
 
-    console.log('Auth: Token verified successfully for user:', decodedToken.uid);
+    if (!isProd) {
+      console.log('Auth: Token verified successfully for user:', decodedToken.uid);
+    }
     req.user = decodedToken;
 
     next();
@@ -155,7 +176,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     const authHeader = req.headers.authorization;
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
-      tokenCache.get(token); // This will remove expired tokens
+      tokenCache.delete(token);
     }
 
     // Provide specific error messages for different failure types
@@ -173,11 +194,15 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       errorCode = 'INVALID_TOKEN';
     }
 
-    console.error('Error details:', {
-      name: error.name,
-      message: error.message,
-      code: error.code,
-    });
+    if (!isProd) {
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        code: error.code,
+      });
+    } else {
+      console.error(`Auth error code: ${error.code || error.name}`);
+    }
 
     res.status(401).json({
       error: errorMessage,
@@ -199,7 +224,9 @@ export async function optionalAuth(req: Request, _res: Response, next: NextFunct
     next();
   } catch (error) {
     // If token verification fails, continue without user (optional auth)
-    console.warn('Optional auth failed:', error);
+    if (!isProd) {
+      console.warn('Optional auth failed:', error);
+    }
     next();
   }
 }

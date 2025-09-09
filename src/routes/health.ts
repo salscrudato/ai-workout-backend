@@ -1,9 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { asyncHandler } from '../middlewares/errors';
 import { getFirestore } from '../config/db';
-import { openai } from '../libs/openai';
-import { circuitBreakerRegistry } from '../utils/circuitBreaker';
-import { measureExecutionTime } from '../utils/logger';
+// Removed heavy dependencies not needed for fast health checks
 import pino from 'pino';
 
 // Create logger wrapper that accepts any parameters
@@ -39,58 +37,6 @@ interface HealthCheckResult {
   memory?: NodeJS.MemoryUsage;
 }
 
-/**
- * Check Firestore database connectivity
- */
-async function checkFirestore(): Promise<DependencyStatus> {
-  try {
-    const startTime = Date.now();
-    const db = getFirestore();
-
-    // Simple connectivity test
-    await db.collection('health-check').limit(1).get();
-
-    const responseTime = Date.now() - startTime;
-
-    return {
-      status: responseTime < 1000 ? 'healthy' : 'degraded',
-      responseTime,
-      lastChecked: new Date().toISOString()
-    };
-  } catch (error) {
-    return {
-      status: 'unhealthy',
-      error: error instanceof Error ? error.message : 'Unknown error',
-      lastChecked: new Date().toISOString()
-    };
-  }
-}
-
-/**
- * Check OpenAI API connectivity
- */
-async function checkOpenAI(): Promise<DependencyStatus> {
-  try {
-    const startTime = Date.now();
-
-    // Simple API test - list models
-    await openai.models.list();
-
-    const responseTime = Date.now() - startTime;
-
-    return {
-      status: responseTime < 2000 ? 'healthy' : 'degraded',
-      responseTime,
-      lastChecked: new Date().toISOString()
-    };
-  } catch (error) {
-    return {
-      status: 'unhealthy',
-      error: error instanceof Error ? error.message : 'Unknown error',
-      lastChecked: new Date().toISOString()
-    };
-  }
-}
 
 /**
  * Check system resources
@@ -132,38 +78,21 @@ router.get('/detailed', asyncHandler(async (req: Request, res: Response) => {
   logger.info('Detailed health check requested', { correlationId });
 
   try {
-    // Check all dependencies in parallel
-    const [firestoreStatus, openaiStatus] = await Promise.allSettled([
-      measureExecutionTime('health_check_firestore', checkFirestore),
-      measureExecutionTime('health_check_openai', checkOpenAI)
-    ]);
-
+    // Only check system resources for lightweight health check
     const systemStatus = checkSystemResources();
-
-    const dependencies: Record<string, DependencyStatus> = {
-      firestore: firestoreStatus.status === 'fulfilled'
-        ? firestoreStatus.value
-        : { status: 'unhealthy', error: 'Health check failed', lastChecked: new Date().toISOString() },
-
-      openai: openaiStatus.status === 'fulfilled'
-        ? openaiStatus.value
-        : { status: 'unhealthy', error: 'Health check failed', lastChecked: new Date().toISOString() },
-
-      system: systemStatus
-    };
+    const dependencies: Record<string, DependencyStatus> = { system: systemStatus };
 
     // Determine overall health
     const allHealthy = Object.values(dependencies).every(dep => dep.status === 'healthy');
     const anyUnhealthy = Object.values(dependencies).some(dep => dep.status === 'unhealthy');
 
     const result: HealthCheckResult = {
-      ok: !anyUnhealthy,
+      ok: allHealthy,
       timestamp: new Date().toISOString(),
       version: process.env['npm_package_version'] || '1.0.0',
       environment: process.env['NODE_ENV'] || 'development',
       uptime: process.uptime(),
       dependencies,
-      circuitBreakers: circuitBreakerRegistry.getAllStats(),
       memory: process.memoryUsage()
     };
 
@@ -172,12 +101,12 @@ router.get('/detailed', asyncHandler(async (req: Request, res: Response) => {
     logger.info('Health check completed', {
       correlationId,
       responseTime,
-      overallHealth: result.ok ? 'healthy' : 'unhealthy',
+      overallHealth: result.ok ? 'healthy' : 'degraded',
       dependencyCount: Object.keys(dependencies).length
     });
 
     // Set appropriate HTTP status
-    const statusCode = anyUnhealthy ? 503 : (allHealthy ? 200 : 207);
+    const statusCode = allHealthy ? 200 : 207;
     res.status(statusCode).json(result);
 
   } catch (error) {

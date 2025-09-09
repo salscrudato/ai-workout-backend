@@ -14,6 +14,7 @@ export declare class UserModel {
     private static collection;
     static create(data: CreateUserInput): Promise<User>;
     static findByEmail(email: string): Promise<User | null>;
+    static findByFirebaseUid(firebaseUid: string): Promise<User | null>;
     static findById(id: string): Promise<User | null>;
     static findOneAndUpdate(filter: {
         email?: string;

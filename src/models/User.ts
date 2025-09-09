@@ -21,19 +21,22 @@ export class UserModel {
     const db = getFirestore();
     const now = Timestamp.now();
 
-    const userData = {
+    const userData: Omit<User, 'id'> = {
       email: data.email || '',
       firebaseUid: data.firebaseUid,
       createdAt: now,
       updatedAt: now,
-    } as Omit<User, 'id'>;
+    };
+
+    if (data.firebaseUid) {
+      const docRef = db.collection(this.collection).doc(data.firebaseUid);
+      await docRef.set(userData, { merge: true });
+      const saved = await docRef.get();
+      return { id: saved.id, ...(saved.data() as any) } as User;
+    }
 
     const docRef = await db.collection(this.collection).add(userData);
-
-    return {
-      id: docRef.id,
-      ...userData,
-    };
+    return { id: docRef.id, ...userData } as User;
   }
 
   static async findByEmail(email: string): Promise<User | null> {
@@ -61,6 +64,17 @@ export class UserModel {
       id: doc.id,
       ...data,
     } as User;
+  }
+
+  // NOTE: Ensure a Firestore index on `users.email` exists for production performance.
+
+  static async findByFirebaseUid(firebaseUid: string): Promise<User | null> {
+    const db = getFirestore();
+    const doc = await db.collection(this.collection).doc(firebaseUid).get();
+    if (!doc.exists) return null;
+    const data = doc.data();
+    if (!data) return null;
+    return { id: doc.id, ...data } as User;
   }
 
   static async findById(id: string): Promise<User | null> {
@@ -94,35 +108,40 @@ export class UserModel {
     const db = getFirestore();
     const now = Timestamp.now();
 
-    if (filter.email) {
-      const existing = await this.findByEmail(filter.email);
-      if (existing) {
-        const updatedData = {
-          ...update,
-          updatedAt: now,
-        };
-        await db.collection(this.collection).doc(existing.id!).update(updatedData);
-        return {
-          ...existing,
-          ...updatedData,
-        };
-      } else if (options.upsert) {
-        return this.create({ email: filter.email });
-      }
-    }
+    // Ensure we never overwrite timestamps incorrectly
+    const patch: Record<string, any> = { ...update, updatedAt: now };
 
     if (filter.id) {
-      const existing = await this.findById(filter.id);
+      const docRef = db.collection(this.collection).doc(filter.id);
+      if (!options.upsert) {
+        const exists = await docRef.get();
+        if (!exists.exists) throw new Error('User not found and upsert not enabled');
+      }
+      await docRef.set(patch, { merge: true });
+      const saved = await docRef.get();
+      return { id: saved.id, ...(saved.data() as any) } as User;
+    }
+
+    if (filter.email) {
+      // Try fast path: find by email
+      const existing = await this.findByEmail(filter.email);
       if (existing) {
-        const updatedData = {
-          ...update,
-          updatedAt: now,
-        };
-        await db.collection(this.collection).doc(filter.id).update(updatedData);
-        return {
-          ...existing,
-          ...updatedData,
-        };
+        const docRef = db.collection(this.collection).doc(existing.id!);
+        await docRef.set(patch, { merge: true });
+        const saved = await docRef.get();
+        return { id: saved.id, ...(saved.data() as any) } as User;
+      }
+      if (options.upsert) {
+        // Create new doc; prefer firebaseUid if provided in update
+        const uid = (update && update.firebaseUid) ? String(update.firebaseUid) : undefined;
+        if (uid) {
+          const docRef = db.collection(this.collection).doc(uid);
+          await docRef.set({ email: filter.email, firebaseUid: uid, createdAt: now, updatedAt: now }, { merge: true });
+          const saved = await docRef.get();
+          return { id: saved.id, ...(saved.data() as any) } as User;
+        } else {
+          return this.create({ email: filter.email });
+        }
       }
     }
 

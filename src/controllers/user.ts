@@ -4,12 +4,7 @@ import pino from 'pino';
 import { asyncHandler, AppError } from '../middlewares/errors';
 import { UserModel, User } from '../models/User';
 import { ProfileModel, Profile } from '../models/Profile';
-import {
-  CreateUserSchema,
-  AuthSchema,
-  CreateUserInput,
-  AuthInput
-} from '../schemas/validation';
+import { CreateUserSchema, AuthSchema, CreateUserInput, AuthInput } from '../utils/validation';
 
 // Initialize logger for this controller
 const baseLogger = pino({
@@ -66,23 +61,13 @@ export const createUser = asyncHandler(async (req: Request, res: Response): Prom
         throw new AppError('User ID is required for profile creation', 400, 'INVALID_USER_ID');
       }
 
+      const update: Record<string, any> = {};
+      for (const [k, v] of Object.entries(profileFields)) {
+        if (v !== undefined) update[k] = v;
+      }
       profile = await ProfileModel.findOneAndUpdate(
         { userId: user.id },
-        {
-          userId: user.id,
-          experience: profileFields.experience || 'beginner',
-          goals: profileFields.goals || [],
-          equipmentAvailable: profileFields.equipmentAvailable || [],
-          age: profileFields.age,
-          sex: profileFields.sex || 'prefer_not_to_say',
-          height_ft: profileFields.height_ft,
-          height_in: profileFields.height_in,
-          weight_lb: profileFields.weight_lb,
-          injury_notes: profileFields.injury_notes,
-          constraints: profileFields.constraints || [],
-          health_ack: profileFields.health_ack || false,
-          data_consent: profileFields.data_consent || false,
-        },
+        update,
         { upsert: true }
       );
       logger.info('Profile created/updated', { requestId, userId: user.id, profileId: profile?.id });

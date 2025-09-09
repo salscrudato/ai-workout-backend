@@ -2,14 +2,22 @@ import { Router } from 'express';
 import { createUser, authenticateUser } from '../controllers/user';
 import { getProfile, patchProfile, createProfile } from '../controllers/profile';
 import { generate, getWorkout, listWorkouts, completeWorkout, generateQuickWorkout } from '../controllers/workout';
-import { EquipmentModel } from '../models/Equipment';
+import { listEquipment } from '../models/Equipment';
 import { asyncHandler } from '../middlewares/errors';
 import { requireAuth } from '../middlewares/auth';
 import { adaptiveLearningEngine } from '../services/adaptiveLearning.simple';
 
 const r = Router();
 
-
+// Lightweight v1 health (no auth, no external calls)
+r.get('/health', asyncHandler(async (_req, res): Promise<void> => {
+  res.json({
+    ok: true,
+    timestamp: new Date().toISOString(),
+    version: process.env['npm_package_version'] || '1.0.0',
+    environment: process.env['NODE_ENV'] || 'development'
+  });
+}));
 
 // Authentication routes
 r.post('/auth/google', authenticateUser);
@@ -71,13 +79,13 @@ r.get('/profile/:userId', requireAuth, getProfile);
 r.patch('/profile/:userId', requireAuth, patchProfile);
 
 // Equipment routes (public) - with caching
-r.get('/equipment', asyncHandler(async (req, res): Promise<void> => {
+r.get('/equipment', asyncHandler(async (_req, res): Promise<void> => {
   // Set cache headers for static data
   res.set('Cache-Control', 'public, max-age=3600'); // 1 hour cache
 
-  const items = await EquipmentModel.find();
+  const items = listEquipment();
   res.json({
-    items: items.map(i => ({ slug: i.slug, label: i.label })),
+    items: items.map(item => ({ slug: item.slug, label: item.label })),
     cached: false // Will be true when served from cache
   });
 }));

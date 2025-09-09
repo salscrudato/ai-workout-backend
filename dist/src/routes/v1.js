@@ -42,6 +42,15 @@ const errors_1 = require("../middlewares/errors");
 const auth_1 = require("../middlewares/auth");
 const adaptiveLearning_simple_1 = require("../services/adaptiveLearning.simple");
 const r = (0, express_1.Router)();
+// Lightweight v1 health (no auth, no external calls)
+r.get('/health', (0, errors_1.asyncHandler)(async (_req, res) => {
+    res.json({
+        ok: true,
+        timestamp: new Date().toISOString(),
+        version: process.env['npm_package_version'] || '1.0.0',
+        environment: process.env['NODE_ENV'] || 'development'
+    });
+}));
 // Authentication routes
 r.post('/auth/google', user_1.authenticateUser);
 // Debug auth endpoint (manual verification)
@@ -94,12 +103,12 @@ r.post('/profile', auth_1.requireAuth, profile_1.createProfile);
 r.get('/profile/:userId', auth_1.requireAuth, profile_1.getProfile);
 r.patch('/profile/:userId', auth_1.requireAuth, profile_1.patchProfile);
 // Equipment routes (public) - with caching
-r.get('/equipment', (0, errors_1.asyncHandler)(async (req, res) => {
+r.get('/equipment', (0, errors_1.asyncHandler)(async (_req, res) => {
     // Set cache headers for static data
     res.set('Cache-Control', 'public, max-age=3600'); // 1 hour cache
-    const items = await Equipment_1.EquipmentModel.find();
+    const items = (0, Equipment_1.listEquipment)();
     res.json({
-        items: items.map(i => ({ slug: i.slug, label: i.label })),
+        items: items.map(item => ({ slug: item.slug, label: item.label })),
         cached: false // Will be true when served from cache
     });
 }));

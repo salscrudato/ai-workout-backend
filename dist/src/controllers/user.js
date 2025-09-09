@@ -9,7 +9,7 @@ const pino_1 = __importDefault(require("pino"));
 const errors_1 = require("../middlewares/errors");
 const User_1 = require("../models/User");
 const Profile_1 = require("../models/Profile");
-const validation_1 = require("../schemas/validation");
+const validation_1 = require("../utils/validation");
 // Initialize logger for this controller
 const baseLogger = (0, pino_1.default)({
     name: 'user-controller',
@@ -60,21 +60,12 @@ exports.createUser = (0, errors_1.asyncHandler)(async (req, res) => {
             if (!user.id) {
                 throw new errors_1.AppError('User ID is required for profile creation', 400, 'INVALID_USER_ID');
             }
-            profile = await Profile_1.ProfileModel.findOneAndUpdate({ userId: user.id }, {
-                userId: user.id,
-                experience: profileFields.experience || 'beginner',
-                goals: profileFields.goals || [],
-                equipmentAvailable: profileFields.equipmentAvailable || [],
-                age: profileFields.age,
-                sex: profileFields.sex || 'prefer_not_to_say',
-                height_ft: profileFields.height_ft,
-                height_in: profileFields.height_in,
-                weight_lb: profileFields.weight_lb,
-                injury_notes: profileFields.injury_notes,
-                constraints: profileFields.constraints || [],
-                health_ack: profileFields.health_ack || false,
-                data_consent: profileFields.data_consent || false,
-            }, { upsert: true });
+            const update = {};
+            for (const [k, v] of Object.entries(profileFields)) {
+                if (v !== undefined)
+                    update[k] = v;
+            }
+            profile = await Profile_1.ProfileModel.findOneAndUpdate({ userId: user.id }, update, { upsert: true });
             logger.info('Profile created/updated', { requestId, userId: user.id, profileId: profile?.id });
         }
         const responseTime = Date.now() - startTime;

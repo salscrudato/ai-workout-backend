@@ -18,6 +18,17 @@ export interface WorkoutBlock {
 export interface Exercise {
     name: string;
     sets: number;
+    setsData?: Array<{
+        reps: number;
+        time_sec: number;
+        rest_sec: number;
+        tempo: string;
+        intensity: string;
+        notes: string;
+        weight_guidance: string;
+        rpe: number;
+        rest_type: string;
+    }>;
     reps?: number | string;
     weight?: string;
     duration_sec?: number;
@@ -55,6 +66,14 @@ export interface WorkoutPlan {
     plan: WorkoutPlanData;
     createdAt: Timestamp;
     updatedAt?: Timestamp;
+    dedupKey?: string;
+    summary?: {
+        workoutType: string;
+        experience: 'beginner' | 'intermediate' | 'advanced';
+        durationMin: number;
+        goals: string[];
+        equipment: string[];
+    };
 }
 export interface CreateWorkoutPlanInput {
     userId: string;
@@ -62,6 +81,14 @@ export interface CreateWorkoutPlanInput {
     promptVersion: string;
     preWorkout: PreWorkoutData;
     plan: WorkoutPlanData;
+    dedupKey?: string;
+    summary?: {
+        workoutType: string;
+        experience: 'beginner' | 'intermediate' | 'advanced';
+        durationMin: number;
+        goals: string[];
+        equipment: string[];
+    };
 }
 export declare class WorkoutPlanModel {
     private static collection;
@@ -71,6 +98,7 @@ export declare class WorkoutPlanModel {
         userId?: string;
         promptVersion?: string;
         preWorkout?: any;
+        dedupKey?: string;
     }): Promise<WorkoutPlan | null>;
     static find(filter: {
         userId?: string;

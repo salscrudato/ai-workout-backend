@@ -6,13 +6,22 @@ import { cacheManager } from '../services/intelligentCache';
 import { requestDeduplicationService } from '../services/requestDeduplication';
 import { maybeApiKey } from '../middlewares/auth';
 
+const analyticsEnabled = process.env['ANALYTICS_MODE'] === 'on';
+
 const router = Router();
 
 /**
  * GET /analytics/prompt-performance
  * Get prompt performance metrics
  */
-router.get('/prompt-performance', asyncHandler(async (req, res) => {
+router.get('/prompt-performance', maybeApiKey, asyncHandler(async (req, res): Promise<void> => {
+  if (!analyticsEnabled) {
+    res.status(503).json({
+      error: 'Analytics computations disabled. Enable batch/precomputed analytics or set ANALYTICS_MODE=on for controlled environments.',
+      code: 'ANALYTICS_DISABLED'
+    });
+    return;
+  }
   const { version } = req.query;
   const metrics = await promptAnalytics.analyzePromptPerformance(version as string);
   
@@ -37,7 +46,13 @@ router.get('/prompt-performance', asyncHandler(async (req, res) => {
  * GET /analytics/optimization-suggestions
  * Get prompt optimization suggestions
  */
-router.get('/optimization-suggestions', asyncHandler(async (req, res) => {
+router.get('/optimization-suggestions', maybeApiKey, asyncHandler(async (req, res): Promise<void> => {
+  if (!analyticsEnabled) {
+    res.status(503).json({
+      error: 'Analytics computations disabled. Enable batch/precomputed analytics or set ANALYTICS_MODE=on for controlled environments.',
+      code: 'ANALYTICS_DISABLED'
+    });
+  }
   const { version } = req.query;
   const suggestions = await promptAnalytics.generateOptimizationSuggestions(version as string);
   
@@ -61,7 +76,13 @@ router.get('/optimization-suggestions', asyncHandler(async (req, res) => {
  * GET /analytics/ab-test-recommendations
  * Get A/B testing recommendations for prompt optimization
  */
-router.get('/ab-test-recommendations', asyncHandler(async (req, res) => {
+router.get('/ab-test-recommendations', maybeApiKey, asyncHandler(async (_req, res): Promise<void> => {
+  if (!analyticsEnabled) {
+    res.status(503).json({
+      error: 'Analytics computations disabled. Enable batch/precomputed analytics or set ANALYTICS_MODE=on for controlled environments.',
+      code: 'ANALYTICS_DISABLED'
+    });
+  }
   const recommendations = await promptAnalytics.generateABTestRecommendations();
   
   res.json({

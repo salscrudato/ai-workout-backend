@@ -10,21 +10,6 @@ export declare class AppError extends Error {
     readonly timestamp: string;
     constructor(message: string, statusCode?: number, code?: string, isOperational?: boolean);
 }
-/**
- * Enhanced error handler middleware with intelligent error classification and structured responses
- *
- * Features:
- * - Automatic error classification and severity assessment
- * - User-friendly error messages with technical details for debugging
- * - Error metrics collection for monitoring and alerting
- * - Structured logging with correlation IDs
- * - Security-aware error exposure (no sensitive data in production)
- *
- * @param err - Error object
- * @param req - Express request object
- * @param res - Express response object
- * @param _next - Express next function (unused)
- */
 export declare function errorHandler(err: any, req: Request, res: Response, _next: NextFunction): void;
 /**
  * Error logging middleware
@@ -41,11 +26,12 @@ export declare const errorLoggingMiddleware: (error: Error, req: Request, res: R
  *
  * @example
  * ```typescript
- * export const getUser = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+* export const getUser = asyncHandler(async (req: Request, res: Response): Promise<void> => {
  *   const user = await UserModel.findById(req.params.id);
  *   res.json(user);
  * });
- * ```
+ *
+```
  */
 export declare const asyncHandler: <T extends Request = Request, U extends Response = Response>(fn: (req: T, res: U, next: NextFunction) => Promise<void>) => (req: T, res: U, next: NextFunction) => void;
 //# sourceMappingURL=errors.d.ts.map

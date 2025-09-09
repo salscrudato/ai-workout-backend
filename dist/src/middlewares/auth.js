@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.maybeApiKey = maybeApiKey;
 exports.requireAuth = requireAuth;
 exports.optionalAuth = optionalAuth;
+const isProd = process.env.NODE_ENV === 'production';
 const firebase_admin_1 = __importDefault(require("firebase-admin"));
 const env_1 = require("../config/env");
 class TokenCache {
@@ -40,10 +41,17 @@ class TokenCache {
             }
         }
     }
+    delete(token) {
+        this.cache.delete(token);
+    }
 }
 const tokenCache = new TokenCache();
 // Clean up cache every 10 minutes
-setInterval(() => tokenCache.cleanup(), 10 * 60 * 1000);
+const cleanupInterval = setInterval(() => tokenCache.cleanup(), 10 * 60 * 1000);
+// Allow function instances to scale down when idle
+if (cleanupInterval && typeof cleanupInterval.unref === 'function') {
+    cleanupInterval.unref();
+}
 function maybeApiKey(req, res, next) {
     // If no internal API key is configured, skip authentication
     if (!env_1.env.INTERNAL_API_KEY)
@@ -66,7 +74,9 @@ async function requireAuth(req, res, next) {
     try {
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            console.log('Auth failed: No authorization header or invalid format');
+            if (!isProd) {
+                console.log('Auth failed: No authorization header or invalid format');
+            }
             res.status(401).json({
                 error: 'Authorization header required',
                 code: 'AUTH_HEADER_MISSING'
@@ -76,14 +86,18 @@ async function requireAuth(req, res, next) {
         const token = authHeader.substring(7); // Remove 'Bearer ' prefix
         // Basic token format validation
         if (!token || token.length < 100) {
-            console.log('Auth failed: Invalid token format');
+            if (!isProd) {
+                console.log('Auth failed: Invalid token format');
+            }
             res.status(401).json({
                 error: 'Invalid token format',
                 code: 'INVALID_TOKEN_FORMAT'
             });
             return;
         }
-        console.log('Auth: Attempting to verify token:', token.substring(0, 50) + '...');
+        if (!isProd) {
+            console.log('Auth: Attempting to verify token:', token.substring(0, 50) + '...');
+        }
         // Check cache first
         let decodedToken = tokenCache.get(token);
         if (!decodedToken) {
@@ -94,7 +108,9 @@ async function requireAuth(req, res, next) {
         }
         // Additional security checks
         if (!decodedToken.email_verified) {
-            console.log('Auth failed: Email not verified for user:', decodedToken.uid);
+            if (!isProd) {
+                console.log('Auth failed: Email not verified for user:', decodedToken.uid);
+            }
             res.status(401).json({
                 error: 'Email verification required',
                 code: 'EMAIL_NOT_VERIFIED'
@@ -106,10 +122,14 @@ async function requireAuth(req, res, next) {
         const tokenExp = decodedToken.exp;
         const bufferTime = 5 * 60; // 5 minutes buffer
         if (tokenExp - now < bufferTime) {
-            console.log('Auth warning: Token expires soon for user:', decodedToken.uid);
+            if (!isProd) {
+                console.log('Auth warning: Token expires soon for user:', decodedToken.uid);
+            }
             // Still allow the request but log for monitoring
         }
-        console.log('Auth: Token verified successfully for user:', decodedToken.uid);
+        if (!isProd) {
+            console.log('Auth: Token verified successfully for user:', decodedToken.uid);
+        }
         req.user = decodedToken;
         next();
     }
@@ -119,7 +139,7 @@ async function requireAuth(req, res, next) {
         const authHeader = req.headers.authorization;
         if (authHeader?.startsWith('Bearer ')) {
             const token = authHeader.substring(7);
-            tokenCache.get(token); // This will remove expired tokens
+            tokenCache.delete(token);
         }
         // Provide specific error messages for different failure types
         let errorMessage = 'User not authenticated';
@@ -136,11 +156,16 @@ async function requireAuth(req, res, next) {
             errorMessage = 'Invalid token';
             errorCode = 'INVALID_TOKEN';
         }
-        console.error('Error details:', {
-            name: error.name,
-            message: error.message,
-            code: error.code,
-        });
+        if (!isProd) {
+            console.error('Error details:', {
+                name: error.name,
+                message: error.message,
+                code: error.code,
+            });
+        }
+        else {
+            console.error(`Auth error code: ${error.code || error.name}`);
+        }
         res.status(401).json({
             error: errorMessage,
             code: errorCode
@@ -159,7 +184,9 @@ async function optionalAuth(req, _res, next) {
     }
     catch (error) {
         // If token verification fails, continue without user (optional auth)
-        console.warn('Optional auth failed:', error);
+        if (!isProd) {
+            console.warn('Optional auth failed:', error);
+        }
         next();
     }
 }

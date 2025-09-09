@@ -1,6 +1,11 @@
 import { WorkoutPlanModel } from '../models/WorkoutPlan';
 import { WorkoutSessionModel } from '../models/WorkoutSession';
 
+const optimizerEnabled = process.env['PROMPT_OPTIMIZER'] === 'on';
+type CacheEntry = { ts: number; value: OptimizedPromptElements };
+const cache = new Map<string, CacheEntry>();
+const TTL_MS = 15 * 60 * 1000; // 15 minutes
+
 interface PromptOptimizationContext {
   userId: string;
   workoutType: string;
@@ -22,17 +27,42 @@ export class PromptOptimizer {
    * Analyze user's workout history to optimize prompt elements
    */
   async optimizePromptForUser(userId: string, workoutType: string): Promise<OptimizedPromptElements> {
+    const cacheKey = `${userId}::${workoutType}`;
+
+    // If disabled, return a no‑op set of hints without doing any DB reads
+    if (!optimizerEnabled) {
+      return { focusAreas: [], intensityModifiers: [], exerciseSelectionBias: [], programmingAdjustments: [] };
+    }
+
+    // Cached result?
+    const now = Date.now();
+    const hit = cache.get(cacheKey);
+    if (hit && now - hit.ts < TTL_MS) {
+      return hit.value;
+    }
+
     const context = await this.analyzeUserContext(userId, workoutType);
-    
-    return {
+    const value: OptimizedPromptElements = {
       focusAreas: this.getFocusAreas(context),
       intensityModifiers: this.getIntensityModifiers(context),
       exerciseSelectionBias: this.getExerciseSelectionBias(context),
       programmingAdjustments: this.getProgrammingAdjustments(context)
     };
+    cache.set(cacheKey, { ts: now, value });
+    return value;
   }
 
   private async analyzeUserContext(userId: string, workoutType: string): Promise<PromptOptimizationContext> {
+    if (!optimizerEnabled) {
+      return {
+        userId,
+        workoutType,
+        experience: 'beginner',
+        recentSuccessRate: 0,
+        averageRating: 3,
+        commonFeedback: []
+      };
+    }
     // Get recent workouts and sessions
     const recentWorkouts = await WorkoutPlanModel.find({ userId }, { limit: 10 });
 
@@ -144,6 +174,7 @@ export class PromptOptimizer {
 
   private extractFeedbackThemes(comments: string[]): string[] {
     const themes: string[] = [];
+    if (!Array.isArray(comments) || comments.length === 0) return themes;
     const commonWords = ['easy', 'hard', 'difficult', 'fun', 'boring', 'challenging', 'compound', 'cardio', 'core', 'time'];
     
     for (const word of commonWords) {

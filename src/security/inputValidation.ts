@@ -1,7 +1,6 @@
 import pino from 'pino';
 import DOMPurify from 'isomorphic-dompurify';
 import validator from 'validator';
-import { z } from 'zod';
 
 const logger = pino({
   name: 'input-validation',
@@ -59,11 +58,14 @@ export interface ValidationResult {
 }
 
 /**
- * Advanced input validation and sanitization service
+ * Lightweight input validation and sanitization service
+ * Optimized for performance - only handles critical security threats
+ * Zod validation in controllers handles data structure validation
  */
 export class InputValidationService {
-  private static readonly MALICIOUS_PATTERNS = [
-    // XSS patterns
+  // Reduced to only critical security patterns to minimize performance impact
+  private static readonly CRITICAL_PATTERNS = [
+    // XSS patterns - only the most dangerous
     {
       pattern: /<script[\s\S]*?>[\s\S]*?<\/script>/gi,
       type: ViolationType.XSS_ATTEMPT,
@@ -73,104 +75,47 @@ export class InputValidationService {
     {
       pattern: /javascript:/gi,
       type: ViolationType.XSS_ATTEMPT,
-      threatLevel: ThreatLevel.HIGH,
+      threatLevel: ThreatLevel.CRITICAL,
       description: 'JavaScript protocol detected'
     },
+
+    // SQL Injection patterns - only critical commands
     {
-      pattern: /on\w+\s*=/gi,
-      type: ViolationType.XSS_ATTEMPT,
-      threatLevel: ThreatLevel.HIGH,
-      description: 'Event handler attribute detected'
-    },
-    
-    // SQL Injection patterns
-    {
-      pattern: /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION)\b)/gi,
+      pattern: /(\b(DROP|DELETE|TRUNCATE|ALTER|EXEC)\b)/gi,
       type: ViolationType.SQL_INJECTION,
       threatLevel: ThreatLevel.CRITICAL,
-      description: 'SQL command detected'
+      description: 'Dangerous SQL command detected'
     },
-    {
-      pattern: /('|(\\')|(;)|(--)|(\|)|(\*)|(%)|(\+))/g,
-      type: ViolationType.SQL_INJECTION,
-      threatLevel: ThreatLevel.MEDIUM,
-      description: 'SQL injection characters detected'
-    },
-    
-    // Command injection patterns
-    {
-      pattern: /(\||&|;|`|\$\(|\${)/g,
-      type: ViolationType.COMMAND_INJECTION,
-      threatLevel: ThreatLevel.HIGH,
-      description: 'Command injection characters detected'
-    },
-    
-    // Path traversal patterns
-    {
-      pattern: /(\.\.\/|\.\.\\)/g,
-      type: ViolationType.PATH_TRAVERSAL,
-      threatLevel: ThreatLevel.HIGH,
-      description: 'Path traversal attempt detected'
-    },
-    
-    // HTML injection patterns
-    {
-      pattern: /<[^>]*>/g,
-      type: ViolationType.HTML_INJECTION,
-      threatLevel: ThreatLevel.MEDIUM,
-      description: 'HTML tags detected'
-    }
-  ];
 
-  private static readonly SUSPICIOUS_PATTERNS = [
-    /eval\s*\(/gi,
-    /Function\s*\(/gi,
-    /setTimeout\s*\(/gi,
-    /setInterval\s*\(/gi,
-    /document\./gi,
-    /window\./gi,
-    /location\./gi,
-    /alert\s*\(/gi,
-    /confirm\s*\(/gi,
-    /prompt\s*\(/gi
+    // Command injection patterns - only critical
+    {
+      pattern: /(\||&|;|`|\$\()/g,
+      type: ViolationType.COMMAND_INJECTION,
+      threatLevel: ThreatLevel.CRITICAL,
+      description: 'Command injection attempt detected'
+    }
   ];
 
   /**
-   * Validate and sanitize input data
+   * Lightweight validation for critical security threats only
+   * Controllers handle comprehensive validation with Zod schemas
    */
-  static validateAndSanitize(
+  static validateCriticalSecurity(
     data: any,
-    schema?: z.ZodSchema,
     context?: { userAgent?: string; ipAddress?: string }
   ): ValidationResult {
     const violations: SecurityViolation[] = [];
-    let riskScore = 0;
 
-    // Deep clone to avoid mutating original data
-    const sanitizedData = JSON.parse(JSON.stringify(data));
-
-    // Recursively validate and sanitize
-    this.processObject(sanitizedData, '', violations, context);
+    // Only check for critical security patterns - no deep cloning for performance
+    this.scanForCriticalThreats(data, '', violations, context);
 
     // Calculate risk score
-    riskScore = this.calculateRiskScore(violations);
+    const riskScore = this.calculateRiskScore(violations);
 
-    // Schema validation if provided
-    let isValid = violations.filter(v => v.threatLevel === ThreatLevel.CRITICAL).length === 0;
-    
-    if (schema && isValid) {
-      try {
-        schema.parse(sanitizedData);
-      } catch (error) {
-        isValid = false;
-        logger.warn({
-          error: error instanceof Error ? error.message : 'Unknown error',
-          data: sanitizedData
-        }, 'Schema validation failed');
-      }
-    }
+    // Only block if critical violations found
+    const isValid = violations.filter(v => v.threatLevel === ThreatLevel.CRITICAL).length === 0;
 
-    // Log security violations
+    // Log only critical violations to reduce noise
     if (violations.length > 0) {
       logger.warn({
         violationCount: violations.length,
@@ -181,36 +126,32 @@ export class InputValidationService {
           field: v.field,
           description: v.description
         }))
-      }, 'Security violations detected');
+      }, 'Critical security violations detected');
     }
 
     return {
       isValid,
-      sanitizedData,
+      sanitizedData: data, // Return original data - sanitization handled by Zod transforms
       violations,
       riskScore
     };
   }
 
   /**
-   * Sanitize a single string value
+   * Check string for critical security threats only
    */
-  static sanitizeString(value: string, field: string = 'unknown'): {
-    sanitized: string;
-    violations: SecurityViolation[];
-  } {
+  static checkCriticalThreats(value: string, field: string = 'unknown'): SecurityViolation[] {
     const violations: SecurityViolation[] = [];
-    let sanitized = value;
 
-    // Check for malicious patterns
-    for (const patternInfo of this.MALICIOUS_PATTERNS) {
+    // Only check for critical patterns to minimize performance impact
+    for (const patternInfo of this.CRITICAL_PATTERNS) {
       if (patternInfo.pattern.test(value)) {
         violations.push({
           type: patternInfo.type,
           threatLevel: patternInfo.threatLevel,
           field,
           originalValue: value,
-          sanitizedValue: sanitized,
+          sanitizedValue: value, // No sanitization here - handled by Zod transforms
           pattern: patternInfo.pattern.toString(),
           description: patternInfo.description,
           timestamp: Date.now()
@@ -218,38 +159,11 @@ export class InputValidationService {
       }
     }
 
-    // Check for suspicious patterns
-    for (const pattern of this.SUSPICIOUS_PATTERNS) {
-      if (pattern.test(value)) {
-        violations.push({
-          type: ViolationType.SUSPICIOUS_PATTERN,
-          threatLevel: ThreatLevel.MEDIUM,
-          field,
-          originalValue: value,
-          sanitizedValue: sanitized,
-          pattern: pattern.toString(),
-          description: 'Suspicious JavaScript pattern detected',
-          timestamp: Date.now()
-        });
-      }
-    }
-
-    // Apply DOMPurify sanitization
-    sanitized = DOMPurify.sanitize(sanitized, {
-      ALLOWED_TAGS: [], // No HTML tags allowed
-      ALLOWED_ATTR: [],
-      KEEP_CONTENT: true
-    });
-
-    // Additional sanitization
-    sanitized = validator.escape(sanitized); // Escape HTML entities
-    sanitized = sanitized.replace(/[\x00-\x1F\x7F]/g, ''); // Remove control characters
-
-    return { sanitized, violations };
+    return violations;
   }
 
   /**
-   * Validate email with enhanced security checks
+   * Validate email with basic security checks
    */
   static validateEmail(email: string): {
     isValid: boolean;
@@ -262,87 +176,36 @@ export class InputValidationService {
     // Basic email validation
     const isValid = validator.isEmail(sanitized);
 
-    // Check for suspicious patterns in email
-    const suspiciousEmailPatterns = [
-      /[<>]/g, // Angle brackets
-      /javascript:/gi, // JavaScript protocol
-      /data:/gi, // Data protocol
-      /vbscript:/gi // VBScript protocol
-    ];
+    // Check for critical patterns only
+    violations.push(...this.checkCriticalThreats(sanitized, 'email'));
 
-    for (const pattern of suspiciousEmailPatterns) {
-      if (pattern.test(sanitized)) {
-        violations.push({
-          type: ViolationType.SUSPICIOUS_PATTERN,
-          threatLevel: ThreatLevel.HIGH,
-          field: 'email',
-          originalValue: email,
-          sanitizedValue: sanitized,
-          pattern: pattern.toString(),
-          description: 'Suspicious pattern in email address',
-          timestamp: Date.now()
-        });
-      }
-    }
-
-    // Sanitize email
+    // Basic email normalization
     sanitized = validator.normalizeEmail(sanitized) || sanitized;
 
     return { isValid, sanitized, violations };
   }
 
-  /**
-   * Validate and sanitize workout data specifically
-   */
-  static validateWorkoutData(data: any): ValidationResult {
-    const workoutSchema = z.object({
-      workoutType: z.enum(['strength', 'cardio', 'flexibility', 'conditioning']),
-      experience: z.enum(['beginner', 'intermediate', 'advanced']),
-      duration: z.number().min(5).max(180),
-      goals: z.array(z.string()).max(5),
-      equipmentAvailable: z.array(z.string()).max(20),
-      constraints: z.array(z.string()).max(10),
-      preferences: z.object({
-        intensity: z.enum(['low', 'moderate', 'high']).optional(),
-        focusAreas: z.array(z.string()).max(5).optional()
-      }).optional()
-    });
-
-    return this.validateAndSanitize(data, workoutSchema);
-  }
-
-  private static processObject(
+  private static scanForCriticalThreats(
     obj: any,
     path: string,
     violations: SecurityViolation[],
     context?: { userAgent?: string; ipAddress?: string }
   ): void {
     if (typeof obj === 'string') {
-      const result = this.sanitizeString(obj, path);
-      violations.push(...result.violations.map(v => ({
+      const threatViolations = this.checkCriticalThreats(obj, path);
+      violations.push(...threatViolations.map(v => ({
         ...v,
         userAgent: context?.userAgent,
         ipAddress: context?.ipAddress
       })));
-      
-      // Update the object with sanitized value
-      const pathParts = path.split('.');
-      let current = obj;
-      for (let i = 0; i < pathParts.length - 1; i++) {
-        current = current[pathParts[i]];
-      }
-      if (pathParts.length > 0) {
-        // This is a simplified approach - in practice you'd need more sophisticated path handling
-        obj = result.sanitized;
-      }
     } else if (Array.isArray(obj)) {
       obj.forEach((item, index) => {
-        this.processObject(item, `${path}[${index}]`, violations, context);
+        this.scanForCriticalThreats(item, `${path}[${index}]`, violations, context);
       });
     } else if (obj && typeof obj === 'object') {
       Object.keys(obj).forEach(key => {
         const newPath = path ? `${path}.${key}` : key;
-        this.processObject(obj[key], newPath, violations, context);
+        this.scanForCriticalThreats(obj[key], newPath, violations, context);
       });
     }
   }
@@ -372,20 +235,22 @@ export class InputValidationService {
 }
 
 /**
- * Express middleware for input validation and sanitization
+ * Lightweight Express middleware for critical security validation only
+ * Controllers handle comprehensive validation with Zod schemas
+ * Use this only for high-risk endpoints or when Zod validation is not sufficient
  */
-export function inputValidationMiddleware(schema?: z.ZodSchema) {
+export function criticalSecurityMiddleware() {
   return (req: any, res: any, next: any) => {
     const context = {
       userAgent: req.get('User-Agent'),
       ipAddress: req.ip || req.connection.remoteAddress
     };
 
-    // Validate and sanitize request body
+    // Only check for critical security threats in request body
     if (req.body && Object.keys(req.body).length > 0) {
-      const result = InputValidationService.validateAndSanitize(req.body, schema, context);
-      
-      // Block requests with critical violations
+      const result = InputValidationService.validateCriticalSecurity(req.body, context);
+
+      // Block only critical violations
       if (result.violations.some(v => v.threatLevel === ThreatLevel.CRITICAL)) {
         logger.error({
           violations: result.violations,
@@ -393,25 +258,22 @@ export function inputValidationMiddleware(schema?: z.ZodSchema) {
           userAgent: context.userAgent,
           ipAddress: context.ipAddress
         }, 'Request blocked due to critical security violations');
-        
+
         return res.status(400).json({
           error: 'Request blocked due to security violations',
           code: 'SECURITY_VIOLATION'
         });
       }
 
-      // Replace request body with sanitized data
-      req.body = result.sanitizedData;
+      // Attach security info for monitoring (optional)
       req.securityViolations = result.violations;
       req.riskScore = result.riskScore;
-    }
-
-    // Validate and sanitize query parameters
-    if (req.query && Object.keys(req.query).length > 0) {
-      const result = InputValidationService.validateAndSanitize(req.query, undefined, context);
-      req.query = result.sanitizedData;
     }
 
     next();
   };
 }
+
+// Legacy middleware for backward compatibility - DEPRECATED
+// Use criticalSecurityMiddleware instead for better performance
+export const inputValidationMiddleware = criticalSecurityMiddleware;

@@ -34,7 +34,9 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.env = void 0;
-require("dotenv/config");
+if (process.env.NODE_ENV !== 'production') {
+    require('dotenv/config');
+}
 const zod_1 = require("zod");
 const functions = __importStar(require("firebase-functions"));
 const Env = zod_1.z.object({
@@ -69,6 +71,9 @@ const parsedEnv = Env.parse({
     // Use GCLOUD_PROJECT as FIREBASE_PROJECT_ID in Firebase Functions
     FIREBASE_PROJECT_ID: process.env['FIREBASE_PROJECT_ID'] || process.env['GCLOUD_PROJECT'],
 });
+if (!parsedEnv.OPENAI_API_KEY) {
+    throw new Error('Missing required environment variable: OPENAI_API_KEY');
+}
 exports.env = {
     ...parsedEnv,
     FIREBASE_PROJECT_ID: parsedEnv.FIREBASE_PROJECT_ID || parsedEnv.GCLOUD_PROJECT || 'ai-workout-backend-2024',

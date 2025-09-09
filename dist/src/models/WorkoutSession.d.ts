@@ -19,6 +19,8 @@ export interface CreateWorkoutSessionInput {
 export declare class WorkoutSessionModel {
     private static collection;
     static create(data: CreateWorkoutSessionInput): Promise<WorkoutSession>;
+    static start(planId: string, userId: string): Promise<WorkoutSession>;
+    static complete(sessionId: string, feedback?: any): Promise<WorkoutSession | null>;
     static findById(id: string): Promise<WorkoutSession | null>;
     static find(filter: {
         userId?: string;

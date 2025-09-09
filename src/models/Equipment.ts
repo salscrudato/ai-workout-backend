@@ -1,104 +1,50 @@
-import { getFirestore } from '../config/db';
-import { Timestamp } from 'firebase-admin/firestore';
+// Lightweight equipment catalog – no database reads.
+// If you need dynamic equipment later, reintroduce a model and collection then.
 
 export interface Equipment {
-  id?: string;
-  slug: string;
-  label: string;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-}
-
-export interface CreateEquipmentInput {
   slug: string;
   label: string;
 }
 
-export class EquipmentModel {
-  private static collection = 'equipment';
+// Central catalog. Keep this list small and authoritative to avoid typos downstream.
+// NOTE: Ensure frontend uses the same source (shared constant or API exposure) for consistency.
+export const EQUIPMENT_CATALOG: ReadonlyArray<Equipment> = [
+  { slug: 'bodyweight', label: 'Bodyweight' },
+  { slug: 'dumbbells', label: 'Dumbbells' },
+  { slug: 'barbell', label: 'Barbell' },
+  { slug: 'kettlebell', label: 'Kettlebell' },
+  { slug: 'bench', label: 'Bench' },
+  { slug: 'resistance_bands', label: 'Resistance Bands' },
+  { slug: 'pullup_bar', label: 'Pull-up Bar' },
+  { slug: 'cable_machine', label: 'Cable Machine' },
+  { slug: 'treadmill', label: 'Treadmill' },
+  { slug: 'rowing_machine', label: 'Rowing Machine' },
+  { slug: 'stationary_bike', label: 'Stationary Bike' },
+  { slug: 'full_gym', label: 'Full Gym' },
+];
 
-  static async create(data: CreateEquipmentInput): Promise<Equipment> {
-    const db = getFirestore();
-    const now = Timestamp.now();
+/** Return all equipment, sorted by label. */
+export function listEquipment(): Equipment[] {
+  return [...EQUIPMENT_CATALOG].sort((a, b) => a.label.localeCompare(b.label));
+}
 
-    const equipmentData: Omit<Equipment, 'id'> = {
-      slug: data.slug,
-      label: data.label,
-      createdAt: now,
-      updatedAt: now,
-    };
+/** Find a single equipment item by slug. */
+export function findEquipment(slug: string): Equipment | undefined {
+  return EQUIPMENT_CATALOG.find((e) => e.slug === slug);
+}
 
-    const docRef = await db.collection(this.collection).add(equipmentData);
+/** True if a slug exists in the catalog. */
+export function isValidEquipment(slug: string): boolean {
+  return !!findEquipment(slug);
+}
 
-    return {
-      id: docRef.id,
-      ...equipmentData,
-    };
+/** Filter an incoming array of slugs down to valid, de-duplicated, catalog entries. */
+export function normalizeEquipment(slugs: string[] | undefined | null): string[] {
+  if (!Array.isArray(slugs)) return [];
+  const seen = new Set<string>();
+  for (const raw of slugs) {
+    const slug = String(raw || '').trim().toLowerCase();
+    if (slug && isValidEquipment(slug)) seen.add(slug);
   }
-
-  static async find(_filter: {} = {}): Promise<Equipment[]> {
-    const db = getFirestore();
-    const snapshot = await db.collection(this.collection)
-      .orderBy('label', 'asc')
-      .get();
-
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Equipment[];
-  }
-
-  static async findOne(filter: { slug?: string; id?: string }): Promise<Equipment | null> {
-    const db = getFirestore();
-
-    if (filter.id) {
-      const doc = await db.collection(this.collection).doc(filter.id).get();
-      if (!doc.exists) return null;
-      return { id: doc.id, ...doc.data() } as Equipment;
-    }
-
-    if (filter.slug) {
-      const snapshot = await db.collection(this.collection)
-        .where('slug', '==', filter.slug)
-        .limit(1)
-        .get();
-
-      if (snapshot.empty) return null;
-
-      const doc = snapshot.docs[0];
-      if (!doc) return null;
-      const data = doc.data();
-      if (!data) return null;
-      return { id: doc.id, ...data } as Equipment;
-    }
-
-    return null;
-  }
-
-  static async updateOne(
-    filter: { slug?: string; id?: string },
-    update: Partial<CreateEquipmentInput>,
-    options: { upsert?: boolean } = {}
-  ): Promise<void> {
-    const db = getFirestore();
-    const now = Timestamp.now();
-
-    if (filter.slug) {
-      const existing = await this.findOne({ slug: filter.slug });
-
-      if (existing) {
-        const updatedData = {
-          ...update,
-          updatedAt: now,
-        };
-        await db.collection(this.collection).doc(existing.id!).update(updatedData);
-        return;
-      } else if (options.upsert) {
-        await this.create({ slug: filter.slug, label: update.label || filter.slug });
-        return;
-      }
-    }
-
-    throw new Error('Equipment not found and upsert not enabled');
-  }
+  return Array.from(seen);
 }

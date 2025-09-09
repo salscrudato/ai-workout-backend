@@ -1,5 +1,5 @@
 import { initializeFirebase } from '../src/config/db';
-import { EquipmentModel } from '../src/models/Equipment';
+import { EQUIPMENT_CATALOG } from '../src/models/Equipment';
 
 const EQUIPMENT = [
   ['bodyweight','Bodyweight'],
@@ -16,16 +16,9 @@ const EQUIPMENT = [
 ] as const;
 
 async function main() {
-  await initializeFirebase();
-  for (const [slug, label] of EQUIPMENT) {
-    try {
-      await EquipmentModel.updateOne({ slug }, { slug, label }, { upsert: true });
-    } catch (error) {
-      // If equipment already exists, that's fine
-      console.log(`Equipment ${slug} already exists or created`);
-    }
-  }
-  console.log('Equipment seeded.');
+  // Equipment is now a static catalog, no database seeding needed
+  console.log('Equipment catalog is static - no seeding required.');
+  console.log('Available equipment:', EQUIPMENT_CATALOG.map(e => `${e.slug}: ${e.label}`).join(', '));
   process.exit(0);
 }
 main().catch(e => { console.error(e); process.exit(1); });

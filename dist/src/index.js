@@ -50,14 +50,15 @@ const logger = (0, pino_1.default)({
         }
     })
 });
+// Resource values tuned for mobile-first latency and cost control.
 // Firebase Functions entry point - Fixed CORS and dependency issues
 exports.api = (0, https_1.onRequest)({
     region: 'us-central1',
-    memory: '512MiB',
+    memory: '256MiB',
     timeoutSeconds: 60,
     maxInstances: 10,
     minInstances: 1, // Keep at least 1 instance warm
-    concurrency: 80,
+    concurrency: 32,
     cors: true
 }, async (req, res) => {
     try {

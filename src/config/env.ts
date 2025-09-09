@@ -1,4 +1,6 @@
-import 'dotenv/config';
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv/config');
+}
 import { z } from 'zod';
 import * as functions from 'firebase-functions';
 
@@ -36,6 +38,10 @@ const parsedEnv = Env.parse({
   // Use GCLOUD_PROJECT as FIREBASE_PROJECT_ID in Firebase Functions
   FIREBASE_PROJECT_ID: process.env['FIREBASE_PROJECT_ID'] || process.env['GCLOUD_PROJECT'],
 });
+
+if (!parsedEnv.OPENAI_API_KEY) {
+  throw new Error('Missing required environment variable: OPENAI_API_KEY');
+}
 
 export const env = {
   ...parsedEnv,

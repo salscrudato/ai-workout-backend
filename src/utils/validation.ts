@@ -194,8 +194,247 @@ export const CompleteWorkoutSchema = z.object({
   completedAt: z.string().datetime('Invalid completion time format').optional(),
 });
 
-// Type exports
+// Pre-workout validation schemas (consolidated from schemas/preworkout.ts)
+export const PreWorkoutSchema = z.object({
+  userId: z.string().min(1, 'User ID is required'),
+  time_available_min: z.number().int().min(10).max(120),
+  start_time_iso: z.string().datetime().optional(),
+  energy_level: z.number().int().min(1).max(5),
+  workout_type: WorkoutTypeSchema,
+  equipment_override: EquipmentSchema.optional(),
+  new_injuries: z.string().max(1000, 'Injury notes are too long').transform(sanitizeHtml).optional(),
+});
+
+// Authentication schema (consolidated from schemas/validation.ts)
+export const AuthSchema = z.object({
+  idToken: z.string().min(1, 'ID token is required')
+});
+
+// Exercise validation schemas (consolidated from schemas/validation.ts)
+export const ExerciseSchema = z.object({
+  name: z.string().min(1, 'Exercise name is required'),
+  sets: z.number().int().min(1).max(20),
+  reps: z.union([z.number().int().min(1).max(1000), z.string()]).optional(),
+  weight: z.string().optional(),
+  duration_sec: z.number().int().min(1).max(3600).optional(),
+  rest_sec: z.number().int().min(0).max(600).optional(),
+  notes: z.string().max(500).optional(),
+  equipment: z.array(z.string()).optional(),
+  muscle_groups: z.array(z.string()).optional()
+});
+
+export const WorkoutBlockSchema = z.object({
+  name: z.string().min(1, 'Block name is required'),
+  exercises: z.array(ExerciseSchema).min(1, 'At least one exercise is required'),
+  rest_between_exercises_sec: z.number().int().min(0).max(600).optional(),
+  notes: z.string().max(500).optional()
+});
+
+export const WorkoutMetaSchema = z.object({
+  est_duration_min: z.number().int().min(1).max(300),
+  difficulty_level: ExperienceSchema,
+  equipment_needed: z.array(z.string()),
+  muscle_groups_targeted: z.array(z.string()),
+  calories_estimate: z.number().int().min(0).max(2000).optional()
+});
+
+export const WarmUpCoolDownSchema = z.object({
+  exercises: z.array(ExerciseSchema),
+  duration_min: z.number().int().min(1).max(30)
+});
+
+export const WorkoutPlanDataSchema = z.object({
+  title: z.string().min(1, 'Workout title is required').max(100),
+  description: z.string().max(500).optional(),
+  blocks: z.array(WorkoutBlockSchema).min(1, 'At least one workout block is required'),
+  meta: WorkoutMetaSchema,
+  warm_up: WarmUpCoolDownSchema.optional(),
+  cool_down: WarmUpCoolDownSchema.optional()
+});
+
+// Equipment validation schema (consolidated from schemas/validation.ts)
+export const CreateEquipmentSchema = z.object({
+  slug: z.string().min(1, 'Equipment slug is required').regex(/^[a-z0-9_-]+$/, 'Invalid slug format'),
+  label: z.string().min(1, 'Equipment label is required').max(100)
+});
+
+export const UpdateEquipmentSchema = CreateEquipmentSchema.partial();
+
+// Workout session schemas (consolidated from schemas/validation.ts)
+export const CreateWorkoutSessionSchema = z.object({
+  planId: z.string().min(1, 'Plan ID is required'),
+  userId: z.string().min(1, 'User ID is required'),
+  startedAt: z.date().optional(),
+  completedAt: z.date().optional(),
+  feedback: z.record(z.any()).optional()
+});
+
+export const UpdateWorkoutSessionSchema = CreateWorkoutSessionSchema.partial().omit({
+  planId: true,
+  userId: true
+});
+
+// Workout plan creation schema (consolidated from schemas/validation.ts)
+export const CreateWorkoutPlanSchema = z.object({
+  userId: z.string().min(1, 'User ID is required'),
+  model: z.string().min(1, 'Model is required'),
+  promptVersion: z.string().min(1, 'Prompt version is required'),
+  preWorkout: PreWorkoutSchema,
+  plan: WorkoutPlanDataSchema
+});
+
+// Enhanced workout generation request schema
+export const GenerateWorkoutRequestSchema = z.object({
+  workout_type: z.string().min(1, 'Workout type is required'),
+  time_available_min: z.number().int().min(5).max(300),
+  equipment_override: EquipmentSchema.optional(),
+  injury_notes: z.string().max(1000).optional(),
+  constraints: ConstraintsSchema.optional(),
+  intensity_preference: z.enum(['low', 'moderate', 'high']).optional(),
+  focus_areas: z.array(z.string()).optional()
+});
+
+// Update profile schema
+export const UpdateProfileSchema = CreateProfileSchema.partial().omit({ userId: true });
+
+// AI Workout Output Schema (converted from JSON Schema in workoutOutput.ts)
+// This is used for validating AI-generated workout plans
+export const AIWorkoutSetSchema = z.object({
+  reps: z.number(),
+  time_sec: z.number(),
+  rest_sec: z.number(),
+  tempo: z.string(),
+  intensity: z.string(),
+  notes: z.string(),
+  weight_guidance: z.string(),
+  rpe: z.number(),
+  rest_type: z.string()
+});
+
+export const AIExerciseSchema = z.object({
+  slug: z.string(),
+  display_name: z.string(),
+  type: z.string(),
+  equipment: z.array(z.string()),
+  primary_muscles: z.array(z.string()),
+  instructions: z.array(z.string()).min(3).max(3),
+  sets: z.array(AIWorkoutSetSchema).min(2).max(6)
+});
+
+export const AIWorkoutBlockSchema = z.object({
+  name: z.string(),
+  exercises: z.array(AIExerciseSchema)
+});
+
+export const AIWarmupCooldownSchema = z.object({
+  name: z.string(),
+  duration_sec: z.number(),
+  cues: z.string(),
+  instructions: z.array(z.string()).min(3).max(3)
+});
+
+export const AIFinisherSchema = z.object({
+  name: z.string(),
+  work_sec: z.number(),
+  rest_sec: z.number(),
+  rounds: z.number(),
+  notes: z.string()
+});
+
+export const AIWorkoutMetaSchema = z.object({
+  date_iso: z.string(),
+  session_type: z.string(),
+  goal: z.string(),
+  experience: z.string(),
+  est_duration_min: z.number(),
+  equipment_used: z.array(z.string()),
+  workout_name: z.string(),
+  instructions: z.array(z.string()).min(4).max(4)
+});
+
+export const AIWorkoutPlanSchema = z.object({
+  meta: AIWorkoutMetaSchema,
+  warmup: z.array(AIWarmupCooldownSchema),
+  blocks: z.array(AIWorkoutBlockSchema),
+  finisher: z.array(AIFinisherSchema),
+  cooldown: z.array(AIWarmupCooldownSchema),
+  notes: z.string()
+});
+
+// Convert Zod schema to JSON Schema format for OpenAI API compatibility
+export const WorkoutPlanJsonSchema = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    meta: {
+      type: 'object', additionalProperties: false,
+      properties: {
+        date_iso: { type: 'string' },
+        session_type: { type: 'string' },
+        goal: { type: 'string' },
+        experience: { type: 'string' },
+        est_duration_min: { type: 'number' },
+        equipment_used: { type: 'array', items: { type: 'string' } },
+        workout_name: { type: 'string' },
+        instructions: { type: 'array', items: { type: 'string' }, minItems: 4, maxItems: 4 }
+      },
+      required: ['date_iso','session_type','goal','experience','est_duration_min','equipment_used','workout_name','instructions']
+    },
+    warmup: {
+      type: 'array',
+      items: { type:'object', additionalProperties:false,
+        properties:{ name:{type:'string'}, duration_sec:{type:'number'}, cues:{type:'string'}, instructions:{type:'array', items:{type:'string'}, minItems:3, maxItems:3} },
+        required:['name','duration_sec','cues','instructions']
+      }
+    },
+    blocks: {
+      type: 'array',
+      items: { type:'object', additionalProperties:false, properties:{
+        name:{type:'string'},
+        exercises:{ type:'array', items:{ type:'object', additionalProperties:false, properties:{
+          slug:{type:'string'},
+          display_name:{type:'string'},
+          type:{type:'string'},
+          equipment:{type:'array', items:{type:'string'}},
+          primary_muscles:{type:'array', items:{type:'string'}},
+          instructions:{type:'array', items:{type:'string'}, minItems:3, maxItems:3},
+          sets:{ type:'array', minItems:2, maxItems:6, items:{ type:'object', additionalProperties:false, properties:{
+            reps:{type:'number'}, time_sec:{type:'number'}, rest_sec:{type:'number'},
+            tempo:{type:'string'}, intensity:{type:'string'}, notes:{type:'string'},
+            weight_guidance:{type:'string'}, rpe:{type:'number'}, rest_type:{type:'string'}
+          }, required:['reps','time_sec','rest_sec','tempo','intensity','notes','weight_guidance','rpe','rest_type'] } }
+        }, required:['slug','display_name','type','equipment','primary_muscles','instructions','sets'] } }
+      }, required:['name','exercises'] }
+    },
+    finisher: {
+      type:'array',
+      items:{ type:'object', additionalProperties:false, properties:{
+        name:{type:'string'}, work_sec:{type:'number'}, rest_sec:{type:'number'}, rounds:{type:'number'}, notes:{type:'string'}
+      }, required:['name','work_sec','rest_sec','rounds','notes'] }
+    },
+    cooldown: {
+      type:'array',
+      items:{ type:'object', additionalProperties:false, properties:{
+        name:{type:'string'}, duration_sec:{type:'number'}, cues:{type:'string'}, instructions:{type:'array', items:{type:'string'}, minItems:3, maxItems:3}
+      }, required:['name','duration_sec','cues','instructions'] }
+    },
+    notes: { type:'string' }
+  },
+  required: ['meta','warmup','blocks','finisher','cooldown','notes']
+};
+
+// Type exports - consolidated from all schema files
 export type CreateUserInput = z.infer<typeof CreateUserSchema>;
 export type CreateProfileInput = z.infer<typeof CreateProfileSchema>;
+export type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>;
 export type GenerateWorkoutInput = z.infer<typeof GenerateWorkoutSchema>;
+export type GenerateWorkoutRequest = z.infer<typeof GenerateWorkoutRequestSchema>;
 export type CompleteWorkoutInput = z.infer<typeof CompleteWorkoutSchema>;
+export type AuthInput = z.infer<typeof AuthSchema>;
+export type PreWorkout = z.infer<typeof PreWorkoutSchema>;
+export type CreateWorkoutPlanInput = z.infer<typeof CreateWorkoutPlanSchema>;
+export type CreateWorkoutSessionInput = z.infer<typeof CreateWorkoutSessionSchema>;
+export type UpdateWorkoutSessionInput = z.infer<typeof UpdateWorkoutSessionSchema>;
+export type CreateEquipmentInput = z.infer<typeof CreateEquipmentSchema>;
+export type UpdateEquipmentInput = z.infer<typeof UpdateEquipmentSchema>;
+export type AIWorkoutPlan = z.infer<typeof AIWorkoutPlanSchema>;

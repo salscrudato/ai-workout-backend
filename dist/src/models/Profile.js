@@ -25,11 +25,9 @@ class ProfileModel {
             createdAt: now,
             updatedAt: now,
         };
-        const docRef = await db.collection(this.collection).add(profileData);
-        return {
-            id: docRef.id,
-            ...profileData,
-        };
+        const docRef = db.collection(this.collection).doc(profileData.userId);
+        await docRef.set(profileData, { merge: false });
+        return { id: docRef.id, ...profileData };
     }
     static async findOne(filter) {
         const db = (0, db_1.getFirestore)();
@@ -40,6 +38,11 @@ class ProfileModel {
             return { id: doc.id, ...doc.data() };
         }
         if (filter.userId) {
+            const direct = await db.collection(this.collection).doc(filter.userId).get();
+            if (direct.exists) {
+                return { id: direct.id, ...direct.data() };
+            }
+            // Legacy fallback: older docs may have random IDs with userId as a field
             const snapshot = await db.collection(this.collection)
                 .where('userId', '==', filter.userId)
                 .limit(1)
@@ -47,8 +50,6 @@ class ProfileModel {
             if (snapshot.empty)
                 return null;
             const doc = snapshot.docs[0];
-            if (!doc)
-                return null;
             const data = doc.data();
             if (!data)
                 return null;
@@ -60,21 +61,37 @@ class ProfileModel {
         const db = (0, db_1.getFirestore)();
         const now = firestore_1.Timestamp.now();
         if (filter.userId) {
-            const existing = await this.findOne({ userId: filter.userId });
-            if (existing) {
-                const updatedData = {
-                    ...update,
-                    updatedAt: now,
-                };
-                await db.collection(this.collection).doc(existing.id).update(updatedData);
-                return {
-                    ...existing,
-                    ...updatedData,
-                };
+            const docRef = db.collection(this.collection).doc(filter.userId);
+            const docSnap = await docRef.get();
+            if (!docSnap.exists && !options.upsert) {
+                throw new Error('Profile not found and upsert not enabled');
             }
-            else if (options.upsert) {
-                return this.create({ userId: filter.userId, ...update });
+            const patch = { ...update, updatedAt: now };
+            // Never overwrite createdAt on update
+            if (!docSnap.exists) {
+                patch.createdAt = now;
             }
+            await docRef.set(patch, { merge: true });
+            const saved = await docRef.get();
+            return { id: saved.id, ...saved.data() };
+        }
+        if (filter.id) {
+            const docRef = db.collection(this.collection).doc(filter.id);
+            const docSnap = await docRef.get();
+            if (!docSnap.exists && !options.upsert) {
+                throw new Error('Profile not found and upsert not enabled');
+            }
+            const patch = { ...update, updatedAt: now };
+            if (!docSnap.exists) {
+                patch.createdAt = now;
+                // If creating via id, ensure userId field is populated for consistency
+                if (update?.userId) {
+                    patch.userId = update.userId;
+                }
+            }
+            await docRef.set(patch, { merge: true });
+            const saved = await docRef.get();
+            return { id: saved.id, ...saved.data() };
         }
         throw new Error('Profile not found and upsert not enabled');
     }
