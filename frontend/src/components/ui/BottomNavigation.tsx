@@ -67,6 +67,8 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ className }) => {
     <AnimatePresence>
       {isVisible && (
         <motion.nav
+          role="navigation"
+          aria-label="Bottom navigation"
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
@@ -81,31 +83,27 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ className }) => {
             'fixed bottom-0 left-0 right-0 z-50',
             'mx-4 mb-4 rounded-3xl',
             // Enhanced glass morphism with premium feel
-            'backdrop-blur-2xl bg-white/80 dark:bg-gray-900/80',
-            'border border-white/20 dark:border-gray-700/30',
+            'glass shadow-glass-lg border border-white/20',
             // Advanced shadow system
-            'shadow-2xl shadow-black/10 dark:shadow-black/30',
+            'shadow-2xl shadow-black/10',
             // Subtle gradient overlay
             'before:absolute before:inset-0 before:rounded-3xl',
-            'before:bg-gradient-to-t before:from-blue-500/5 before:to-transparent',
+            'before:gradient-subtle before:opacity-30',
             'before:pointer-events-none',
             // Safe area support
             'pb-safe-bottom',
+            'motion-reduce:transition-none motion-reduce:transform-none',
             className
           )}
-          style={{
-            backdropFilter: 'blur(20px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-          }}
         >
           {/* Dynamic island-style active indicator */}
           <motion.div
-            className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full"
+            className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary-500 to-accent-500 rounded-full"
             layoutId="activeIndicator"
             initial={false}
           />
 
-          <div className="flex items-center justify-around px-4 py-3">
+          <div className="flex items-center justify-around px-4 py-3 motion-reduce:transition-none motion-reduce:transform-none">
             {bottomNavItems.map((item, index) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path || activeItem === item.id;
@@ -142,14 +140,14 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ className }) => {
                     // Modern active/inactive states
                     isActive
                       ? [
-                          'text-blue-600 dark:text-blue-400',
-                          'bg-blue-50 dark:bg-blue-900/30',
-                          'shadow-lg shadow-blue-500/20',
+                          'text-primary-600 dark:text-primary-400',
+                          'bg-primary-50 dark:bg-primary-900/30',
+                          'shadow-lg shadow-primary-500/20',
                         ]
                       : [
                           'text-gray-600 dark:text-gray-400',
-                          'hover:text-blue-600 dark:hover:text-blue-400',
-                          'hover:bg-gray-50 dark:hover:bg-gray-800/50',
+                          'hover:text-primary-600 dark:hover:text-primary-400',
+                          'hover:bg-secondary-50 dark:hover:bg-secondary-800/50',
                         ],
                     // Disabled state
                     item.disabled && 'opacity-50 pointer-events-none'
@@ -157,9 +155,9 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ className }) => {
                   aria-label={item.label}
                   aria-current={isActive ? 'page' : undefined}
                 >
-                  {/* Modern icon with subtle animations */}
+                  {/* Modern icon with subtle animations - no text labels */}
                   <motion.div
-                    className="relative flex items-center justify-center w-6 h-6 mb-1"
+                    className="relative flex items-center justify-center w-8 h-8"
                     animate={isActive ? {
                       scale: [1, 1.1, 1],
                     } : {}}
@@ -170,10 +168,10 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ className }) => {
                   >
                     <Icon
                       className={clsx(
-                        'w-5 h-5 transition-all duration-300',
+                        'w-6 h-6 transition-all duration-300',
                         isActive
-                          ? 'text-blue-600 dark:text-blue-400'
-                          : 'text-current'
+                          ? 'text-primary-600'
+                          : 'text-neutral-500 hover:text-primary-500'
                       )}
                     />
 
@@ -184,27 +182,12 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ className }) => {
                           initial={{ scale: 0, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
                           exit={{ scale: 0, opacity: 0 }}
-                          className="absolute -bottom-1 w-1 h-1 bg-blue-500 rounded-full"
+                          className="absolute -bottom-2 w-1.5 h-1.5 bg-primary-500 rounded-full shadow-glow-sm"
                           layoutId={`indicator-${item.id}`}
                         />
                       )}
                     </AnimatePresence>
                   </motion.div>
-
-                  {/* Clean, readable label */}
-                  <motion.span
-                    className={clsx(
-                      'text-xs font-medium transition-all duration-300',
-                      'leading-tight text-center max-w-[48px] truncate',
-                      isActive
-                        ? 'text-blue-600 dark:text-blue-400 font-semibold'
-                        : 'text-current'
-                    )}
-                    animate={isActive ? { scale: 1.02 } : { scale: 1 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    {item.label}
-                  </motion.span>
 
                   {/* Modern badge design */}
                   <AnimatePresence>

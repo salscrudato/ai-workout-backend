@@ -1,6 +1,6 @@
 export declare const env: {
     FIREBASE_PROJECT_ID: string;
-    NODE_ENV: string;
+    NODE_ENV: "production" | "development" | "test";
     PORT: number;
     OPENAI_API_KEY: string;
     OPENAI_MODEL: string;

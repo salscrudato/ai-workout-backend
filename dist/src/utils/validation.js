@@ -1,23 +1,25 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.WorkoutPlanJsonSchema = exports.AIWorkoutPlanSchema = exports.AIWorkoutMetaSchema = exports.AIFinisherSchema = exports.AIWarmupCooldownSchema = exports.AIWorkoutBlockSchema = exports.AIExerciseSchema = exports.AIWorkoutSetSchema = exports.UpdateProfileSchema = exports.GenerateWorkoutRequestSchema = exports.CreateWorkoutPlanSchema = exports.UpdateWorkoutSessionSchema = exports.CreateWorkoutSessionSchema = exports.UpdateEquipmentSchema = exports.CreateEquipmentSchema = exports.WorkoutPlanDataSchema = exports.WarmUpCoolDownSchema = exports.WorkoutMetaSchema = exports.WorkoutBlockSchema = exports.ExerciseSchema = exports.AuthSchema = exports.PreWorkoutSchema = exports.CompleteWorkoutSchema = exports.GenerateWorkoutSchema = exports.WorkoutTypeSchema = exports.CreateProfileSchema = exports.ObjectIdSchema = exports.isValidObjectId = exports.ConstraintsSchema = exports.EquipmentSchema = exports.GoalsSchema = exports.SexSchema = exports.ExperienceSchema = exports.CreateUserSchema = exports.UrlSchema = exports.PhoneSchema = exports.PasswordSchema = exports.EmailSchema = exports.SafeStringSchema = exports.validateEmail = exports.sanitizeHtml = exports.sanitizeString = void 0;
+exports.WorkoutPlanJsonSchema = exports.AIWorkoutPlanSchema = exports.AIWorkoutMetaSchema = exports.AIFinisherSchema = exports.AIWarmupCooldownSchema = exports.AIWorkoutBlockSchema = exports.AIExerciseSchema = exports.AIWorkoutSetSchema = exports.UpdateProfileSchema = exports.GenerateWorkoutRequestSchema = exports.CreateWorkoutPlanSchema = exports.UpdateWorkoutSessionSchema = exports.CreateWorkoutSessionSchema = exports.UpdateEquipmentSchema = exports.CreateEquipmentSchema = exports.WorkoutPlanDataSchema = exports.WarmUpCoolDownSchema = exports.WorkoutMetaSchema = exports.WorkoutBlockSchema = exports.ExerciseSchema = exports.AuthSchema = exports.PreWorkoutSchema = exports.CompleteWorkoutSchema = exports.GenerateWorkoutSchema = exports.WorkoutTypeSchema = exports.CreateProfileSchema = exports.ObjectIdSchema = exports.isValidObjectId = exports.ConstraintsSchema = exports.EquipmentSchema = exports.GoalsSchema = exports.SexSchema = exports.ExperienceSchema = exports.CreateUserSchema = exports.UrlSchema = exports.PhoneSchema = exports.PasswordSchema = exports.EmailSchema = exports.SafeStringSchema = exports.validateEmail = exports.sanitizeForSecurity = exports.detectSQLInjection = exports.detectXSS = exports.sanitizeHtml = exports.sanitizeString = void 0;
 const zod_1 = require("zod");
-/**
- * Enhanced validation utilities with comprehensive input sanitization and validation
- */
-// Common validation patterns
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const PHONE_REGEX = /^\+?[\d\s\-\(\)]{10,}$/;
 const URL_REGEX = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/;
-// Sanitization functions
+const XSS_PATTERNS = /<script|javascript:|on\w+\s*=/i;
+const SQL_INJECTION_PATTERNS = /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION)\b)|('|(\\x27)|(\\x2D\\x2D))/i;
 const sanitizeString = (str) => {
+    if (typeof str !== 'string')
+        return '';
     return str
         .trim()
-        .replace(/[<>]/g, '') // Remove potential XSS characters
-        .replace(/\s+/g, ' '); // Normalize whitespace
+        .replace(/[<>]/g, '')
+        .replace(/\s+/g, ' ')
+        .slice(0, 1000);
 };
 exports.sanitizeString = sanitizeString;
 const sanitizeHtml = (str) => {
+    if (typeof str !== 'string')
+        return '';
     return str
         .replace(/[<>'"&]/g, (match) => {
         const htmlEntities = {
@@ -28,15 +30,31 @@ const sanitizeHtml = (str) => {
             '&': '&amp;',
         };
         return htmlEntities[match] || match;
-    });
+    })
+        .slice(0, 2000);
 };
 exports.sanitizeHtml = sanitizeHtml;
-// Legacy function for backward compatibility
+const detectXSS = (str) => {
+    return XSS_PATTERNS.test(str);
+};
+exports.detectXSS = detectXSS;
+const detectSQLInjection = (str) => {
+    return SQL_INJECTION_PATTERNS.test(str);
+};
+exports.detectSQLInjection = detectSQLInjection;
+const sanitizeForSecurity = (str) => {
+    if (typeof str !== 'string')
+        return '';
+    if ((0, exports.detectXSS)(str) || (0, exports.detectSQLInjection)(str)) {
+        throw new Error('Potentially malicious input detected');
+    }
+    return (0, exports.sanitizeString)(str);
+};
+exports.sanitizeForSecurity = sanitizeForSecurity;
 const validateEmail = (email) => {
     return EMAIL_REGEX.test(email);
 };
 exports.validateEmail = validateEmail;
-// Enhanced base schemas
 exports.SafeStringSchema = zod_1.z
     .string()
     .min(1, 'Field is required')
@@ -64,12 +82,10 @@ exports.UrlSchema = zod_1.z
     .string()
     .regex(URL_REGEX, 'Invalid URL format')
     .optional();
-// User validation schemas
 exports.CreateUserSchema = zod_1.z.object({
     email: exports.EmailSchema.optional(),
     firebaseUid: zod_1.z.string().min(1, 'Firebase UID is required').optional(),
 });
-// Profile validation schemas
 exports.ExperienceSchema = zod_1.z.enum(['beginner', 'intermediate', 'advanced'], {
     errorMap: () => ({ message: 'Experience must be beginner, intermediate, or advanced' }),
 });
@@ -89,9 +105,8 @@ exports.ConstraintsSchema = zod_1.z
     .array(zod_1.z.string().max(200, 'Constraint is too long'))
     .max(20, 'Too many constraints')
     .transform((constraints) => constraints.map(exports.sanitizeString));
-// Utility function to validate ObjectId format
 const isValidObjectId = (id) => {
-    return /^[0-9a-fA-F]{24}$/.test(id) || /^[0-9a-zA-Z]{20,}$/.test(id); // Support both MongoDB ObjectId and Firestore document ID formats
+    return /^[0-9a-fA-F]{24}$/.test(id) || /^[0-9a-zA-Z]{20,}$/.test(id);
 };
 exports.isValidObjectId = isValidObjectId;
 exports.ObjectIdSchema = zod_1.z
@@ -137,7 +152,6 @@ exports.CreateProfileSchema = zod_1.z.object({
     health_ack: zod_1.z.boolean(),
     data_consent: zod_1.z.boolean(),
 });
-// Workout validation schemas
 exports.WorkoutTypeSchema = zod_1.z.enum([
     'full_body',
     'upper_lower',
@@ -178,7 +192,6 @@ exports.CompleteWorkoutSchema = zod_1.z.object({
     startedAt: zod_1.z.string().datetime('Invalid start time format').optional(),
     completedAt: zod_1.z.string().datetime('Invalid completion time format').optional(),
 });
-// Pre-workout validation schemas (consolidated from schemas/preworkout.ts)
 exports.PreWorkoutSchema = zod_1.z.object({
     userId: zod_1.z.string().min(1, 'User ID is required'),
     time_available_min: zod_1.z.number().int().min(10).max(120),
@@ -188,11 +201,9 @@ exports.PreWorkoutSchema = zod_1.z.object({
     equipment_override: exports.EquipmentSchema.optional(),
     new_injuries: zod_1.z.string().max(1000, 'Injury notes are too long').transform(exports.sanitizeHtml).optional(),
 });
-// Authentication schema (consolidated from schemas/validation.ts)
 exports.AuthSchema = zod_1.z.object({
     idToken: zod_1.z.string().min(1, 'ID token is required')
 });
-// Exercise validation schemas (consolidated from schemas/validation.ts)
 exports.ExerciseSchema = zod_1.z.object({
     name: zod_1.z.string().min(1, 'Exercise name is required'),
     sets: zod_1.z.number().int().min(1).max(20),
@@ -229,13 +240,11 @@ exports.WorkoutPlanDataSchema = zod_1.z.object({
     warm_up: exports.WarmUpCoolDownSchema.optional(),
     cool_down: exports.WarmUpCoolDownSchema.optional()
 });
-// Equipment validation schema (consolidated from schemas/validation.ts)
 exports.CreateEquipmentSchema = zod_1.z.object({
     slug: zod_1.z.string().min(1, 'Equipment slug is required').regex(/^[a-z0-9_-]+$/, 'Invalid slug format'),
     label: zod_1.z.string().min(1, 'Equipment label is required').max(100)
 });
 exports.UpdateEquipmentSchema = exports.CreateEquipmentSchema.partial();
-// Workout session schemas (consolidated from schemas/validation.ts)
 exports.CreateWorkoutSessionSchema = zod_1.z.object({
     planId: zod_1.z.string().min(1, 'Plan ID is required'),
     userId: zod_1.z.string().min(1, 'User ID is required'),
@@ -247,7 +256,6 @@ exports.UpdateWorkoutSessionSchema = exports.CreateWorkoutSessionSchema.partial(
     planId: true,
     userId: true
 });
-// Workout plan creation schema (consolidated from schemas/validation.ts)
 exports.CreateWorkoutPlanSchema = zod_1.z.object({
     userId: zod_1.z.string().min(1, 'User ID is required'),
     model: zod_1.z.string().min(1, 'Model is required'),
@@ -255,7 +263,6 @@ exports.CreateWorkoutPlanSchema = zod_1.z.object({
     preWorkout: exports.PreWorkoutSchema,
     plan: exports.WorkoutPlanDataSchema
 });
-// Enhanced workout generation request schema
 exports.GenerateWorkoutRequestSchema = zod_1.z.object({
     workout_type: zod_1.z.string().min(1, 'Workout type is required'),
     time_available_min: zod_1.z.number().int().min(5).max(300),
@@ -265,10 +272,7 @@ exports.GenerateWorkoutRequestSchema = zod_1.z.object({
     intensity_preference: zod_1.z.enum(['low', 'moderate', 'high']).optional(),
     focus_areas: zod_1.z.array(zod_1.z.string()).optional()
 });
-// Update profile schema
 exports.UpdateProfileSchema = exports.CreateProfileSchema.partial().omit({ userId: true });
-// AI Workout Output Schema (converted from JSON Schema in workoutOutput.ts)
-// This is used for validating AI-generated workout plans
 exports.AIWorkoutSetSchema = zod_1.z.object({
     reps: zod_1.z.number(),
     time_sec: zod_1.z.number(),
@@ -324,7 +328,6 @@ exports.AIWorkoutPlanSchema = zod_1.z.object({
     cooldown: zod_1.z.array(exports.AIWarmupCooldownSchema),
     notes: zod_1.z.string()
 });
-// Convert Zod schema to JSON Schema format for OpenAI API compatibility
 exports.WorkoutPlanJsonSchema = {
     type: 'object',
     additionalProperties: false,

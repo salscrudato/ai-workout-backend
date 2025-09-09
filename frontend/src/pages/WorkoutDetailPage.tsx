@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import RestTimer from '../components/RestTimer';
+import Button from '../components/ui/Button';
 import type { WorkoutPlanResponse, WorkoutExercise } from '../types/api';
 
 // Helper function to parse rest time strings like "90s", "2m", "1m 30s" into seconds
@@ -59,6 +60,10 @@ const WorkoutDetailPage: React.FC = () => {
   const [rating, setRating] = useState(0);
   const [showRestTimer, setShowRestTimer] = useState(false);
   const [restTimerKey, setRestTimerKey] = useState(0); // Force re-render of RestTimer
+  const prefersReducedMotion =
+    typeof window !== 'undefined' &&
+    'matchMedia' in window &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   useEffect(() => {
     const loadWorkout = async () => {
@@ -186,7 +191,7 @@ const WorkoutDetailPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-secondary-50 dark:bg-secondary-950 transition-colors duration-300">
         <LoadingSpinner size="lg" text="Loading workout..." />
       </div>
     );
@@ -194,10 +199,10 @@ const WorkoutDetailPage: React.FC = () => {
 
   if (!workout) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-secondary-50 dark:bg-secondary-950 transition-colors duration-300">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-secondary-900 mb-2">Workout not found</h2>
-          <Link to="/dashboard" className="text-primary-600 hover:text-primary-700">
+          <h2 className="text-xl font-semibold text-secondary-900 dark:text-secondary-100 mb-2">Workout not found</h2>
+          <Link to="/dashboard" className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300">
             Return to dashboard
           </Link>
         </div>
@@ -209,20 +214,20 @@ const WorkoutDetailPage: React.FC = () => {
   const currentExercise = currentExercises[currentExerciseIndex];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-secondary-50 dark:bg-secondary-950 transition-colors duration-300">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-secondary-200">
+      <header className="bg-white dark:bg-secondary-900 shadow-sm border-b border-secondary-200 dark:border-secondary-800 transition-colors duration-300">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <Link
                 to="/dashboard"
-                className="flex items-center text-secondary-600 hover:text-secondary-900 transition-colors"
+                className="flex items-center text-secondary-600 dark:text-secondary-400 hover:text-secondary-900 dark:hover:text-secondary-200 transition-colors"
               >
                 <ArrowLeft className="h-5 w-5" />
               </Link>
               <div>
-                <h1 className="text-xl font-bold text-secondary-900">
+                <h1 className="text-xl font-bold text-secondary-900 dark:text-secondary-100">
                   {workout.plan?.meta?.workout_name || `${workout.preWorkout?.workoutType || 'Custom'} Workout`}
                 </h1>
                 <p className="text-sm text-secondary-600">
@@ -241,13 +246,13 @@ const WorkoutDetailPage: React.FC = () => {
                 <button
                   onClick={pauseResumeTimer}
                   disabled={!isWorkoutStarted}
-                  className="p-2 text-secondary-600 hover:text-secondary-900 disabled:opacity-50"
+                  className="p-2 text-secondary-600 dark:text-secondary-400 hover:text-secondary-900 dark:hover:text-secondary-200 disabled:opacity-50"
                 >
                   {isTimerRunning ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
                 </button>
                 <button
                   onClick={resetTimer}
-                  className="p-2 text-secondary-600 hover:text-secondary-900"
+                  className="p-2 text-secondary-600 dark:text-secondary-400 hover:text-secondary-900 dark:hover:text-secondary-200 disabled:opacity-50"
                 >
                   <RotateCcw className="h-5 w-5" />
                 </button>
@@ -260,7 +265,7 @@ const WorkoutDetailPage: React.FC = () => {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {!isWorkoutStarted ? (
           /* Pre-workout overview */
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <div className="bg-white dark:bg-secondary-900 rounded-2xl border border-secondary-200 dark:border-secondary-800 p-6 mb-6 transition-colors duration-300">
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold text-secondary-900 mb-4">Ready to start?</h2>
               <div className="grid grid-cols-2 gap-4 mb-6">
@@ -293,26 +298,22 @@ const WorkoutDetailPage: React.FC = () => {
                   <div className="text-sm text-secondary-600">Minutes</div>
                 </div>
               </div>
-              <button
-                onClick={startWorkout}
-                className="btn btn-primary btn-lg"
-              >
-                <Play className="h-5 w-5 mr-2" />
+              <Button variant="primary" size="lg" onClick={startWorkout} leftIcon={<Play className="h-5 w-5" />}>
                 Start Workout
-              </button>
+              </Button>
             </div>
 
             {/* Workout Instructions */}
             {workout.plan?.meta?.instructions && workout.plan.meta.instructions.length > 0 && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                <h3 className="text-lg font-semibold text-blue-900 mb-3">Workout Instructions</h3>
+              <div className="bg-accent-50 dark:bg-accent-900/20 border border-accent-200 dark:border-accent-800/40 rounded-2xl p-4 mb-6 transition-colors">
+                <h3 className="text-lg font-semibold text-accent-900 dark:text-accent-200 mb-3">Workout Instructions</h3>
                 <ul className="space-y-2">
                   {workout.plan.meta.instructions.map((instruction, index) => (
                     <li key={index} className="flex items-start space-x-2">
-                      <span className="flex-shrink-0 w-5 h-5 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center mt-0.5">
+                      <span className="flex-shrink-0 w-5 h-5 bg-accent-600 text-white text-xs rounded-full flex items-center justify-center mt-0.5">
                         {index + 1}
                       </span>
-                      <span className="text-blue-800">{instruction}</span>
+                      <span className="text-accent-800 dark:text-accent-200">{instruction}</span>
                     </li>
                   ))}
                 </ul>
@@ -326,7 +327,7 @@ const WorkoutDetailPage: React.FC = () => {
                   <h3 className="text-lg font-semibold text-secondary-900 mb-3">Warm-up</h3>
                   <div className="space-y-2">
                     {workout.plan.warmup.map((exercise, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div key={index} className="flex items-center justify-between p-3 bg-secondary-50 dark:bg-secondary-800 rounded-lg">
                         <span className="font-medium">{exercise.name}</span>
                         <span className="text-sm text-secondary-600">
                           {exercise.duration || `${exercise.sets} × ${exercise.reps}`}
@@ -342,7 +343,7 @@ const WorkoutDetailPage: React.FC = () => {
                   <h3 className="text-lg font-semibold text-secondary-900 mb-3">Main Exercises</h3>
                   <div className="space-y-2">
                     {workout.plan.exercises.map((exercise, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div key={index} className="flex items-center justify-between p-3 bg-secondary-50 dark:bg-secondary-800 rounded-lg">
                         <span className="font-medium">{exercise.name}</span>
                         <span className="text-sm text-secondary-600">
                           {exercise.duration || `${exercise.sets} × ${exercise.reps}`}
@@ -358,7 +359,7 @@ const WorkoutDetailPage: React.FC = () => {
                   <h3 className="text-lg font-semibold text-secondary-900 mb-3">Cool-down</h3>
                   <div className="space-y-2">
                     {workout.plan.cooldown.map((exercise, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div key={index} className="flex items-center justify-between p-3 bg-secondary-50 dark:bg-secondary-800 rounded-lg">
                         <span className="font-medium">{exercise.name}</span>
                         <span className="text-sm text-secondary-600">
                           {exercise.duration || `${exercise.sets} × ${exercise.reps}`}
@@ -374,7 +375,7 @@ const WorkoutDetailPage: React.FC = () => {
           /* Active workout */
           <div className="space-y-6">
             {/* Phase navigation */}
-            <div className="bg-white rounded-lg shadow-sm p-4">
+            <div className="bg-white dark:bg-secondary-900 rounded-2xl border border-secondary-200 dark:border-secondary-800 p-4 transition-colors">
               <div className="flex items-center justify-between">
                 <div className="flex space-x-4">
                   {['warmup', 'exercises', 'cooldown'].map((phase) => (
@@ -384,7 +385,7 @@ const WorkoutDetailPage: React.FC = () => {
                       className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                         currentPhase === phase
                           ? 'bg-primary-600 text-white'
-                          : 'bg-gray-100 text-secondary-600 hover:bg-gray-200'
+                          : 'bg-secondary-100 dark:bg-secondary-800 text-secondary-700 dark:text-secondary-300 hover:bg-secondary-200 dark:hover:bg-secondary-700'
                       }`}
                     >
                       {phase === 'warmup' && 'Warm-up'}
@@ -401,14 +402,14 @@ const WorkoutDetailPage: React.FC = () => {
 
             {/* Current exercise */}
             {currentExercise && (
-              <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="bg-white dark:bg-secondary-900 rounded-2xl border border-secondary-200 dark:border-secondary-800 p-6 transition-colors">
                 <div className="text-center mb-6">
                   <h2 className="text-2xl font-bold text-secondary-900 mb-2">
                     {currentExercise.name}
                   </h2>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center mb-4">
                     {currentExercise.sets && (
-                      <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="bg-secondary-50 dark:bg-secondary-800 rounded-lg p-3">
                         <div className="text-2xl font-bold text-primary-600">
                           {typeof currentExercise.sets === 'number' ? currentExercise.sets : currentExercise.sets.length}
                         </div>
@@ -416,21 +417,21 @@ const WorkoutDetailPage: React.FC = () => {
                       </div>
                     )}
                     {currentExercise.reps && (
-                      <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="bg-secondary-50 dark:bg-secondary-800 rounded-lg p-3">
                         <div className="text-2xl font-bold text-primary-600">{currentExercise.reps}</div>
                         <div className="text-sm text-secondary-600">Reps</div>
                       </div>
                     )}
                     {currentExercise.duration && (
-                      <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="bg-secondary-50 dark:bg-secondary-800 rounded-lg p-3">
                         <div className="text-2xl font-bold text-primary-600">{currentExercise.duration}</div>
                         <div className="text-sm text-secondary-600">Duration</div>
                       </div>
                     )}
                     {currentExercise.rest && (
-                      <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                        <div className="text-2xl font-bold text-blue-600">{currentExercise.rest}</div>
-                        <div className="text-sm text-blue-600">Rest Time</div>
+                      <div className="bg-accent-50 dark:bg-accent-900/20 rounded-lg p-3 border border-accent-200 dark:border-accent-800/40">
+                        <div className="text-2xl font-bold text-accent-600 dark:text-accent-300">{currentExercise.rest}</div>
+                        <div className="text-sm text-accent-600 dark:text-accent-300">Rest Time</div>
                       </div>
                     )}
                   </div>
@@ -438,31 +439,31 @@ const WorkoutDetailPage: React.FC = () => {
                   {/* Additional exercise details */}
                   <div className="space-y-2 text-sm">
                     {currentExercise.weight && (
-                      <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <div className="flex items-center justify-between p-2 bg-secondary-50 dark:bg-secondary-800 rounded">
                         <span className="font-medium">Weight:</span>
                         <span>{currentExercise.weight}</span>
                       </div>
                     )}
                     {currentExercise.tempo && (
-                      <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <div className="flex items-center justify-between p-2 bg-secondary-50 dark:bg-secondary-800 rounded">
                         <span className="font-medium">Tempo:</span>
                         <span>{currentExercise.tempo}</span>
                       </div>
                     )}
                     {currentExercise.intensity && (
-                      <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <div className="flex items-center justify-between p-2 bg-secondary-50 dark:bg-secondary-800 rounded">
                         <span className="font-medium">Intensity:</span>
                         <span>{currentExercise.intensity}</span>
                       </div>
                     )}
                     {currentExercise.rpe && (
-                      <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <div className="flex items-center justify-between p-2 bg-secondary-50 dark:bg-secondary-800 rounded">
                         <span className="font-medium">RPE:</span>
                         <span>{currentExercise.rpe}/10</span>
                       </div>
                     )}
                     {currentExercise.primaryMuscles && (
-                      <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <div className="flex items-center justify-between p-2 bg-secondary-50 dark:bg-secondary-800 rounded">
                         <span className="font-medium">Target Muscles:</span>
                         <span>{currentExercise.primaryMuscles}</span>
                       </div>
@@ -470,8 +471,8 @@ const WorkoutDetailPage: React.FC = () => {
                   </div>
 
                   {currentExercise.notes && (
-                    <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                      <p className="text-sm text-yellow-800">
+                    <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800/40 rounded-lg">
+                      <p className="text-sm text-yellow-800 dark:text-yellow-200">
                         <strong>Notes:</strong> {currentExercise.notes}
                       </p>
                     </div>
@@ -479,15 +480,15 @@ const WorkoutDetailPage: React.FC = () => {
 
                   {/* Exercise Instructions */}
                   {currentExercise.instructions && currentExercise.instructions.length > 0 && (
-                    <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <h4 className="text-sm font-semibold text-green-900 mb-3">Exercise Instructions</h4>
+                    <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 rounded-lg">
+                      <h4 className="text-sm font-semibold text-green-900 dark:text-green-200 mb-3">Exercise Instructions</h4>
                       <ul className="space-y-2">
                         {currentExercise.instructions.map((instruction, index) => (
                           <li key={index} className="flex items-start space-x-2">
                             <span className="flex-shrink-0 w-5 h-5 bg-green-600 text-white text-xs rounded-full flex items-center justify-center mt-0.5">
                               {index + 1}
                             </span>
-                            <span className="text-sm text-green-800">{instruction}</span>
+                            <span className="text-sm text-green-800 dark:text-green-200">{instruction}</span>
                           </li>
                         ))}
                       </ul>
@@ -512,50 +513,46 @@ const WorkoutDetailPage: React.FC = () => {
                       <p className="text-sm text-secondary-600 mb-3">
                         Recommended rest: {currentExercise.rest}
                       </p>
-                      <button
-                        onClick={moveToNextExercise}
-                        className="btn btn-primary btn-md"
-                      >
+                      <Button variant="primary" size="md" onClick={moveToNextExercise}>
                         Skip Rest & Continue
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
 
                 <div className="flex items-center justify-center space-x-4">
-                  <button
+                  <Button
+                    variant="outline"
+                    size="md"
                     onClick={() => setCurrentExerciseIndex(Math.max(0, currentExerciseIndex - 1))}
                     disabled={currentExerciseIndex === 0}
-                    className="btn btn-outline btn-md disabled:opacity-50"
                   >
                     Previous
-                  </button>
+                  </Button>
                   
-                  <button
+                  <Button
+                    variant={completedExercises.has(`${currentPhase}-${currentExerciseIndex}`) ? 'secondary' : 'primary'}
+                    size="md"
                     onClick={() => toggleExerciseComplete(currentExerciseIndex)}
-                    className={`btn btn-md ${
-                      completedExercises.has(`${currentPhase}-${currentExerciseIndex}`)
-                        ? 'btn-secondary'
-                        : 'btn-primary'
-                    }`}
+                    leftIcon={<CheckCircle className="h-5 w-5" />}
                   >
-                    <CheckCircle className="h-5 w-5 mr-2" />
                     {completedExercises.has(`${currentPhase}-${currentExerciseIndex}`) ? 'Completed' : 'Mark Complete'}
-                  </button>
+                  </Button>
 
-                  <button
+                  <Button
+                    variant="outline"
+                    size="md"
                     onClick={moveToNextExercise}
-                    className="btn btn-outline btn-md"
                   >
                     {currentExerciseIndex < currentExercises.length - 1 ? 'Next' : 'Next Phase'}
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
 
             {/* Complete workout */}
             {currentPhase === 'cooldown' && currentExerciseIndex >= currentExercises.length - 1 && (
-              <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="bg-white dark:bg-secondary-900 rounded-2xl border border-secondary-200 dark:border-secondary-800 p-6 transition-colors">
                 <h3 className="text-xl font-bold text-secondary-900 mb-4">Workout Complete!</h3>
                 
                 <div className="space-y-4 mb-6">
@@ -568,7 +565,7 @@ const WorkoutDetailPage: React.FC = () => {
                         <button
                           key={star}
                           onClick={() => setRating(star)}
-                          className={`p-1 ${rating >= star ? 'text-yellow-400' : 'text-gray-300'}`}
+                          className={`p-1 ${rating >= star ? 'text-yellow-400' : 'text-secondary-400 dark:text-secondary-600'}`}
                         >
                           <Star className="h-6 w-6 fill-current" />
                         </button>
@@ -589,13 +586,15 @@ const WorkoutDetailPage: React.FC = () => {
                   </div>
                 </div>
 
-                <button
+                <Button
+                  variant="primary"
+                  size="lg"
+                  fullWidth
                   onClick={completeWorkout}
-                  disabled={isCompleting}
-                  className="w-full btn btn-primary btn-lg"
+                  loading={isCompleting}
                 >
-                  {isCompleting ? <LoadingSpinner size="sm" /> : 'Complete Workout'}
-                </button>
+                  Complete Workout
+                </Button>
               </div>
             )}
           </div>

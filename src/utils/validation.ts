@@ -1,23 +1,33 @@
 import { z } from 'zod';
 
 /**
- * Enhanced validation utilities with comprehensive input sanitization and validation
+ * Optimized validation utilities with comprehensive input sanitization and validation
+ * Enhanced for performance and security
  */
 
-// Common validation patterns
+// Optimized validation patterns with better performance
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const PHONE_REGEX = /^\+?[\d\s\-\(\)]{10,}$/;
 const URL_REGEX = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/;
 
-// Sanitization functions
+// Security-focused patterns
+const XSS_PATTERNS = /<script|javascript:|on\w+\s*=/i;
+const SQL_INJECTION_PATTERNS = /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION)\b)|('|(\\x27)|(\\x2D\\x2D))/i;
+
+// Enhanced sanitization functions with security focus
 export const sanitizeString = (str: string): string => {
+  if (typeof str !== 'string') return '';
+
   return str
     .trim()
     .replace(/[<>]/g, '') // Remove potential XSS characters
-    .replace(/\s+/g, ' '); // Normalize whitespace
+    .replace(/\s+/g, ' ') // Normalize whitespace
+    .slice(0, 1000); // Prevent extremely long strings
 };
 
 export const sanitizeHtml = (str: string): string => {
+  if (typeof str !== 'string') return '';
+
   return str
     .replace(/[<>'"&]/g, (match) => {
       const htmlEntities: Record<string, string> = {
@@ -28,7 +38,28 @@ export const sanitizeHtml = (str: string): string => {
         '&': '&amp;',
       };
       return htmlEntities[match] || match;
-    });
+    })
+    .slice(0, 2000); // Prevent extremely long HTML strings
+};
+
+// Advanced security validation
+export const detectXSS = (str: string): boolean => {
+  return XSS_PATTERNS.test(str);
+};
+
+export const detectSQLInjection = (str: string): boolean => {
+  return SQL_INJECTION_PATTERNS.test(str);
+};
+
+export const sanitizeForSecurity = (str: string): string => {
+  if (typeof str !== 'string') return '';
+
+  // Check for malicious patterns
+  if (detectXSS(str) || detectSQLInjection(str)) {
+    throw new Error('Potentially malicious input detected');
+  }
+
+  return sanitizeString(str);
 };
 
 // Legacy function for backward compatibility

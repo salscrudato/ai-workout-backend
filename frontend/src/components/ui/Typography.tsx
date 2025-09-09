@@ -102,12 +102,12 @@ const Typography = forwardRef<HTMLElement, TypographyProps>(({
   // Sophisticated color system with psychological impact and enhanced accessibility
   const colorStyles: Record<TypographyColor, string> = {
     // Primary text colors with enhanced contrast and readability
-    primary: 'text-slate-900 dark:text-slate-100',
-    secondary: 'text-slate-600 dark:text-slate-400',
-    accent: 'text-blue-600 dark:text-blue-400',
-    muted: 'text-slate-500 dark:text-slate-500',
-    blue: 'text-blue-700 dark:text-blue-300',
-    deep: 'text-slate-800 dark:text-slate-200',
+    primary: 'text-secondary-900 dark:text-secondary-100',
+    secondary: 'text-secondary-600 dark:text-secondary-400',
+    accent: 'text-primary-600 dark:text-primary-400',
+    muted: 'text-secondary-500 dark:text-secondary-500',
+    blue: 'text-primary-700 dark:text-primary-300',
+    deep: 'text-secondary-800 dark:text-secondary-200',
 
     // Advanced gradient colors with sophisticated blending
     'gradient-blue': 'gradient-text-blue',
@@ -185,6 +185,7 @@ const Typography = forwardRef<HTMLElement, TypographyProps>(({
   const typographyStyles = clsx(
     // Base styles with smooth transitions
     'font-inter antialiased transition-all duration-300 ease-out',
+    'motion-reduce:transition-none',
 
     // Variant styles (with fallback)
     variantStyles[variant] || variantStyles.body1,
@@ -200,9 +201,10 @@ const Typography = forwardRef<HTMLElement, TypographyProps>(({
 
     // Animation classes
     animate && getAnimationClass(),
+    'motion-reduce:animate-none',
 
     // Hover effects for interactive elements
-    hover && 'hover:scale-105 hover:brightness-110 cursor-pointer',
+    hover && 'hover:scale-105 hover:brightness-110 cursor-pointer motion-reduce:hover:scale-100 motion-reduce:hover:brightness-100',
 
     // Gradient background size for smooth animations
     gradient && 'bg-size-200 hover:bg-pos-100',

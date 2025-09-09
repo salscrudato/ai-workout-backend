@@ -98,9 +98,9 @@ export class ProfileModel {
         .get();
       if (snapshot.empty) return null;
       const doc = snapshot.docs[0];
-      const data = doc.data();
+      const data = doc?.data();
       if (!data) return null;
-      return { id: doc.id, ...data } as Profile;
+      return { id: doc?.id || '', ...data } as Profile;
     }
 
     return null;
@@ -125,7 +125,7 @@ export class ProfileModel {
       const patch: Record<string, any> = { ...update, updatedAt: now };
       // Never overwrite createdAt on update
       if (!docSnap.exists) {
-        patch.createdAt = now;
+        patch['createdAt'] = now;
       }
 
       await docRef.set(patch, { merge: true });
@@ -141,10 +141,10 @@ export class ProfileModel {
       }
       const patch: Record<string, any> = { ...update, updatedAt: now };
       if (!docSnap.exists) {
-        patch.createdAt = now;
+        patch['createdAt'] = now;
         // If creating via id, ensure userId field is populated for consistency
         if ((update as any)?.userId) {
-          patch.userId = (update as any).userId;
+          patch['userId'] = (update as any).userId;
         }
       }
       await docRef.set(patch, { merge: true });

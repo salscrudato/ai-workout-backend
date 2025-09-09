@@ -1,6 +1,9 @@
 import { z } from 'zod';
 export declare const sanitizeString: (str: string) => string;
 export declare const sanitizeHtml: (str: string) => string;
+export declare const detectXSS: (str: string) => boolean;
+export declare const detectSQLInjection: (str: string) => boolean;
+export declare const sanitizeForSecurity: (str: string) => string;
 export declare const validateEmail: (email: string) => boolean;
 export declare const SafeStringSchema: z.ZodEffects<z.ZodString, string, string>;
 export declare const EmailSchema: z.ZodEffects<z.ZodString, string, string>;
@@ -1032,8 +1035,8 @@ export declare const CreateWorkoutPlanSchema: z.ZodObject<{
         } | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
-    userId: string;
     model: string;
+    userId: string;
     promptVersion: string;
     preWorkout: {
         userId: string;
@@ -1100,8 +1103,8 @@ export declare const CreateWorkoutPlanSchema: z.ZodObject<{
         } | undefined;
     };
 }, {
-    userId: string;
     model: string;
+    userId: string;
     promptVersion: string;
     preWorkout: {
         userId: string;
@@ -1182,7 +1185,7 @@ export declare const GenerateWorkoutRequestSchema: z.ZodObject<{
     injury_notes?: string | undefined;
     constraints?: string[] | undefined;
     equipment_override?: string[] | undefined;
-    intensity_preference?: "low" | "moderate" | "high" | undefined;
+    intensity_preference?: "low" | "high" | "moderate" | undefined;
     focus_areas?: string[] | undefined;
 }, {
     time_available_min: number;
@@ -1190,7 +1193,7 @@ export declare const GenerateWorkoutRequestSchema: z.ZodObject<{
     injury_notes?: string | undefined;
     constraints?: string[] | undefined;
     equipment_override?: string[] | undefined;
-    intensity_preference?: "low" | "moderate" | "high" | undefined;
+    intensity_preference?: "low" | "high" | "moderate" | undefined;
     focus_areas?: string[] | undefined;
 }>;
 export declare const UpdateProfileSchema: z.ZodObject<Omit<{

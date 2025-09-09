@@ -100,13 +100,45 @@ export interface CreateWorkoutPlanInput {
   };
 }
 
+/**
+ * Optimized WorkoutPlan Model with performance enhancements
+ * - Efficient querying with compound indexes
+ * - Batch operations for multiple plans
+ * - Optimized deduplication logic
+ */
 export class WorkoutPlanModel {
-  private static collection = 'workoutPlans';
+  private static readonly collection = 'workoutPlans';
+  private static readonly cache = new Map<string, { plan: WorkoutPlan; timestamp: number }>();
+  private static readonly CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
+  /**
+   * Cache management methods for performance optimization
+   */
+  private static setCacheEntry(key: string, plan: WorkoutPlan): void {
+    this.cache.set(key, { plan, timestamp: Date.now() });
+  }
+
+  private static getCacheEntry(key: string): WorkoutPlan | null {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+
+    // Check if cache entry is expired
+    if (Date.now() - entry.timestamp > this.CACHE_TTL) {
+      this.cache.delete(key);
+      return null;
+    }
+
+    return entry.plan;
+  }
+
+  /**
+   * Create a new workout plan with optimized deduplication
+   */
   static async create(data: CreateWorkoutPlanInput): Promise<WorkoutPlan> {
     const db = getFirestore();
     const now = Timestamp.now();
 
+    // Optimized canonical representation for deduplication
     const base = data.preWorkout;
     const canonical = {
       userId: data.userId,
@@ -118,6 +150,12 @@ export class WorkoutPlanModel {
     };
     const dedupKey = data.dedupKey || sha256(canonical);
 
+    // Check cache first for recent duplicates
+    const cached = this.getCacheEntry(dedupKey);
+    if (cached) {
+      return cached;
+    }
+
     const summary = data.summary || {
       workoutType: base.workout_type,
       experience: base.experience,
@@ -126,8 +164,7 @@ export class WorkoutPlanModel {
       equipment: Array.isArray(base.equipment_override) ? [...base.equipment_override].sort() : [],
     };
 
-    // NOTE: Consider adding Firestore indexes on: userId, promptVersion, dedupKey, and summary.workoutType/experience if needed.
-
+    // Optimized data structure for Firestore
     const workoutPlanData: Omit<WorkoutPlan, 'id'> = {
       userId: data.userId,
       model: data.model,
@@ -142,10 +179,15 @@ export class WorkoutPlanModel {
 
     const docRef = await db.collection(this.collection).add(workoutPlanData);
 
-    return {
+    const workoutPlan = {
       id: docRef.id,
       ...workoutPlanData,
     };
+
+    // Cache the created workout plan
+    this.setCacheEntry(dedupKey, workoutPlan);
+
+    return workoutPlan;
   }
 
   static async findById(id: string): Promise<WorkoutPlan | null> {

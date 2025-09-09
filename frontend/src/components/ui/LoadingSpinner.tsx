@@ -4,7 +4,7 @@ import { Loader2 } from 'lucide-react';
 
 interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
-  variant?: 'default' | 'dots' | 'pulse' | 'gradient' | 'premium' | 'progress' | 'wave';
+  variant?: 'default' | 'dots' | 'pulse' | 'gradient' | 'premium' | 'progress' | 'wave' | 'aurora' | 'cosmic';
   className?: string;
   text?: string;
   color?: string;
@@ -36,6 +36,12 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = memo(({
   status = 'loading',
   showProgress = false
 }) => {
+  // Optimized reduced motion detection with memoization
+  const prefersReducedMotion = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+  }, []);
+
   // Memoize size classes to prevent recreation on every render
   const sizeClasses = useMemo(() => ({
     sm: 'h-4 w-4',
@@ -56,15 +62,10 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = memo(({
               <motion.div
                 key={i}
                 className={`rounded-full bg-current ${size === 'sm' ? 'w-2 h-2' : size === 'md' ? 'w-3 h-3' : 'w-4 h-4'}`}
-                animate={{
-                  scale: [1, 1.2, 1],
-                  opacity: [0.5, 1, 0.5],
-                }}
-                transition={{
-                  duration: 1,
-                  repeat: Infinity,
-                  delay: i * 0.2,
-                }}
+                {...(prefersReducedMotion ? {} : {
+                  animate: { scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] },
+                  transition: { duration: 1, repeat: Infinity, delay: i * 0.2 }
+                })}
               />
             ))}
           </div>
@@ -73,25 +74,22 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = memo(({
       case 'pulse':
         return (
           <motion.div
-            className={`rounded-full bg-current ${baseClasses}`}
-            animate={{
-              scale: [1, 1.2, 1],
-              opacity: [0.5, 1, 0.5],
-            }}
-            transition={{
-              duration: 1.5,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
+            className={`rounded-full bg-current ${baseClasses} motion-reduce:animate-none`}
+            {...(prefersReducedMotion ? {} : {
+              animate: { scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] },
+              transition: { duration: 1.5, repeat: Infinity, ease: 'easeInOut' }
+            })}
           />
         );
 
       case 'gradient':
         return (
           <motion.div
-            className={`rounded-full gradient-blue ${baseClasses}`}
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            className={`rounded-full gradient-blue ${baseClasses} motion-reduce:animate-none`}
+            {...(prefersReducedMotion ? {} : {
+              animate: { rotate: 360 },
+              transition: { duration: 1, repeat: Infinity, ease: 'linear' }
+            })}
             style={{
               background: 'conic-gradient(from 0deg, transparent, #0ea5e9, transparent)',
             }}
@@ -101,14 +99,42 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = memo(({
       case 'premium':
         return (
           <motion.div
-            className="relative"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+            className="relative glass-premium rounded-full p-2 premium-shadow-lg"
+            animate={prefersReducedMotion ? undefined : { rotate: 360 }}
+            transition={prefersReducedMotion ? undefined : { duration: 2, repeat: Infinity, ease: 'linear' }}
           >
             <div className={`rounded-full border-4 border-transparent ${baseClasses}`}>
-              <div className="absolute inset-0 rounded-full border-4 border-t-primary-500 border-r-transparent border-b-accent-500 border-l-transparent animate-spin" />
-              <div className="absolute inset-2 rounded-full border-2 border-t-transparent border-r-primary-300 border-b-transparent border-l-accent-300 animate-spin" style={{ animationDirection: 'reverse' }} />
+              <div className="absolute inset-0 rounded-full border-4 border-t-primary-500 border-r-transparent border-b-accent-500 border-l-transparent animate-spin motion-reduce:animate-none" />
+              <div className="absolute inset-2 rounded-full border-2 border-t-transparent border-r-primary-300 border-b-transparent border-l-accent-300 animate-spin motion-reduce:animate-none" style={{ animationDirection: 'reverse' }} />
             </div>
+          </motion.div>
+        );
+
+      case 'aurora':
+        return (
+          <motion.div
+            className={`rounded-full gradient-aurora ${baseClasses} motion-reduce:animate-none`}
+            animate={prefersReducedMotion ? undefined : { rotate: 360 }}
+            transition={prefersReducedMotion ? undefined : { duration: 1.5, repeat: Infinity, ease: 'linear' }}
+            style={{
+              background: 'conic-gradient(from 0deg, #667eea, #764ba2, #f093fb, #f5576c, #4facfe, #667eea)',
+            }}
+          />
+        );
+
+      case 'cosmic':
+        return (
+          <motion.div className="relative">
+            <motion.div
+              className={`rounded-full gradient-cosmic ${baseClasses} motion-reduce:animate-none`}
+              animate={prefersReducedMotion ? undefined : { rotate: 360 }}
+              transition={prefersReducedMotion ? undefined : { duration: 2, repeat: Infinity, ease: 'linear' }}
+            />
+            <motion.div
+              className={`absolute inset-2 rounded-full bg-white/20 backdrop-blur-sm`}
+              animate={prefersReducedMotion ? undefined : { scale: [1, 1.1, 1], opacity: [0.3, 0.7, 0.3] }}
+              transition={prefersReducedMotion ? undefined : { duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+            />
           </motion.div>
         );
 
@@ -146,7 +172,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = memo(({
                 strokeDasharray={circumference}
                 strokeDashoffset={strokeDashoffset}
                 strokeLinecap="round"
-                className="transform -rotate-90 origin-center"
+                className="transform -rotate-90 origin-center motion-reduce:animate-none"
                 initial={{ strokeDashoffset: circumference }}
                 animate={{ strokeDashoffset }}
                 transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -174,12 +200,12 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = memo(({
             {[0, 1, 2, 3, 4].map((i) => (
               <motion.div
                 key={i}
-                className={`rounded-full bg-current ${size === 'sm' ? 'w-1 h-4' : size === 'md' ? 'w-1.5 h-6' : 'w-2 h-8'}`}
-                animate={{
+                className={`rounded-full bg-current ${size === 'sm' ? 'w-1 h-4' : size === 'md' ? 'w-1.5 h-6' : 'w-2 h-8'} motion-reduce:animate-none`}
+                animate={prefersReducedMotion ? undefined : {
                   scaleY: [1, 2, 1],
                   opacity: [0.5, 1, 0.5],
                 }}
-                transition={{
+                transition={prefersReducedMotion ? undefined : {
                   duration: 1,
                   repeat: Infinity,
                   delay: i * 0.1,
@@ -193,10 +219,10 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = memo(({
       default:
         return (
           <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            animate={prefersReducedMotion ? undefined : { rotate: 360 }}
+            transition={prefersReducedMotion ? undefined : { duration: 1, repeat: Infinity, ease: 'linear' }}
           >
-            <Loader2 className={`animate-spin drop-shadow-lg ${baseClasses}`} />
+            <Loader2 className={`animate-spin drop-shadow-lg ${baseClasses} motion-reduce:animate-none`} />
           </motion.div>
         );
     }
@@ -204,12 +230,12 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = memo(({
 
   // Memoize combined className to prevent string concatenation on every render
   const containerClassName = useMemo(() =>
-    `flex flex-col items-center justify-center ${className}`,
+    `flex flex-col items-center justify-center ${className} motion-reduce:transition-none`,
     [className]
   );
 
   const spinnerClassName = useMemo(() =>
-    `animate-spin text-primary-600 drop-shadow-lg ${sizeClasses[size]}`,
+    `animate-spin gradient-text-primary drop-shadow-lg ${sizeClasses[size]} shadow-glow-sm`,
     [sizeClasses, size]
   );
 
@@ -220,6 +246,8 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = memo(({
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.8 }}
       transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+      role="status"
+      aria-live="polite"
     >
       {renderSpinner()}
       {(text || estimatedTime || (showProgress && variant !== 'progress')) && (
@@ -245,6 +273,9 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = memo(({
             </p>
           )}
         </motion.div>
+      )}
+      {!text && !estimatedTime && !(showProgress && variant !== 'progress') && (
+        <span className="sr-only">Loading</span>
       )}
     </motion.div>
   );

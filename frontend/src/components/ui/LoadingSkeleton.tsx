@@ -38,6 +38,11 @@ const LoadingSkeleton: React.FC<LoadingSkeletonProps> = ({
   wave = false,
   gradient = true,
 }) => {
+  const prefersReducedMotion =
+    typeof window !== 'undefined' &&
+    'matchMedia' in window &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   // Enhanced base styles with multiple animation options
   const baseStyles = clsx(
     gradient
@@ -45,20 +50,22 @@ const LoadingSkeleton: React.FC<LoadingSkeletonProps> = ({
       : 'bg-secondary-200',
     'bg-[length:200%_100%]',
     'relative overflow-hidden',
+    'motion-reduce:animate-none',
     className
   );
 
   // Animation styles
   const animationStyles = clsx(
-    animate && pulse && 'animate-pulse',
-    animate && wave && 'animate-bounce-gentle'
+    animate && !prefersReducedMotion && pulse && 'animate-pulse',
+    animate && !prefersReducedMotion && wave && 'animate-bounce-gentle',
+    prefersReducedMotion && 'motion-reduce:animate-none'
   );
 
   // Shimmer overlay component
   const ShimmerOverlay = () => (
-    animate && shimmer ? (
+    animate && shimmer && !prefersReducedMotion ? (
       <motion.div
-        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent motion-reduce:animate-none"
         initial={{ x: '-100%' }}
         animate={{ x: '100%' }}
         transition={{
@@ -67,6 +74,7 @@ const LoadingSkeleton: React.FC<LoadingSkeletonProps> = ({
           repeatDelay: 0.5,
           ease: 'easeInOut'
         }}
+        aria-hidden="true"
       />
     ) : null
   );
@@ -77,8 +85,9 @@ const LoadingSkeleton: React.FC<LoadingSkeletonProps> = ({
       <motion.div
         className={clsx('glass rounded-xl p-6 space-y-6', className)}
         initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
+        animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+        transition={prefersReducedMotion ? undefined : { duration: 0.3 }}
+        aria-hidden="true"
       >
         {/* Workout header */}
         <div className="flex items-center justify-between">
@@ -138,8 +147,8 @@ const LoadingSkeleton: React.FC<LoadingSkeletonProps> = ({
               key={index}
               className="glass rounded-xl p-6 space-y-4"
               initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.1, duration: 0.3 }}
+              animate={prefersReducedMotion ? undefined : { opacity: 1, scale: 1 }}
+              transition={prefersReducedMotion ? undefined : { delay: index * 0.1, duration: 0.3 }}
             >
               <div className="flex items-center justify-between">
                 <div className={clsx(baseStyles, animationStyles, 'w-8 h-8 rounded')}>
@@ -163,8 +172,9 @@ const LoadingSkeleton: React.FC<LoadingSkeletonProps> = ({
         <motion.div
           className="glass rounded-xl p-6"
           initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.3 }}
+          animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+          transition={prefersReducedMotion ? undefined : { delay: 0.4, duration: 0.3 }}
+          aria-hidden="true"
         >
           <div className={clsx(baseStyles, animationStyles, 'h-64 rounded')}>
             <ShimmerOverlay />
@@ -188,8 +198,8 @@ const LoadingSkeleton: React.FC<LoadingSkeletonProps> = ({
             )}
             style={{ width: index === lines - 1 ? '75%' : width }}
             initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.1, duration: 0.3 }}
+            animate={prefersReducedMotion ? undefined : { opacity: 1, x: 0 }}
+            transition={prefersReducedMotion ? undefined : { delay: index * 0.1, duration: 0.3 }}
           >
             <ShimmerOverlay />
           </motion.div>
@@ -208,8 +218,9 @@ const LoadingSkeleton: React.FC<LoadingSkeletonProps> = ({
         )}
         style={{ width: width || 40, height: height || 40 }}
         initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.3 }}
+        animate={prefersReducedMotion ? undefined : { opacity: 1, scale: 1 }}
+        transition={prefersReducedMotion ? undefined : { duration: 0.3 }}
+        aria-hidden="true"
       >
         <ShimmerOverlay />
       </motion.div>
@@ -221,8 +232,9 @@ const LoadingSkeleton: React.FC<LoadingSkeletonProps> = ({
       <motion.div
         className={clsx('glass rounded-xl p-4 space-y-4', className)}
         initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
+        animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+        transition={prefersReducedMotion ? undefined : { duration: 0.3 }}
+        aria-hidden="true"
       >
         {/* Header */}
         <div className="flex items-center space-x-3">
@@ -273,8 +285,8 @@ const LoadingSkeleton: React.FC<LoadingSkeletonProps> = ({
             key={index}
             className="flex items-center space-x-3"
             initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.1, duration: 0.3 }}
+            animate={prefersReducedMotion ? undefined : { opacity: 1, x: 0 }}
+            transition={prefersReducedMotion ? undefined : { delay: index * 0.1, duration: 0.3 }}
           >
             <div className={clsx(baseStyles, animationStyles, 'w-8 h-8 rounded-full')}>
               <ShimmerOverlay />
@@ -302,8 +314,9 @@ const LoadingSkeleton: React.FC<LoadingSkeletonProps> = ({
         height: height || 20
       }}
       initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.3 }}
+      animate={prefersReducedMotion ? undefined : { opacity: 1, scale: 1 }}
+      transition={prefersReducedMotion ? undefined : { duration: 0.3 }}
+      aria-hidden="true"
     >
       <ShimmerOverlay />
     </motion.div>

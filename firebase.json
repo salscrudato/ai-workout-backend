@@ -150,13 +150,20 @@
   "functions": {
     "source": "dist",
     "runtime": "nodejs20",
-    "memory": "512MiB",
+    "memory": "256MiB",
     "timeout": "60s",
-    "minInstances": 0,
+    "minInstances": 1,
     "maxInstances": 10,
-    "concurrency": 80,
+    "concurrency": 100,
+    "cpu": 1,
+    "preserveExternalChanges": false,
     "environmentVariables": {
-      "NODE_ENV": "production"
-    }
+      "NODE_ENV": "production",
+      "NODE_OPTIONS": "--max-old-space-size=256"
+    },
+    "predeploy": [
+      "npm run build:production-safe",
+      "npm run security:audit"
+    ]
   }
 }

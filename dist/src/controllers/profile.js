@@ -22,7 +22,6 @@ exports.patchProfile = (0, errors_1.asyncHandler)(async (req, res) => {
         throw new errors_1.AppError('Invalid userId format', 400, 'INVALID_USER_ID');
     }
     const validatedData = validation_2.UpdateProfileSchema.parse(req.body);
-    // Only pass provided fields; model merges and preserves existing values
     const profile = await Profile_1.ProfileModel.findOneAndUpdate({ userId }, { ...validatedData }, { upsert: true });
     res.json({ profile });
 });

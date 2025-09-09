@@ -3,18 +3,18 @@ import { ZodError } from 'zod';
 import pino from 'pino';
 import { RetryExhaustedError } from '../utils/circuitBreaker';
 
-// Initialize logger for error handling
+// Optimized logger for error handling with performance monitoring
 const baseLogger = pino({
   name: 'error-handler',
-  level: process.env['NODE_ENV'] === 'development' ? 'debug' : 'info'
+  level: process.env['NODE_ENV'] === 'development' ? 'debug' : 'info',
 });
 
-// Create logger wrapper that accepts any parameters
+// Enhanced logger wrapper with better type safety
 const logger = {
-  info: (msg: string, obj?: any) => baseLogger.info(obj || {}, msg),
-  error: (msg: string, obj?: any) => baseLogger.error(obj || {}, msg),
-  warn: (msg: string, obj?: any) => baseLogger.warn(obj || {}, msg),
-  debug: (msg: string, obj?: any) => baseLogger.debug(obj || {}, msg),
+  info: (msg: string, obj?: Record<string, any>) => baseLogger.info(obj || {}, msg),
+  error: (msg: string, obj?: Record<string, any>) => baseLogger.error(obj || {}, msg),
+  warn: (msg: string, obj?: Record<string, any>) => baseLogger.warn(obj || {}, msg),
+  debug: (msg: string, obj?: Record<string, any>) => baseLogger.debug(obj || {}, msg),
 };
 
 /**
@@ -50,18 +50,24 @@ export class AppError extends Error {
  * @returns Unique error identifier
  */
 function generateErrorId(): string {
-  return `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return `err_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 }
 
+/**
+ * Enhanced error handler with security and performance optimizations
+ */
 export function errorHandler(err: any, req: Request, res: Response, _next: NextFunction): void {
   const errorId = generateErrorId();
   const userId = req.user?.uid || 'anonymous';
   const context = {
     operation: `${req.method} ${req.path}`,
-    userId
+    userId,
+    userAgent: req.get('User-Agent'),
+    ip: req.ip,
+    timestamp: new Date().toISOString(),
   };
 
-  const isDev = process.env.NODE_ENV === 'development';
+  const isDev = process.env['NODE_ENV'] === 'development';
 
   let statusCode = 500;
   if (err instanceof AppError) {
@@ -87,9 +93,7 @@ export function errorHandler(err: any, req: Request, res: Response, _next: NextF
 
     logger.warn('Validation error', {
       errorId,
-      userId,
-      url: req.url,
-      method: req.method,
+      ...context,
       validationErrors,
     });
 
@@ -196,7 +200,7 @@ export function errorHandler(err: any, req: Request, res: Response, _next: NextF
 export const errorLoggingMiddleware = (
   error: Error,
   req: Request,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ): void => {
   const errorId = generateErrorId();

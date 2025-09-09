@@ -1,17 +1,7 @@
 import React from 'react';
 import { clsx } from 'clsx';
 
-export type BadgeVariant =
-  | 'default'
-  | 'primary'
-  | 'secondary'
-  | 'success'
-  | 'warning'
-  | 'error'
-  | 'muscle'
-  | 'cardio'
-  | 'strength'
-  | 'outline';
+export type BadgeVariant = 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'outline' | 'muscle' | 'cardio' | 'strength' | 'accent';
 
 export type BadgeSize = 'xs' | 'sm' | 'md' | 'lg';
 
@@ -21,8 +11,6 @@ export interface BadgeProps {
   className?: string;
   children: React.ReactNode;
   icon?: React.ReactNode;
-  removable?: boolean;
-  onRemove?: () => void;
 }
 
 /**
@@ -34,78 +22,39 @@ const Badge: React.FC<BadgeProps> = ({
   className,
   children,
   icon,
-  removable = false,
-  onRemove,
 }) => {
   const variantStyles: Record<BadgeVariant, string> = {
-    default: 'bg-secondary-100 text-secondary-800 border-secondary-200',
-    primary: 'bg-primary-100 text-primary-800 border-primary-200',
-    secondary: 'bg-secondary-100 text-secondary-800 border-secondary-200',
-    success: 'bg-success-100 text-success-800 border-success-200',
-    warning: 'bg-warning-100 text-warning-800 border-warning-200',
-    error: 'bg-error-100 text-error-800 border-error-200',
-    muscle: 'bg-muscle-100 text-muscle-800 border-muscle-200',
-    cardio: 'bg-cardio-100 text-cardio-800 border-cardio-200',
-    strength: 'bg-strength-100 text-strength-800 border-strength-200',
-    outline: 'bg-white text-gray-700 border-gray-300',
+    default: 'bg-neutral-100 text-neutral-800',
+    primary: 'bg-primary-100 text-primary-800',
+    secondary: 'bg-neutral-100 text-neutral-600',
+    success: 'bg-green-100 text-green-800',
+    warning: 'bg-yellow-100 text-yellow-800',
+    error: 'bg-red-100 text-red-800',
+    outline: 'bg-transparent border border-neutral-300 text-neutral-700',
+    muscle: 'bg-orange-100 text-orange-800',
+    cardio: 'bg-blue-100 text-blue-800',
+    strength: 'bg-purple-100 text-purple-800',
+    accent: 'bg-cyan-100 text-cyan-800',
   };
 
   const sizeStyles: Record<BadgeSize, string> = {
-    xs: 'px-1.5 py-0.5 text-xs',
+    xs: 'px-2 py-0.5 text-xs',
     sm: 'px-2 py-0.5 text-xs',
     md: 'px-2.5 py-1 text-sm',
     lg: 'px-3 py-1.5 text-base',
   };
 
-  const iconSizes: Record<BadgeSize, string> = {
-    xs: 'w-2.5 h-2.5',
-    sm: 'w-3 h-3',
-    md: 'w-4 h-4',
-    lg: 'w-5 h-5',
-  };
-
   return (
     <span
       className={clsx(
-        'inline-flex items-center gap-1.5 font-medium rounded-full border',
-        'transition-all duration-200',
+        'badge',
         variantStyles[variant],
         sizeStyles[size],
         className
       )}
     >
-      {icon && (
-        <span className={clsx('flex-shrink-0', iconSizes[size])}>
-          {icon}
-        </span>
-      )}
-      
-      <span className="truncate">{children}</span>
-      
-      {removable && onRemove && (
-        <button
-          onClick={onRemove}
-          className={clsx(
-            'flex-shrink-0 rounded-full hover:bg-black/10 transition-colors',
-            size === 'sm' ? 'p-0.5' : 'p-1'
-          )}
-          aria-label="Remove"
-        >
-          <svg
-            className={iconSizes[size]}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
-      )}
+      {icon && <span className="mr-1">{icon}</span>}
+      {children}
     </span>
   );
 };

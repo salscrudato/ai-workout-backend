@@ -5,25 +5,49 @@ const db_1 = require("../config/db");
 const firestore_1 = require("firebase-admin/firestore");
 class UserModel {
     static collection = 'users';
+    static cache = new Map();
+    static CACHE_TTL = 5 * 60 * 1000;
     static async create(data) {
         const db = (0, db_1.getFirestore)();
         const now = firestore_1.Timestamp.now();
         const userData = {
             email: data.email || '',
-            firebaseUid: data.firebaseUid,
+            ...(data.firebaseUid && { firebaseUid: data.firebaseUid }),
             createdAt: now,
             updatedAt: now,
         };
         if (data.firebaseUid) {
             const docRef = db.collection(this.collection).doc(data.firebaseUid);
             await docRef.set(userData, { merge: true });
-            const saved = await docRef.get();
-            return { id: saved.id, ...saved.data() };
+            const user = { id: data.firebaseUid, ...userData };
+            this.setCacheEntry(data.firebaseUid, user);
+            return user;
         }
         const docRef = await db.collection(this.collection).add(userData);
-        return { id: docRef.id, ...userData };
+        const user = { id: docRef.id, ...userData };
+        if (data.email) {
+            this.setCacheEntry(data.email, user);
+        }
+        return user;
+    }
+    static setCacheEntry(key, user) {
+        this.cache.set(key, { user, timestamp: Date.now() });
+    }
+    static getCacheEntry(key) {
+        const entry = this.cache.get(key);
+        if (!entry)
+            return null;
+        if (Date.now() - entry.timestamp > this.CACHE_TTL) {
+            this.cache.delete(key);
+            return null;
+        }
+        return entry.user;
     }
     static async findByEmail(email) {
+        const cached = this.getCacheEntry(email);
+        if (cached) {
+            return cached;
+        }
         const db = (0, db_1.getFirestore)();
         const snapshot = await db.collection(this.collection)
             .where('email', '==', email)
@@ -33,19 +57,20 @@ class UserModel {
             return null;
         }
         const doc = snapshot.docs[0];
-        if (!doc) {
+        if (!doc?.exists) {
             return null;
         }
         const data = doc.data();
         if (!data) {
             return null;
         }
-        return {
+        const user = {
             id: doc.id,
             ...data,
         };
+        this.setCacheEntry(email, user);
+        return user;
     }
-    // NOTE: Ensure a Firestore index on `users.email` exists for production performance.
     static async findByFirebaseUid(firebaseUid) {
         const db = (0, db_1.getFirestore)();
         const doc = await db.collection(this.collection).doc(firebaseUid).get();
@@ -77,7 +102,6 @@ class UserModel {
     static async findOneAndUpdate(filter, update, options = {}) {
         const db = (0, db_1.getFirestore)();
         const now = firestore_1.Timestamp.now();
-        // Ensure we never overwrite timestamps incorrectly
         const patch = { ...update, updatedAt: now };
         if (filter.id) {
             const docRef = db.collection(this.collection).doc(filter.id);
@@ -91,7 +115,6 @@ class UserModel {
             return { id: saved.id, ...saved.data() };
         }
         if (filter.email) {
-            // Try fast path: find by email
             const existing = await this.findByEmail(filter.email);
             if (existing) {
                 const docRef = db.collection(this.collection).doc(existing.id);
@@ -100,7 +123,6 @@ class UserModel {
                 return { id: saved.id, ...saved.data() };
             }
             if (options.upsert) {
-                // Create new doc; prefer firebaseUid if provided in update
                 const uid = (update && update.firebaseUid) ? String(update.firebaseUid) : undefined;
                 if (uid) {
                     const docRef = db.collection(this.collection).doc(uid);

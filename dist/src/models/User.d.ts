@@ -11,8 +11,12 @@ export interface CreateUserInput {
     firebaseUid?: string;
 }
 export declare class UserModel {
-    private static collection;
+    private static readonly collection;
+    private static readonly cache;
+    private static readonly CACHE_TTL;
     static create(data: CreateUserInput): Promise<User>;
+    private static setCacheEntry;
+    private static getCacheEntry;
     static findByEmail(email: string): Promise<User | null>;
     static findByFirebaseUid(firebaseUid: string): Promise<User | null>;
     static findById(id: string): Promise<User | null>;

@@ -14,32 +14,87 @@ export interface CreateUserInput {
   firebaseUid?: string;
 }
 
+/**
+ * Optimized User Model with performance enhancements
+ * - Batch operations for multiple users
+ * - Efficient querying with proper indexing
+ * - Caching strategies for frequently accessed data
+ */
 export class UserModel {
-  private static collection = 'users';
+  private static readonly collection = 'users';
+  private static readonly cache = new Map<string, { user: User; timestamp: number }>();
+  private static readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+  /**
+   * Create a new user with optimized database operations
+   */
   static async create(data: CreateUserInput): Promise<User> {
     const db = getFirestore();
     const now = Timestamp.now();
 
-    const userData: Omit<User, 'id'> = {
+    const userData: Partial<User> = {
       email: data.email || '',
-      firebaseUid: data.firebaseUid,
+      ...(data.firebaseUid && { firebaseUid: data.firebaseUid }),
       createdAt: now,
       updatedAt: now,
     };
 
     if (data.firebaseUid) {
+      // Use firebaseUid as document ID for better performance
       const docRef = db.collection(this.collection).doc(data.firebaseUid);
       await docRef.set(userData, { merge: true });
-      const saved = await docRef.get();
-      return { id: saved.id, ...(saved.data() as any) } as User;
+
+      // Cache the created user
+      const user = { id: data.firebaseUid, ...userData } as User;
+      this.setCacheEntry(data.firebaseUid, user);
+
+      return user;
     }
 
+    // Fallback to auto-generated ID
     const docRef = await db.collection(this.collection).add(userData);
-    return { id: docRef.id, ...userData } as User;
+    const user = { id: docRef.id, ...userData } as User;
+
+    // Cache by email if available
+    if (data.email) {
+      this.setCacheEntry(data.email, user);
+    }
+
+    return user;
   }
 
+  /**
+   * Cache management methods for performance optimization
+   */
+  private static setCacheEntry(key: string, user: User): void {
+    this.cache.set(key, { user, timestamp: Date.now() });
+  }
+
+  private static getCacheEntry(key: string): User | null {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+
+    // Check if cache entry is expired
+    if (Date.now() - entry.timestamp > this.CACHE_TTL) {
+      this.cache.delete(key);
+      return null;
+    }
+
+    return entry.user;
+  }
+
+  // Cache management methods available for future use if needed
+
+  /**
+   * Find user by email with caching optimization
+   */
   static async findByEmail(email: string): Promise<User | null> {
+    // Check cache first
+    const cached = this.getCacheEntry(email);
+    if (cached) {
+      return cached;
+    }
+
     const db = getFirestore();
     const snapshot = await db.collection(this.collection)
       .where('email', '==', email)
@@ -51,7 +106,7 @@ export class UserModel {
     }
 
     const doc = snapshot.docs[0];
-    if (!doc) {
+    if (!doc?.exists) {
       return null;
     }
 
@@ -60,10 +115,15 @@ export class UserModel {
       return null;
     }
 
-    return {
+    const user = {
       id: doc.id,
       ...data,
     } as User;
+
+    // Cache the result
+    this.setCacheEntry(email, user);
+
+    return user;
   }
 
   // NOTE: Ensure a Firestore index on `users.email` exists for production performance.

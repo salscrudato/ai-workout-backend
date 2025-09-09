@@ -1,16 +1,14 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateWorkout = generateWorkout;
-const pino_1 = __importDefault(require("pino"));
+const tslib_1 = require("tslib");
+const pino_1 = tslib_1.__importDefault(require("pino"));
 const openai_1 = require("../libs/openai");
 const env_1 = require("../config/env");
 const validation_1 = require("../utils/validation");
 const baseLogger = (0, pino_1.default)({
     name: 'workout-generator',
-    level: process.env['NODE_ENV'] === 'development' ? 'debug' : 'info'
+    level: process.env['NODE_ENV'] === 'development' ? 'debug' : 'info',
 });
 const logger = {
     info: (msg, obj) => baseLogger.info(obj || {}, msg),
@@ -19,52 +17,77 @@ const logger = {
     debug: (msg, obj) => baseLogger.debug(obj || {}, msg),
 };
 function getOptimalModelParameters() {
-    return { temperature: 0.2, topP: 0.9 };
+    return {
+        temperature: 0.2,
+        topP: 0.9,
+    };
 }
 function isRetryableError(err) {
     const msg = (err?.message || '').toLowerCase();
     const status = err?.status;
-    return status === 429 || (status >= 500 && status < 600) || msg.includes('timeout');
+    return (status === 429 ||
+        (status >= 500 && status < 600) ||
+        msg.includes('timeout') ||
+        msg.includes('network') ||
+        msg.includes('connection'));
 }
 const SYSTEM_PROMPT = `You are an expert strength & conditioning coach. Return a safe, effective workout as **valid JSON** that exactly follows the provided JSON schema. Prioritize movement quality, progressive overload, and time efficiency. Tailor sets/reps or time and rest to the user's experience, duration, goals, and equipment. Do not include any text outside of JSON.`;
 async function generateWorkout(promptData, options = {}) {
     const startTime = Date.now();
-    const requestId = `workout-gen-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const requestId = `workout-gen-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     logger.info('Starting AI workout generation', {
         requestId,
         workoutType: options.workoutType,
         experience: options.experience,
         duration: options.duration,
-        promptLength: promptData.prompt.length
+        promptLength: promptData.prompt.length,
     });
     const { temperature, topP } = getOptimalModelParameters();
     const aiRequest = {
         model: env_1.env.OPENAI_MODEL,
         messages: [
             { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user', content: promptData.prompt }
+            { role: 'user', content: promptData.prompt },
         ],
         temperature,
         top_p: topP,
+        max_tokens: 4000,
         response_format: {
             type: 'json_schema',
-            json_schema: { name: 'workout_plan', schema: validation_1.WorkoutPlanJsonSchema, strict: true }
+            json_schema: {
+                name: 'workout_plan',
+                schema: validation_1.WorkoutPlanJsonSchema,
+                strict: true,
+            },
+        },
+    };
+    const callOpenAI = async () => {
+        try {
+            return await openai_1.openai.chat.completions.create(aiRequest);
+        }
+        catch (error) {
+            logger.debug('OpenAI API call failed', { requestId, error: error.message });
+            throw error;
         }
     };
-    async function callOnce() {
-        return await openai_1.openai.chat.completions.create(aiRequest);
-    }
     let response;
     try {
-        response = await callOnce();
+        response = await callOpenAI();
     }
     catch (err) {
         if (isRetryableError(err)) {
-            await new Promise(r => setTimeout(r, 500));
-            response = await callOnce();
+            logger.warn('Retrying OpenAI call after error', { requestId, error: err?.message });
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            try {
+                response = await callOpenAI();
+            }
+            catch (retryErr) {
+                logger.error('OpenAI retry failed', { requestId, error: retryErr?.message });
+                return buildFallbackPlan(options, requestId, Date.now() - startTime);
+            }
         }
         else {
-            logger.error('OpenAI call failed', { requestId, error: err?.message });
+            logger.error('Non-retryable OpenAI error', { requestId, error: err?.message });
             return buildFallbackPlan(options, requestId, Date.now() - startTime);
         }
     }
@@ -75,24 +98,33 @@ async function generateWorkout(promptData, options = {}) {
     }
     try {
         const parsed = JSON.parse(text);
-        const rt = Date.now() - startTime;
-        logger.info('AI workout generation completed', {
+        const responseTime = Date.now() - startTime;
+        if (!parsed.meta || !parsed.warmup || !parsed.main || !parsed.cooldown) {
+            logger.warn('Invalid workout structure from AI, using fallback', { requestId });
+            return buildFallbackPlan(options, requestId, responseTime);
+        }
+        logger.info('AI workout generation completed successfully', {
             requestId,
-            responseTime: rt,
+            responseTime,
             workoutType: options.workoutType,
-            estimatedDuration: parsed?.meta?.est_duration_min
+            estimatedDuration: parsed?.meta?.est_duration_min,
+            exerciseCount: parsed?.main?.length || 0,
         });
         return parsed;
     }
-    catch (e) {
-        logger.warn('Invalid JSON from AI, using fallback', { requestId, err: e?.message });
+    catch (parseError) {
+        logger.warn('Invalid JSON from AI, using fallback', {
+            requestId,
+            error: parseError?.message,
+            textLength: text.length,
+        });
         return buildFallbackPlan(options, requestId, Date.now() - startTime);
     }
 }
 function buildFallbackPlan(options, requestId, responseTimeMs) {
     const nowIso = new Date().toISOString();
     const duration = Math.max(15, Math.min(60, Math.round(options.duration || 30)));
-    const experience = (options.experience || 'beginner');
+    const experience = options.experience || 'beginner';
     const goal = (options.workoutType || 'general_fitness').replace(/_/g, ' ');
     const plan = {
         meta: {

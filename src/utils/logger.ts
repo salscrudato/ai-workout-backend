@@ -19,14 +19,17 @@ declare global {
 }
 
 /**
- * Logger configuration based on environment
+ * Optimized logger configuration for performance and readability
+ * Supports both development and production environments
  */
-const createLogger = (name?: string) => {
+const createLogger = (name?: string): pino.Logger => {
   const isDevelopment = IS_DEV;
-  
+
   return pino({
     name: name || 'ai-workout-backend',
     level: isDevelopment ? 'debug' : 'info',
+
+    // Development-specific configuration
     ...(isDevelopment && {
       transport: {
         target: 'pino-pretty',
@@ -34,21 +37,26 @@ const createLogger = (name?: string) => {
           singleLine: true,
           colorize: true,
           translateTime: 'HH:MM:ss.l',
-          ignore: 'pid,hostname'
-        }
-      }
+          ignore: 'pid,hostname',
+          messageFormat: '{levelLabel} - {msg}',
+        },
+      },
     }),
-    formatters: {
-      level: (label) => ({ level: label }),
-      log: (object: any) => {
-        // Add correlation ID to all log entries if available
-        const correlationId = object['correlationId'] || object['req']?.correlationId;
-        if (correlationId) {
-          return { ...object, correlationId };
-        }
-        return object;
-      }
-    },
+
+    // Production-specific configuration
+    ...(!isDevelopment && {
+      formatters: {
+        level: (label) => ({ level: label }),
+        log: (object: Record<string, any>) => {
+          // Add correlation ID to all log entries if available
+          const correlationId = object['correlationId'] || object['req']?.correlationId;
+          if (correlationId) {
+            return { ...object, correlationId };
+          }
+          return object;
+        },
+      },
+    }),
     serializers: {
       req: (req) => ({
         method: req.method,
@@ -135,12 +143,12 @@ export const requestLoggingMiddleware = (req: Request, res: Response, next: Next
 };
 
 /**
- * Error logging middleware
+ * Error logging middleware - optimized for performance
  */
 export const errorLoggingMiddleware = (
   error: Error,
   req: Request,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ): void => {
   const requestLogger = req.log || logger.child({ correlationId: req.correlationId });
@@ -150,7 +158,7 @@ export const errorLoggingMiddleware = (
     err: error,
     req,
     responseTime,
-    msg: 'Request failed with error'
+    msg: 'Request failed with error',
   });
 
   next(error);

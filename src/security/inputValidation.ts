@@ -1,5 +1,5 @@
 import pino from 'pino';
-import DOMPurify from 'isomorphic-dompurify';
+// import DOMPurify from 'isomorphic-dompurify'; // Available for future HTML sanitization
 import validator from 'validator';
 
 const logger = pino({

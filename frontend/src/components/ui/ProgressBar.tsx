@@ -27,6 +27,11 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
   animated = false,
   striped = false,
 }) => {
+  const prefersReducedMotion =
+    typeof window !== 'undefined' &&
+    'matchMedia' in window &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
 
   const sizeStyles = {
@@ -47,7 +52,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
     ? 'bg-gradient-to-r from-transparent via-white/20 to-transparent bg-[length:20px_100%]'
     : '';
 
-  const animationClass = animated ? 'animate-pulse' : '';
+  const animationClass = animated && !prefersReducedMotion ? 'animate-pulse' : 'motion-reduce:animate-none';
 
   return (
     <div className={clsx('w-full', className)}>
@@ -64,13 +69,13 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
       
       <div
         className={clsx(
-          'w-full bg-secondary-200 rounded-full overflow-hidden',
+          'w-full bg-secondary-200 dark:bg-secondary-800 rounded-full overflow-hidden',
           sizeStyles[size]
         )}
       >
         <div
           className={clsx(
-            'h-full rounded-full transition-all duration-500 ease-out',
+            'h-full rounded-full transition-all duration-500 ease-out motion-reduce:transition-none',
             variantStyles[variant],
             stripedPattern,
             animationClass
@@ -80,6 +85,8 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
           aria-valuenow={value}
           aria-valuemin={0}
           aria-valuemax={max}
+          aria-label={label || 'Progress'}
+          aria-valuetext={`${Math.round(percentage)}%`}
         />
       </div>
     </div>

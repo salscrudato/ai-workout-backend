@@ -1,7 +1,8 @@
-const isProd = process.env.NODE_ENV === 'production';
 import { Request, Response, NextFunction } from 'express';
 import admin from 'firebase-admin';
 import { env } from '../config/env';
+
+const isProd = process.env['NODE_ENV'] === 'production';
 
 // Extend Request interface to include user
 declare global {
@@ -13,24 +14,33 @@ declare global {
 }
 
 /**
- * Token cache to avoid repeated Firebase Admin SDK calls
- * In production, consider using Redis or another distributed cache
+ * Optimized token cache with security enhancements
+ * Prevents repeated Firebase Admin SDK calls and includes security measures
  */
 interface TokenCacheEntry {
   decodedToken: admin.auth.DecodedIdToken;
   timestamp: number;
   ttl: number;
+  accessCount: number;
 }
 
 class TokenCache {
   private cache = new Map<string, TokenCacheEntry>();
   private readonly DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes
+  private readonly MAX_CACHE_SIZE = 1000; // Prevent memory exhaustion
+  private readonly MAX_ACCESS_COUNT = 100; // Prevent token abuse
 
   set(token: string, decodedToken: admin.auth.DecodedIdToken, ttl: number = this.DEFAULT_TTL): void {
+    // Prevent cache overflow
+    if (this.cache.size >= this.MAX_CACHE_SIZE) {
+      this.evictOldest();
+    }
+
     this.cache.set(token, {
       decodedToken,
       timestamp: Date.now(),
       ttl,
+      accessCount: 0,
     });
   }
 
@@ -38,12 +48,37 @@ class TokenCache {
     const entry = this.cache.get(token);
     if (!entry) return null;
 
+    // Check expiration
     if (Date.now() - entry.timestamp > entry.ttl) {
       this.cache.delete(token);
       return null;
     }
 
+    // Check access count to prevent abuse
+    if (entry.accessCount >= this.MAX_ACCESS_COUNT) {
+      this.cache.delete(token);
+      return null;
+    }
+
+    // Increment access count
+    entry.accessCount++;
     return entry.decodedToken;
+  }
+
+  private evictOldest(): void {
+    let oldestKey = '';
+    let oldestTime = Date.now();
+
+    for (const [key, entry] of this.cache.entries()) {
+      if (entry.timestamp < oldestTime) {
+        oldestTime = entry.timestamp;
+        oldestKey = key;
+      }
+    }
+
+    if (oldestKey) {
+      this.cache.delete(oldestKey);
+    }
   }
 
   clear(): void {

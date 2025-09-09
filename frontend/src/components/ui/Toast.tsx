@@ -41,6 +41,11 @@ const Toast: React.FC<ToastProps> = ({
   const [isVisible, setIsVisible] = useState(false);
   const [progress, setProgress] = useState(100);
 
+  const prefersReducedMotion =
+    typeof window !== 'undefined' &&
+    'matchMedia' in window &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   useEffect(() => {
     // Trigger entrance animation
     const showTimer = setTimeout(() => setIsVisible(true), 50);
@@ -52,7 +57,7 @@ const Toast: React.FC<ToastProps> = ({
 
     // Progress bar animation
     const progressTimer = setInterval(() => {
-      setProgress(prev => {
+      setProgress((prev) => {
         const newProgress = prev - (100 / (duration / 100));
         return Math.max(0, newProgress);
       });
@@ -89,14 +94,14 @@ const Toast: React.FC<ToastProps> = ({
     
     switch (type) {
       case 'success':
-        return `${baseStyles} border-l-green-500 text-green-800`;
+        return `${baseStyles} border-l-green-500 text-green-800 dark:text-green-200`;
       case 'error':
-        return `${baseStyles} border-l-red-500 text-red-800`;
+        return `${baseStyles} border-l-red-500 text-red-800 dark:text-red-200`;
       case 'warning':
-        return `${baseStyles} border-l-yellow-500 text-yellow-800`;
+        return `${baseStyles} border-l-yellow-500 text-yellow-800 dark:text-yellow-200`;
       case 'info':
       default:
-        return `${baseStyles} border-l-primary-500 text-primary-800`;
+        return `${baseStyles} border-l-primary-500 text-primary-800 dark:text-primary-200`;
     }
   };
 
@@ -116,21 +121,27 @@ const Toast: React.FC<ToastProps> = ({
 
   return (
     <div
+      role={type === 'error' || type === 'warning' ? 'alert' : 'status'}
+      aria-live={type === 'error' || type === 'warning' ? 'assertive' : 'polite'}
+      aria-labelledby={`toast-${id}-title`}
+      aria-describedby={message ? `toast-${id}-message` : undefined}
       className={clsx(
         'relative max-w-sm w-full rounded-xl shadow-glow-blue overflow-hidden',
         'transform transition-all duration-300 ease-out',
+        'motion-reduce:transition-none',
         getStyles(),
         isVisible
-          ? 'translate-x-0 opacity-100 scale-100'
-          : 'translate-x-full opacity-0 scale-95'
+          ? (prefersReducedMotion ? 'opacity-100' : 'translate-x-0 opacity-100 scale-100')
+          : (prefersReducedMotion ? 'opacity-0' : 'translate-x-full opacity-0 scale-95')
       )}
     >
       {/* Progress Bar */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-secondary-200">
+      <div className="absolute top-0 left-0 right-0 h-1 bg-secondary-200 dark:bg-secondary-800">
         <div
           className={clsx(
             'h-full transition-all duration-100 ease-linear',
-            getProgressColor()
+            getProgressColor(),
+            'motion-reduce:transition-none'
           )}
           style={{ width: `${progress}%` }}
         />
@@ -140,17 +151,17 @@ const Toast: React.FC<ToastProps> = ({
       <div className="p-4">
         <div className="flex items-start">
           {/* Icon */}
-          <div className="flex-shrink-0 mr-3 mt-0.5">
+          <div className="flex-shrink-0 mr-3 mt-0.5" aria-hidden="true">
             {getIcon()}
           </div>
 
           {/* Text Content */}
           <div className="flex-1 min-w-0">
-            <h4 className="text-sm font-semibold mb-1 truncate">
+            <h4 className="text-sm font-semibold mb-1 truncate" id={`toast-${id}-title`}>
               {title}
             </h4>
             {message && (
-              <p className="text-xs opacity-90 leading-relaxed">
+              <p className="text-xs opacity-90 leading-relaxed" id={`toast-${id}-message`}>
                 {message}
               </p>
             )}

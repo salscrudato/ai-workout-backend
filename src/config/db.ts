@@ -1,14 +1,23 @@
-const isProd = process.env.NODE_ENV === 'production';
 import admin from 'firebase-admin';
 import { env } from './env';
 
+const isProd = process.env['NODE_ENV'] === 'production';
+
+// Singleton database instance for performance
 let db: admin.firestore.Firestore;
 
+/**
+ * Initialize Firebase Admin SDK with optimized configuration
+ * Supports both Firebase Functions and local development environments
+ *
+ * @returns Configured Firestore database instance
+ */
 export async function initializeFirebase(): Promise<admin.firestore.Firestore> {
   try {
+    // Only initialize if not already initialized (singleton pattern)
     if (admin.apps.length === 0) {
-      // Check if running in Firebase Functions (has GCLOUD_PROJECT)
-      const isFirebaseFunctions = !!process.env.GCLOUD_PROJECT;
+      // Check if running in Firebase Functions environment
+      const isFirebaseFunctions = !!process.env['GCLOUD_PROJECT'];
 
       if (isFirebaseFunctions) {
         // Use default credentials in Firebase Functions
@@ -54,33 +63,62 @@ export async function initializeFirebase(): Promise<admin.firestore.Firestore> {
       }
     }
 
+    // Initialize Firestore with optimized settings
     db = admin.firestore();
 
-    // Configure Firestore settings
+    // Configure Firestore settings for performance
     db.settings({
       ignoreUndefinedProperties: true,
+      // Optimize for serverless environments
+      preferRest: false, // Use gRPC for better performance
+      // Connection pooling settings
+      maxIdleChannels: 1,
+      keepAliveTime: 30000, // 30 seconds
     });
 
     if (!isProd) {
-      console.log('Firestore connected successfully');
+      console.log('Firestore connected successfully with optimized settings');
     }
+
     return db;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+
+    // Enhanced error handling with specific error types
     if (message.toLowerCase().includes('credential')) {
-      console.error('Failed to initialize Firebase: invalid or missing credentials.');
+      console.error('Firebase initialization failed: Invalid or missing credentials');
+      console.error('Please check FIREBASE_SERVICE_ACCOUNT_KEY or individual Firebase env vars');
+    } else if (message.toLowerCase().includes('project')) {
+      console.error('Firebase initialization failed: Invalid project configuration');
+      console.error('Please check FIREBASE_PROJECT_ID or GCLOUD_PROJECT');
     } else {
-      console.error('Failed to initialize Firebase:', error);
+      console.error('Firebase initialization failed:', error);
     }
+
     throw error;
   }
 }
 
+/**
+ * Get the initialized Firestore database instance
+ * Throws error if Firebase hasn't been initialized
+ *
+ * @returns Firestore database instance
+ */
 export function getFirestore(): admin.firestore.Firestore {
   if (!db) {
     throw new Error('Firestore not initialized. Call initializeFirebase() first.');
   }
   return db;
+}
+
+/**
+ * Check if Firebase is initialized
+ *
+ * @returns True if Firebase is initialized
+ */
+export function isFirebaseInitialized(): boolean {
+  return admin.apps.length > 0 && !!db;
 }
 
 // Graceful shutdown

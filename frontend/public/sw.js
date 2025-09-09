@@ -1,24 +1,26 @@
 // Advanced Service Worker for AI Workout App
-const CACHE_VERSION = '2.0.0';
+const IS_DEV = self.location.hostname === 'localhost';
+const log = (...args) => { if (IS_DEV) console.log('[SW]', ...args); };
+
+const CACHE_VERSION = '2.1.0';
 const STATIC_CACHE = `ai-workout-static-v${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `ai-workout-dynamic-v${CACHE_VERSION}`;
 const API_CACHE = `ai-workout-api-v${CACHE_VERSION}`;
 
-// Cache strategies
-const CACHE_STRATEGIES = {
-  CACHE_FIRST: 'cache-first',
-  NETWORK_FIRST: 'network-first',
-  STALE_WHILE_REVALIDATE: 'stale-while-revalidate',
-  NETWORK_ONLY: 'network-only'
-};
-
-// Static resources to cache immediately
-const STATIC_RESOURCES = [
-  '/',
+// SPA app shell routes & critical assets
+const APP_SHELL_ROUTES = ['/', '/dashboard', '/generate', '/history', '/profile'];
+const CRITICAL_ASSETS = [
   '/index.html',
   '/manifest.json',
   '/offline.html',
-  // Add critical CSS and JS files here
+  '/favicon.ico',
+  '/icon-192x192.png',
+  '/icon-512x512.png'
+];
+
+const STATIC_RESOURCES = [
+  ...APP_SHELL_ROUTES,
+  ...CRITICAL_ASSETS,
 ];
 
 // API endpoints to cache
@@ -30,20 +32,28 @@ const CACHEABLE_APIS = [
 
 // Install event - cache static resources and set up caches
 self.addEventListener('install', (event) => {
-  console.log('🔧 Service Worker installing...');
+  log('🔧 Service Worker installing...');
 
   event.waitUntil(
     Promise.all([
       // Cache static resources
-      caches.open(STATIC_CACHE).then((cache) => {
-        console.log('📦 Caching static resources');
-        return cache.addAll(STATIC_RESOURCES);
+      caches.open(STATIC_CACHE).then(async (cache) => {
+        log('📦 Precaching static resources');
+        try {
+          await cache.addAll(STATIC_RESOURCES);
+        } catch (e) {
+          // Best-effort in dev; some routes may 404 during local builds
+          log('⚠️ Precaching encountered issues (best-effort):', e);
+          for (const url of STATIC_RESOURCES) {
+            try { await cache.add(url); } catch {}
+          }
+        }
       }),
       // Initialize other caches
       caches.open(DYNAMIC_CACHE),
       caches.open(API_CACHE)
     ]).then(() => {
-      console.log('✅ Service Worker installation complete');
+      log('✅ Service Worker installation complete');
       return self.skipWaiting();
     })
   );
@@ -51,35 +61,41 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches and claim clients
 self.addEventListener('activate', (event) => {
-  console.log('🚀 Service Worker activating...');
+  log('🚀 Service Worker activating...');
 
-  event.waitUntil(
-    Promise.all([
+  event.waitUntil((async () => {
+    await Promise.all([
       // Clean up old caches
-      caches.keys().then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cacheName) => {
-            if (cacheName !== STATIC_CACHE &&
-                cacheName !== DYNAMIC_CACHE &&
-                cacheName !== API_CACHE) {
-              console.log('🗑️ Deleting old cache:', cacheName);
-              return caches.delete(cacheName);
-            }
-          })
-        );
-      }),
-      // Claim all clients
-      self.clients.claim()
-    ]).then(() => {
-      console.log('✅ Service Worker activation complete');
-    })
-  );
+      caches.keys().then((cacheNames) => Promise.all(
+        cacheNames.map((cacheName) => {
+          if (![STATIC_CACHE, DYNAMIC_CACHE, API_CACHE].includes(cacheName)) {
+            log('🗑️ Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      )),
+    ]);
+    if (self.registration.navigationPreload) {
+      try { await self.registration.navigationPreload.enable(); } catch {}
+    }
+    await self.clients.claim();
+    log('✅ Service Worker activation complete');
+  })());
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // Enhanced fetch event with intelligent caching strategies
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
+
+  // Support navigation preload response
+  const preloadResponse = event.preloadResponse ? event.preloadResponse : null;
 
   // Skip non-GET requests and chrome-extension requests
   if (request.method !== 'GET' || url.protocol === 'chrome-extension:') {
@@ -92,7 +108,7 @@ self.addEventListener('fetch', (event) => {
   } else if (isAPIRequest(url)) {
     event.respondWith(handleAPIRequest(request));
   } else if (isHTMLRequest(request)) {
-    event.respondWith(handleHTMLRequest(request));
+    event.respondWith(handleHTMLRequestWithEvent(event, request));
   } else {
     event.respondWith(handleDynamicResource(request));
   }
@@ -100,7 +116,7 @@ self.addEventListener('fetch', (event) => {
 
 // Background sync for offline actions
 self.addEventListener('sync', (event) => {
-  console.log('🔄 Background sync triggered:', event.tag);
+  log('🔄 Background sync triggered:', event.tag);
 
   if (event.tag === 'workout-completion') {
     event.waitUntil(syncWorkoutCompletions());
@@ -109,12 +125,12 @@ self.addEventListener('sync', (event) => {
 
 // Push notifications for workout reminders
 self.addEventListener('push', (event) => {
-  console.log('📱 Push notification received');
+  log('📱 Push notification received');
 
   const options = {
     body: event.data ? event.data.text() : 'Time for your workout!',
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/badge-72x72.png',
+    icon: '/icon-192x192.png',
+    badge: '/icon-192x192.png',
     vibrate: [200, 100, 200],
     data: {
       dateOfArrival: Date.now(),
@@ -124,12 +140,10 @@ self.addEventListener('push', (event) => {
       {
         action: 'start-workout',
         title: 'Start Workout',
-        icon: '/icons/start-workout.png'
       },
       {
         action: 'snooze',
         title: 'Remind me later',
-        icon: '/icons/snooze.png'
       }
     ]
   };
@@ -141,7 +155,7 @@ self.addEventListener('push', (event) => {
 
 // Handle notification clicks
 self.addEventListener('notificationclick', (event) => {
-  console.log('🔔 Notification clicked:', event.action);
+  log('🔔 Notification clicked:', event.action);
 
   event.notification.close();
 
@@ -154,7 +168,7 @@ self.addEventListener('notificationclick', (event) => {
     setTimeout(() => {
       self.registration.showNotification('Workout Reminder', {
         body: 'Ready for your workout now?',
-        icon: '/icons/icon-192x192.png'
+        icon: '/icon-192x192.png'
       });
     }, 30 * 60 * 1000);
   } else {
@@ -167,7 +181,7 @@ self.addEventListener('notificationclick', (event) => {
 
 // Helper functions
 function isStaticResource(url) {
-  return url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot|ico)$/);
+  return /\.(js|css|png|jpg|jpeg|gif|svg|webp|woff2?|ttf|eot|ico|json|webmanifest)$/.test(url.pathname);
 }
 
 function isAPIRequest(url) {
@@ -194,7 +208,7 @@ async function handleStaticResource(request) {
     }
     return networkResponse;
   } catch (error) {
-    console.error('Static resource fetch failed:', error);
+    log('Static resource fetch failed:', error);
     return new Response('Resource not available offline', { status: 503 });
   }
 }
@@ -229,26 +243,42 @@ async function handleAPIRequest(request) {
 // Network-first for HTML requests with offline fallback
 async function handleHTMLRequest(request) {
   try {
-    const networkResponse = await fetch(request);
+    // Use navigation preload if available
+    const preload = await (self.registration.navigationPreload ? self.registration.navigationPreload.getState().then(s => s.enabled ? request : null).catch(() => null) : null);
+    const response = (preload && (await event?.preloadResponse)) || await fetch(request, { credentials: 'same-origin' });
 
-    if (networkResponse.ok) {
+    if (response && response.ok) {
       const cache = await caches.open(DYNAMIC_CACHE);
-      cache.put(request, networkResponse.clone());
-      return networkResponse;
+      cache.put(request, response.clone());
+      return response;
     }
-
     throw new Error('Network response not ok');
   } catch (error) {
-    console.log('Network failed, trying cache for HTML');
+    log('🌐 Network failed, trying cache for HTML');
 
+    // Try cached request
     const cachedResponse = await caches.match(request);
-    if (cachedResponse) {
-      return cachedResponse;
-    }
+    if (cachedResponse) return cachedResponse;
 
-    // Return offline page as last resort
+    // Fallback to app shell (index.html) for SPA navigations
+    const shell = await caches.match('/index.html');
+    if (shell) return shell;
+
+    // Last resort: offline page
     return caches.match('/offline.html');
   }
+}
+
+async function handleHTMLRequestWithEvent(event, request) {
+  try {
+    const preloadResp = event.preloadResponse ? await event.preloadResponse : null;
+    if (preloadResp) {
+      const cache = await caches.open(DYNAMIC_CACHE);
+      cache.put(request, preloadResp.clone());
+      return preloadResp;
+    }
+  } catch {}
+  return handleHTMLRequest(request);
 }
 
 // Dynamic resource handling
@@ -294,11 +324,11 @@ async function syncWorkoutCompletions() {
         // Remove from pending list
         await removePendingWorkoutCompletion(completion.id);
       } catch (error) {
-        console.error('Failed to sync workout completion:', error);
+        log('Failed to sync workout completion:', error);
       }
     }
   } catch (error) {
-    console.error('Background sync failed:', error);
+    log('Background sync failed:', error);
   }
 }
 
@@ -312,5 +342,5 @@ async function getPendingWorkoutCompletions() {
 
 async function removePendingWorkoutCompletion(id) {
   // Implementation would remove item from IndexedDB
-  console.log('Removing pending completion:', id);
+  log('Removing pending completion:', id);
 }

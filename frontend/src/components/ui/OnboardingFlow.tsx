@@ -109,6 +109,23 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   const currentStepData = STEPS[currentStep];
   const progress = ((currentStep + 1) / STEPS.length) * 100;
 
+  // Accessibility: reduced motion
+  const prefersReducedMotion =
+    typeof window !== 'undefined' &&
+    'matchMedia' in window &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Stable section id for region/heading
+  const sectionId = `onb-step-${currentStepData.id}`;
+  useEffect(() => {
+    const region = document.getElementById(sectionId);
+    if (region) {
+      // Make region programmatically focusable and move focus for SR users
+      region.setAttribute('tabindex', '-1');
+      region.focus({ preventScroll: false });
+    }
+  }, [sectionId, currentStep]);
+
   const updateData = (section: keyof OnboardingData, updates: any) => {
     setData(prev => ({
       ...prev,
@@ -158,7 +175,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
               <Heart className="w-10 h-10 text-primary-600" />
             </div>
             <div>
-              <h2 className="text-3xl font-bold text-secondary-900 mb-4">
+              <h2 id={sectionId} className="text-3xl font-bold text-secondary-900 mb-4">
                 Welcome to AI Workout! 🎉
               </h2>
               <p className="text-lg text-secondary-600 max-w-md mx-auto">
@@ -182,7 +199,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
         return (
           <div className="space-y-6">
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-secondary-900 mb-2">
+              <h2 id={sectionId} className="text-2xl font-bold text-secondary-900 mb-2">
                 Tell us about yourself
               </h2>
               <p className="text-secondary-600">
@@ -192,41 +209,44 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-secondary-700 mb-2">
+                <label htmlFor="onb-name" className="block text-sm font-medium text-secondary-700 mb-2">
                   What should we call you?
                 </label>
                 <input
+                  id="onb-name"
                   type="text"
                   value={data.personalInfo.name}
                   onChange={(e) => updateData('personalInfo', { name: e.target.value })}
                   placeholder="Enter your name"
-                  className="w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-4 py-3 border border-secondary-300 dark:border-secondary-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-400 dark:focus:border-primary-400 bg-white dark:bg-secondary-900"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-secondary-700 mb-2">
+                  <label htmlFor="onb-age" className="block text-sm font-medium text-secondary-700 mb-2">
                     Age
                   </label>
                   <input
+                    id="onb-age"
                     type="number"
                     value={data.personalInfo.age}
                     onChange={(e) => updateData('personalInfo', { age: parseInt(e.target.value) || 25 })}
                     min="13"
                     max="100"
-                    className="w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-4 py-3 border border-secondary-300 dark:border-secondary-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-400 dark:focus:border-primary-400 bg-white dark:bg-secondary-900"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-secondary-700 mb-2">
+                  <label htmlFor="onb-fitness" className="block text-sm font-medium text-secondary-700 mb-2">
                     Fitness Level
                   </label>
                   <select
+                    id="onb-fitness"
                     value={data.personalInfo.fitnessLevel}
                     onChange={(e) => updateData('personalInfo', { fitnessLevel: e.target.value })}
-                    className="w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-4 py-3 border border-secondary-300 dark:border-secondary-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-400 dark:focus:border-primary-400 bg-white dark:bg-secondary-900"
                   >
                     <option value="beginner">Beginner</option>
                     <option value="intermediate">Intermediate</option>
@@ -242,7 +262,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
         return (
           <div className="space-y-6">
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-secondary-900 mb-2">
+              <h2 id={sectionId} className="text-2xl font-bold text-secondary-900 mb-2">
                 What are your fitness goals?
               </h2>
               <p className="text-secondary-600">
@@ -285,7 +305,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
         return (
           <div className="space-y-6">
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-secondary-900 mb-2">
+              <h2 id={sectionId} className="text-2xl font-bold text-secondary-900 mb-2">
                 Workout Preferences
               </h2>
               <p className="text-secondary-600">
@@ -368,7 +388,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
         return (
           <div className="space-y-6">
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-secondary-900 mb-2">
+              <h2 id={sectionId} className="text-2xl font-bold text-secondary-900 mb-2">
                 What equipment do you have?
               </h2>
               <p className="text-secondary-600">
@@ -406,7 +426,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
         return (
           <div className="space-y-6">
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-secondary-900 mb-2">
+              <h2 id={sectionId} className="text-2xl font-bold text-secondary-900 mb-2">
                 Stay motivated! 💪
               </h2>
               <p className="text-secondary-600">
@@ -448,7 +468,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
               <Award className="w-10 h-10 text-success-600" />
             </div>
             <div>
-              <h2 className="text-3xl font-bold text-secondary-900 mb-4">
+              <h2 id={sectionId} className="text-3xl font-bold text-secondary-900 mb-4">
                 You're all set, {data.personalInfo.name}! 🎉
               </h2>
               <p className="text-lg text-secondary-600 max-w-md mx-auto">
@@ -505,7 +525,16 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
       </div>
 
       {/* Content */}
-      <div className="bg-white rounded-2xl border border-secondary-200 p-8 mb-8">
+      <div
+        id={sectionId}
+        role="region"
+        aria-labelledby={sectionId}
+        className={clsx(
+          'bg-white dark:bg-secondary-900 rounded-2xl border border-secondary-200 dark:border-secondary-800 p-8 mb-8',
+          'transition-colors duration-300',
+          prefersReducedMotion && 'motion-reduce:transition-none'
+        )}
+      >
         {renderStepContent()}
       </div>
 
@@ -514,6 +543,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
         <div>
           {currentStep > 0 && currentStepData.id !== 'welcome' && (
             <Button
+              type="button"
               variant="outline"
               leftIcon={<ChevronLeft className="w-4 h-4" />}
               onClick={handlePrevious}
@@ -525,12 +555,13 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
 
         <div className="flex gap-3">
           {onSkip && currentStep < STEPS.length - 1 && (
-            <Button variant="ghost" onClick={onSkip}>
+            <Button type="button" variant="ghost" onClick={onSkip}>
               Skip Setup
             </Button>
           )}
           
           <Button
+            type="button"
             variant="primary"
             rightIcon={currentStep < STEPS.length - 1 ? <ChevronRight className="w-4 h-4" /> : undefined}
             onClick={handleNext}

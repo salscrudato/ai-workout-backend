@@ -4,8 +4,8 @@ import pino from 'pino';
 
 // Initialize logger
 const logger = pino({
-  level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
-  ...(process.env.NODE_ENV === 'development' && {
+  level: process.env['NODE_ENV'] === 'development' ? 'debug' : 'info',
+  ...(process.env['NODE_ENV'] === 'development' && {
     transport: {
       target: 'pino-pretty',
       options: { singleLine: true }
@@ -56,7 +56,7 @@ export const api = onRequest({
 });
 
 // For local development
-if (process.env.NODE_ENV === 'development') {
+if (process.env['NODE_ENV'] === 'development') {
   import('./config/env.js').then(({ env }) => {
     async function startLocalServer() {
       try {

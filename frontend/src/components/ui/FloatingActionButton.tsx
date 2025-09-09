@@ -63,9 +63,9 @@ const FloatingActionButton = forwardRef<HTMLButtonElement, FloatingActionButtonP
     secondary: 'bg-secondary-600 text-white hover:bg-secondary-700 hover:shadow-lg',
     accent: 'bg-accent-500 text-white hover:bg-accent-600 hover:shadow-glow-accent',
     gradient: 'gradient-blue-cyan text-white hover:shadow-glow-blue',
-    premium: 'gradient-blue-premium text-white hover:shadow-glow-blue-premium',
+    premium: 'gradient-premium text-white hover:shadow-glow-blue-premium',
     electric: 'gradient-blue-electric text-white hover:shadow-glow-blue-electric',
-    glass: 'glass-blue text-white hover:glass-blue-premium hover:shadow-glow-blue',
+    glass: 'glass text-white hover:glass-light hover:shadow-glow-blue',
   };
 
   const positionStyles = {
@@ -81,6 +81,15 @@ const FloatingActionButton = forwardRef<HTMLButtonElement, FloatingActionButtonP
     lg: 'w-6 h-6',
   };
 
+  // Reduced motion & safe-area handling
+  const prefersReducedMotion =
+    typeof window !== 'undefined' &&
+    'matchMedia' in window &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const isBottomPosition = position === 'bottom-right' || position === 'bottom-left';
+  const safeAreaStyle = isBottomPosition ? { bottom: 'calc(1.5rem + env(safe-area-inset-bottom))' } : undefined;
+
   const fabStyles = clsx(
     // Base styles
     'inline-flex items-center justify-center',
@@ -92,14 +101,15 @@ const FloatingActionButton = forwardRef<HTMLButtonElement, FloatingActionButtonP
     // Enhanced transitions and sophisticated animations
     'transition-all duration-300 ease-out',
     'transform-gpu',
-    'hover:scale-110',
+    'motion-reduce:transform-none motion-reduce:transition-none',
+    'hover:scale-110 motion-reduce:hover:scale-100',
     'active:scale-95',
-    'hover:-translate-y-1',
+    'hover:-translate-y-1 motion-reduce:hover:-translate-y-0',
 
     // Advanced animation effects
-    pulse && 'animate-pulse',
-    glow && 'animate-glow',
-    morphing && 'animate-morphing',
+    pulse && 'animate-pulse motion-reduce:animate-none',
+    glow && 'animate-glow motion-reduce:animate-none',
+    morphing && 'animate-morphing motion-reduce:animate-none',
 
     // Focus and accessibility
     'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500',
@@ -115,13 +125,24 @@ const FloatingActionButton = forwardRef<HTMLButtonElement, FloatingActionButtonP
     // Extended FAB specific styles
     extended && 'gap-2',
 
+    // Minimum tap target
+    'min-w-[3rem] min-h-[3rem]',
+
     className
   );
+
+  // Derive aria-label when not provided
+  const anyProps = props as any;
+  const ariaLabelFromProps = anyProps && anyProps['aria-label'];
+  const computedAriaLabel = ariaLabelFromProps || label || 'Primary action';
 
   return (
     <button
       ref={ref}
+      type="button"
+      aria-label={computedAriaLabel}
       className={fabStyles}
+      style={{ ...(props.style || {}), ...(safeAreaStyle || {}) }}
       {...props}
     >
       <span className={clsx('flex-shrink-0', iconSizes[size])}>

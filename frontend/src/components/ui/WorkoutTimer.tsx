@@ -36,6 +36,11 @@ const WorkoutTimer: React.FC<WorkoutTimerProps> = ({
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
+  const prefersReducedMotion =
+    typeof window !== 'undefined' &&
+    'matchMedia' in window &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   // Initialize audio context
   useEffect(() => {
     if (typeof window !== 'undefined' && window.AudioContext) {
@@ -117,43 +122,43 @@ const WorkoutTimer: React.FC<WorkoutTimerProps> = ({
   const getVariantStyles = () => {
     const styles = {
       default: {
-        bg: 'bg-white',
-        border: 'border-secondary-200',
+        bg: 'bg-white dark:bg-secondary-900',
+        border: 'border-secondary-200 dark:border-secondary-800',
         progress: 'bg-primary-500',
-        text: 'text-secondary-900',
+        text: 'text-secondary-900 dark:text-secondary-100',
       },
       rest: {
-        bg: 'bg-blue-50',
-        border: 'border-blue-200',
-        progress: 'bg-blue-500',
-        text: 'text-blue-900',
+        bg: 'bg-accent-50 dark:bg-accent-900/20',
+        border: 'border-accent-200 dark:border-accent-800/40',
+        progress: 'bg-accent-500',
+        text: 'text-accent-900 dark:text-accent-200',
       },
       exercise: {
-        bg: 'bg-green-50',
-        border: 'border-green-200',
+        bg: 'bg-green-50 dark:bg-green-900/20',
+        border: 'border-green-200 dark:border-green-800/40',
         progress: 'bg-green-500',
-        text: 'text-green-900',
+        text: 'text-green-900 dark:text-green-200',
       },
       warmup: {
-        bg: 'bg-orange-50',
-        border: 'border-orange-200',
+        bg: 'bg-orange-50 dark:bg-orange-900/20',
+        border: 'border-orange-200 dark:border-orange-800/40',
         progress: 'bg-orange-500',
-        text: 'text-orange-900',
+        text: 'text-orange-900 dark:text-orange-200',
       },
       cooldown: {
-        bg: 'bg-purple-50',
-        border: 'border-purple-200',
+        bg: 'bg-purple-50 dark:bg-purple-900/20',
+        border: 'border-purple-200 dark:border-purple-800/40',
         progress: 'bg-purple-500',
-        text: 'text-purple-900',
+        text: 'text-purple-900 dark:text-purple-200',
       },
     };
     return styles[variant];
   };
 
   const getTimerColor = () => {
-    if (isCompleted) return 'text-green-600';
-    if (timeLeft <= 5) return 'text-red-600';
-    if (timeLeft <= 10) return 'text-yellow-600';
+    if (isCompleted) return 'text-green-600 dark:text-green-300';
+    if (timeLeft <= 5) return 'text-red-600 dark:text-red-300';
+    if (timeLeft <= 10) return 'text-yellow-600 dark:text-yellow-300';
     return getVariantStyles().text;
   };
 
@@ -181,7 +186,7 @@ const WorkoutTimer: React.FC<WorkoutTimerProps> = ({
   return (
     <div
       className={clsx(
-        'rounded-2xl border p-6 transition-all duration-300',
+        'rounded-2xl border p-6 transition-colors duration-300 motion-reduce:transition-none',
         variantStyles.bg,
         variantStyles.border,
         isCompleted && 'ring-2 ring-green-500 ring-opacity-50',
@@ -192,7 +197,7 @@ const WorkoutTimer: React.FC<WorkoutTimerProps> = ({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className={clsx('p-2 rounded-lg', variantStyles.bg)}>
-            <Clock className="w-5 h-5 text-secondary-500" />
+            <Clock className="w-5 h-5 text-secondary-500 dark:text-secondary-400" />
           </div>
           <div>
             {title && (
@@ -201,13 +206,13 @@ const WorkoutTimer: React.FC<WorkoutTimerProps> = ({
               </h3>
             )}
             {subtitle && (
-              <p className="text-sm text-secondary-600">{subtitle}</p>
+              <p className="text-sm text-secondary-600 dark:text-secondary-400">{subtitle}</p>
             )}
           </div>
         </div>
         
         {isCompleted && (
-          <div className="flex items-center gap-2 bg-green-100 text-green-800 px-3 py-1 rounded-full">
+          <div className="flex items-center gap-2 bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200 px-3 py-1 rounded-full">
             <CheckCircle className="w-4 h-4" />
             <span className="text-sm font-medium">Complete!</span>
           </div>
@@ -215,10 +220,10 @@ const WorkoutTimer: React.FC<WorkoutTimerProps> = ({
       </div>
 
       {/* Progress bar */}
-      <div className="w-full bg-secondary-200 rounded-full h-3 mb-6">
+      <div className="w-full bg-secondary-200 dark:bg-secondary-800 rounded-full h-3 mb-6">
         <div
           className={clsx(
-            'h-3 rounded-full transition-all duration-1000',
+            'h-3 rounded-full transition-all duration-1000 motion-reduce:transition-none',
             variantStyles.progress,
             isCompleted && 'bg-green-500'
           )}
@@ -227,8 +232,10 @@ const WorkoutTimer: React.FC<WorkoutTimerProps> = ({
       </div>
 
       {/* Timer display */}
-      <div className={clsx('text-6xl font-bold text-center mb-6', getTimerColor())}>
-        {formatTime(timeLeft)}
+      <div className="text-center mb-6" role="timer" aria-live="polite" aria-label="Timer" aria-valuetext={formatTime(timeLeft)}>
+        <div className={clsx('text-6xl font-bold', getTimerColor())}>
+          {formatTime(timeLeft)}
+        </div>
       </div>
 
       {/* Controls */}

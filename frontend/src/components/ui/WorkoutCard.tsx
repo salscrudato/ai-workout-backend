@@ -64,10 +64,15 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
           animate="animate"
           whileHover="hover"
           className={clsx(
-            'bg-white rounded-lg border border-secondary-200 p-4',
-            'hover:border-secondary-300 hover:shadow-soft transition-all duration-200',
-            'cursor-pointer'
+            'glass rounded-2xl border border-white/20 p-4',
+            'hover:border-primary-200/50 hover:shadow-glow-sm transition-all duration-300',
+            'cursor-pointer touch-manipulation select-none',
+            'active:scale-[0.98] active:shadow-inner',
+            'focus-visible:ring-4 focus-visible:ring-primary-500/30 focus-visible:outline-none'
           )}
+          style={{
+            WebkitTapHighlightColor: 'transparent',
+          }}
           onClick={onView}
         >
         <div className="flex items-center justify-between">

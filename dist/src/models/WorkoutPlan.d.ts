@@ -91,7 +91,11 @@ export interface CreateWorkoutPlanInput {
     };
 }
 export declare class WorkoutPlanModel {
-    private static collection;
+    private static readonly collection;
+    private static readonly cache;
+    private static readonly CACHE_TTL;
+    private static setCacheEntry;
+    private static getCacheEntry;
     static create(data: CreateWorkoutPlanInput): Promise<WorkoutPlan>;
     static findById(id: string): Promise<WorkoutPlan | null>;
     static findOne(filter: {

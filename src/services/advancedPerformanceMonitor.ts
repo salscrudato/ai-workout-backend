@@ -1,5 +1,5 @@
 import pino from 'pino';
-import { cacheManager } from './intelligentCache';
+// import { cacheManager } from './intelligentCache'; // Available for future cache monitoring
 
 const logger = pino({
   name: 'advanced-performance-monitor',
@@ -362,7 +362,7 @@ export class AdvancedPerformanceMonitor {
     const regressionThreshold = this.alertThresholds.regressionThreshold;
 
     // Check response time regression
-    if (performance.responseTime > latestBaseline.averageResponseTime * (1 + regressionThreshold)) {
+    if (latestBaseline && performance.responseTime > latestBaseline.averageResponseTime * (1 + regressionThreshold)) {
       this.createAlert({
         metric: 'response_time_regression',
         currentValue: performance.responseTime,
@@ -418,7 +418,7 @@ export class AdvancedPerformanceMonitor {
   private calculatePercentile(sortedValues: number[], percentile: number): number {
     if (sortedValues.length === 0) return 0;
     const index = Math.ceil((percentile / 100) * sortedValues.length) - 1;
-    return sortedValues[Math.max(0, index)];
+    return sortedValues[Math.max(0, index)] || 0;
   }
 
   private calculateThroughput(): number {
@@ -486,10 +486,10 @@ export class AdvancedPerformanceMonitor {
 
     // Simple linear regression to detect trend
     const n = dataPoints.length;
-    const sumX = dataPoints.reduce((sum, point, index) => sum + index, 0);
+    const sumX = dataPoints.reduce((sum, _point, index) => sum + index, 0);
     const sumY = dataPoints.reduce((sum, point) => sum + point.value, 0);
     const sumXY = dataPoints.reduce((sum, point, index) => sum + (index * point.value), 0);
-    const sumXX = dataPoints.reduce((sum, point, index) => sum + (index * index), 0);
+    const sumXX = dataPoints.reduce((sum, _point, index) => sum + (index * index), 0);
 
     const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
     const avgY = sumY / n;

@@ -77,7 +77,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen gradient-subtle transition-colors duration-300">
       {/* Desktop Sidebar Navigation */}
       <div className="hidden lg:block">
         <SidebarNavigation />
@@ -85,9 +85,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({
 
       {/* Main Content Area */}
       <main
+        role="main"
+        aria-label="Main content"
         className={clsx(
           // Base styles
-          'min-h-screen transition-all duration-300',
+          'min-h-screen transition-all duration-300 motion-reduce:transition-none',
           // Desktop: adjust for sidebar
           'lg:ml-64',
           isSidebarCollapsed && 'lg:ml-16',
@@ -101,7 +103,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
       </main>
 
       {/* Mobile Bottom Navigation */}
-      <div className="lg:hidden">
+      <div className="lg:hidden pb-safe-bottom">
         <BottomNavigation />
       </div>
 
@@ -120,7 +122,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
             'lg:bottom-6 lg:right-6',
             'bottom-24 right-6',
             // Add pulse animation for attention
-            'animate-pulse hover:animate-none'
+            'animate-pulse hover:animate-none motion-reduce:animate-none'
           )}
         />
       )}

@@ -84,7 +84,7 @@ router.get('/detailed', asyncHandler(async (req: Request, res: Response) => {
 
     // Determine overall health
     const allHealthy = Object.values(dependencies).every(dep => dep.status === 'healthy');
-    const anyUnhealthy = Object.values(dependencies).some(dep => dep.status === 'unhealthy');
+    // Note: Could check for unhealthy dependencies if needed for future logic
 
     const result: HealthCheckResult = {
       ok: allHealthy,

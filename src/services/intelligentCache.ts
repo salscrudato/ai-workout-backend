@@ -175,7 +175,7 @@ export class IntelligentCache<T = any> {
    * Set value in cache with intelligent tier placement
    */
   async set(key: string, value: T, customTtl?: number): Promise<void> {
-    const startTime = Date.now();
+    // const startTime = Date.now(); // Available for performance monitoring
 
     try {
       const ttl = customTtl || this.config.ttl;

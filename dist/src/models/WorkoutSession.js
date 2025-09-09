@@ -6,11 +6,9 @@ const firestore_1 = require("firebase-admin/firestore");
 function sanitizeFeedback(input) {
     if (input == null)
         return {};
-    // If plain string, cap to 2000 chars
     if (typeof input === 'string') {
         return input.length > 2000 ? input.slice(0, 2000) : input;
     }
-    // If object, cap common fields
     const out = { ...input };
     if (typeof out.comment === 'string') {
         out.comment = out.comment.length > 2000 ? out.comment.slice(0, 2000) : out.comment;
@@ -94,13 +92,11 @@ class WorkoutSessionModel {
         if (filter.planId) {
             query = query.where('planId', '==', filter.planId);
         }
-        // Apply sorting
         if (options.sort) {
             for (const [field, direction] of Object.entries(options.sort)) {
                 query = query.orderBy(field, direction === 1 ? 'asc' : 'desc');
             }
         }
-        // Apply limit
         if (options.limit) {
             query = query.limit(options.limit);
         }

@@ -1,29 +1,21 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.asyncHandler = exports.errorLoggingMiddleware = exports.AppError = void 0;
 exports.errorHandler = errorHandler;
+const tslib_1 = require("tslib");
 const zod_1 = require("zod");
-const pino_1 = __importDefault(require("pino"));
+const pino_1 = tslib_1.__importDefault(require("pino"));
 const circuitBreaker_1 = require("../utils/circuitBreaker");
-// Initialize logger for error handling
 const baseLogger = (0, pino_1.default)({
     name: 'error-handler',
-    level: process.env['NODE_ENV'] === 'development' ? 'debug' : 'info'
+    level: process.env['NODE_ENV'] === 'development' ? 'debug' : 'info',
 });
-// Create logger wrapper that accepts any parameters
 const logger = {
     info: (msg, obj) => baseLogger.info(obj || {}, msg),
     error: (msg, obj) => baseLogger.error(obj || {}, msg),
     warn: (msg, obj) => baseLogger.warn(obj || {}, msg),
     debug: (msg, obj) => baseLogger.debug(obj || {}, msg),
 };
-/**
- * Custom error class for application-specific errors
- * Provides structured error information for better debugging and user experience
- */
 class AppError extends Error {
     statusCode;
     code;
@@ -36,26 +28,24 @@ class AppError extends Error {
         this.code = code;
         this.isOperational = isOperational;
         this.timestamp = new Date().toISOString();
-        // Capture stack trace
         Error.captureStackTrace(this, this.constructor);
     }
 }
 exports.AppError = AppError;
-/**
- * Generates a unique error ID for tracking and correlation
- * @returns Unique error identifier
- */
 function generateErrorId() {
-    return `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `err_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 }
 function errorHandler(err, req, res, _next) {
     const errorId = generateErrorId();
     const userId = req.user?.uid || 'anonymous';
     const context = {
         operation: `${req.method} ${req.path}`,
-        userId
+        userId,
+        userAgent: req.get('User-Agent'),
+        ip: req.ip,
+        timestamp: new Date().toISOString(),
     };
-    const isDev = process.env.NODE_ENV === 'development';
+    const isDev = process.env['NODE_ENV'] === 'development';
     let statusCode = 500;
     if (err instanceof AppError) {
         statusCode = err.statusCode;
@@ -72,7 +62,6 @@ function errorHandler(err, req, res, _next) {
     else if (typeof err.statusCode === 'number') {
         statusCode = err.statusCode;
     }
-    // Handle Zod validation errors with enhanced details
     if (err instanceof zod_1.ZodError) {
         const validationErrors = err.errors.map(e => ({
             field: e.path.join('.'),
@@ -82,9 +71,7 @@ function errorHandler(err, req, res, _next) {
         }));
         logger.warn('Validation error', {
             errorId,
-            userId,
-            url: req.url,
-            method: req.method,
+            ...context,
             validationErrors,
         });
         res.status(400).json({
@@ -96,7 +83,6 @@ function errorHandler(err, req, res, _next) {
         });
         return;
     }
-    // Handle custom application errors
     if (err instanceof AppError) {
         logger.error('Application error', {
             errorId,
@@ -116,7 +102,6 @@ function errorHandler(err, req, res, _next) {
         });
         return;
     }
-    // Handle retry exhausted errors
     if (err instanceof circuitBreaker_1.RetryExhaustedError) {
         logger.error('Retry exhausted error', {
             errorId,
@@ -131,12 +116,11 @@ function errorHandler(err, req, res, _next) {
             code: 'RETRY_EXHAUSTED',
             errorId,
             timestamp: new Date().toISOString(),
-            retryAfter: 60 // Suggest retry after 60 seconds
+            retryAfter: 60
         });
         return;
     }
     const isServerError = statusCode >= 500;
-    // Log the error with appropriate level
     const logPayload = {
         errorId,
         userId,
@@ -154,7 +138,6 @@ function errorHandler(err, req, res, _next) {
     else {
         logger.warn('Request error', logPayload);
     }
-    // Minimal user-facing message
     const defaultMessages = {
         400: 'Invalid request',
         401: 'Authentication failed',
@@ -175,10 +158,7 @@ function errorHandler(err, req, res, _next) {
     }
     res.status(statusCode).json(response);
 }
-/**
- * Error logging middleware
- */
-const errorLoggingMiddleware = (error, req, res, next) => {
+const errorLoggingMiddleware = (error, req, _res, next) => {
     const errorId = generateErrorId();
     const userId = req.user?.uid || 'anonymous';
     const responseTime = req.startTime ? Date.now() - req.startTime : undefined;
@@ -194,24 +174,6 @@ const errorLoggingMiddleware = (error, req, res, next) => {
     next(error);
 };
 exports.errorLoggingMiddleware = errorLoggingMiddleware;
-/**
- * Async handler wrapper for Express route handlers
- *
- * Automatically catches and forwards async errors to error middleware.
- * Provides type safety for async route handlers.
- *
- * @param fn - Async route handler function
- * @returns Express middleware function that handles async errors
- *
- * @example
- * ```typescript
-* export const getUser = asyncHandler(async (req: Request, res: Response): Promise<void> => {
- *   const user = await UserModel.findById(req.params.id);
- *   res.json(user);
- * });
- *
-```
- */
 const asyncHandler = (fn) => (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch(next);
 };

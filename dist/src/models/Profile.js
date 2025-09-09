@@ -42,7 +42,6 @@ class ProfileModel {
             if (direct.exists) {
                 return { id: direct.id, ...direct.data() };
             }
-            // Legacy fallback: older docs may have random IDs with userId as a field
             const snapshot = await db.collection(this.collection)
                 .where('userId', '==', filter.userId)
                 .limit(1)
@@ -50,10 +49,10 @@ class ProfileModel {
             if (snapshot.empty)
                 return null;
             const doc = snapshot.docs[0];
-            const data = doc.data();
+            const data = doc?.data();
             if (!data)
                 return null;
-            return { id: doc.id, ...data };
+            return { id: doc?.id || '', ...data };
         }
         return null;
     }
@@ -67,9 +66,8 @@ class ProfileModel {
                 throw new Error('Profile not found and upsert not enabled');
             }
             const patch = { ...update, updatedAt: now };
-            // Never overwrite createdAt on update
             if (!docSnap.exists) {
-                patch.createdAt = now;
+                patch['createdAt'] = now;
             }
             await docRef.set(patch, { merge: true });
             const saved = await docRef.get();
@@ -83,10 +81,9 @@ class ProfileModel {
             }
             const patch = { ...update, updatedAt: now };
             if (!docSnap.exists) {
-                patch.createdAt = now;
-                // If creating via id, ensure userId field is populated for consistency
+                patch['createdAt'] = now;
                 if (update?.userId) {
-                    patch.userId = update.userId;
+                    patch['userId'] = update.userId;
                 }
             }
             await docRef.set(patch, { merge: true });

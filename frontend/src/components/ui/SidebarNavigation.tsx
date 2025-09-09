@@ -45,50 +45,51 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ className }) => {
         ease: [0.25, 0.46, 0.45, 0.94]
       }}
       className={clsx(
-        // Base styles
+        // Base styles with enhanced glass morphism
         'fixed left-0 top-0 bottom-0 z-40',
-        'glass-light border-r border-white/20',
-        'shadow-glow-blue backdrop-blur-xl',
+        'glass shadow-glass-lg border-r border-white/20',
+        'shadow-2xl shadow-black/10 dark:shadow-black/30',
         // Custom className
-        className
+        className,
+        'motion-reduce:transition-none motion-reduce:transform-none'
       )}
     >
       {/* Header with enhanced animations */}
-      <div className="flex items-center justify-between p-4 border-b border-white/10">
+      <div className="flex items-center justify-between p-6 border-b border-white/20">
         <AnimatePresence mode="wait">
           {!isSidebarCollapsed ? (
             <motion.div
               key="expanded"
-              className="flex items-center space-x-3"
+              className="flex items-center space-x-4"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.3 }}
             >
               <motion.div
-                className="gradient-blue-premium p-2 rounded-lg shadow-glow-blue-premium"
+                className="gradient-primary p-3 rounded-2xl shadow-glow-lg"
                 whileHover={{ scale: 1.05, rotate: 5 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <Dumbbell className="w-5 h-5 text-white" />
+                <Dumbbell className="w-6 h-6 text-white" />
               </motion.div>
               <div>
-                <h1 className="text-lg font-bold gradient-text-luxury">AI Workout</h1>
-                <p className="text-xs text-secondary-500">Your AI Trainer</p>
+                <h1 className="text-xl font-bold gradient-text-primary">AI Workout</h1>
+                <p className="text-sm text-neutral-500 font-medium">Your AI Trainer</p>
               </div>
             </motion.div>
           ) : (
             <motion.div
               key="collapsed"
-              className="gradient-blue-premium p-2 rounded-lg shadow-glow-blue-premium mx-auto"
+              className="gradient-primary p-3 rounded-2xl shadow-glow-lg mx-auto"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.3 }}
               whileHover={{ scale: 1.1, rotate: 10 }}
               whileTap={{ scale: 0.9 }}
             >
-              <Dumbbell className="w-5 h-5 text-white" />
+              <Dumbbell className="w-6 h-6 text-white" />
             </motion.div>
           )}
         </AnimatePresence>
@@ -115,7 +116,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ className }) => {
       </div>
 
       {/* Navigation Items */}
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto" role="navigation" aria-label="Sidebar navigation">
         {navigationItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path || activeItem === item.id;
@@ -136,14 +137,14 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ className }) => {
                 isActive
                   ? [
                       'bg-gradient-to-r from-primary-50 to-accent-50',
-                      'text-primary-700',
+                      'text-primary-700 dark:text-primary-300',
                       'shadow-sm',
-                      'border border-primary-200',
+                      'border border-primary-200 dark:border-primary-800/40',
                     ]
                   : [
-                      'text-secondary-600',
-                      'hover:text-primary-600',
-                      'hover:bg-primary-50',
+                      'text-secondary-600 dark:text-secondary-400',
+                      'hover:text-primary-600 dark:hover:text-primary-400',
+                      'hover:bg-primary-50 dark:hover:bg-primary-900/20',
                       'hover:shadow-sm',
                     ],
                 // Disabled state
@@ -218,7 +219,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ className }) => {
 
       {/* User Profile Section */}
       {user && (
-        <div className="border-t border-secondary-200 p-4 space-y-3">
+        <div className="border-t border-white/15 dark:border-white/10 p-4 space-y-3">
           <div
             className={clsx(
               'flex items-center space-x-3 p-3 rounded-xl',

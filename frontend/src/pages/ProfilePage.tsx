@@ -16,6 +16,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
+import Button from '../components/ui/Button';
 import type { Equipment, CreateProfileInput } from '../types/api';
 
 // Validation schema
@@ -175,7 +176,7 @@ const ProfilePage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-secondary-50 dark:bg-secondary-950 transition-colors duration-300">
         <LoadingSpinner size="lg" text="Loading profile..." />
       </div>
     );
@@ -183,10 +184,10 @@ const ProfilePage: React.FC = () => {
 
   if (!profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-secondary-50 dark:bg-secondary-950 transition-colors duration-300">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-secondary-900 mb-2">Profile not found</h2>
-          <Link to="/profile-setup" className="text-primary-600 hover:text-primary-700">
+          <h2 className="text-xl font-semibold text-secondary-900 dark:text-secondary-100 mb-2">Profile not found</h2>
+          <Link to="/profile-setup" className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300">
             Complete profile setup
           </Link>
         </div>
@@ -195,15 +196,15 @@ const ProfilePage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-secondary-50 dark:bg-secondary-950 transition-colors duration-300">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-secondary-200">
+      <header className="bg-white dark:bg-secondary-900 shadow-sm border-b border-secondary-200 dark:border-secondary-800 transition-colors duration-300">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <Link
                 to="/dashboard"
-                className="flex items-center text-secondary-600 hover:text-secondary-900 transition-colors"
+                className="flex items-center text-secondary-600 dark:text-secondary-400 hover:text-secondary-900 dark:hover:text-secondary-200 transition-colors"
               >
                 <ArrowLeft className="h-5 w-5" />
               </Link>
@@ -211,42 +212,39 @@ const ProfilePage: React.FC = () => {
                 <div className="bg-primary-600 p-2 rounded-lg">
                   <User className="h-5 w-5 text-white" />
                 </div>
-                <h1 className="text-xl font-bold text-secondary-900">Profile</h1>
+                <h1 className="text-xl font-bold text-secondary-900 dark:text-secondary-100">Profile</h1>
               </div>
             </div>
             
             <div className="flex items-center space-x-2">
               {!isEditing ? (
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setIsEditing(true)}
-                  className="btn btn-outline btn-sm"
+                  leftIcon={<Edit3 className="h-4 w-4" />}
                 >
-                  <Edit3 className="h-4 w-4 mr-1" />
                   Edit
-                </button>
+                </Button>
               ) : (
                 <div className="flex space-x-2">
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={cancelEdit}
-                    className="btn btn-ghost btn-sm"
+                    leftIcon={<X className="h-4 w-4" />}
                   >
-                    <X className="h-4 w-4 mr-1" />
                     Cancel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
                     onClick={handleSubmit(onSubmit)}
-                    disabled={isSaving}
-                    className="btn btn-primary btn-sm"
+                    loading={isSaving}
+                    leftIcon={<Save className="h-4 w-4" />}
                   >
-                    {isSaving ? (
-                      <LoadingSpinner size="sm" />
-                    ) : (
-                      <>
-                        <Save className="h-4 w-4 mr-1" />
-                        Save
-                      </>
-                    )}
-                  </button>
+                    Save
+                  </Button>
                 </div>
               )}
             </div>
@@ -257,7 +255,7 @@ const ProfilePage: React.FC = () => {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
           {/* Basic Info */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white dark:bg-secondary-900 rounded-2xl border border-secondary-200 dark:border-secondary-800 p-6 transition-colors duration-300">
             <h3 className="text-lg font-semibold text-secondary-900 mb-4">Basic Information</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -269,7 +267,7 @@ const ProfilePage: React.FC = () => {
                   type="email"
                   value={user?.email || ''}
                   disabled
-                  className="input bg-gray-50"
+                  className="input bg-secondary-50 dark:bg-secondary-800"
                 />
               </div>
               
@@ -284,14 +282,14 @@ const ProfilePage: React.FC = () => {
                     <option value="advanced">Advanced</option>
                   </select>
                 ) : (
-                  <div className="input bg-gray-50 capitalize">{profile.experience}</div>
+                  <div className="input bg-secondary-50 dark:bg-secondary-800 capitalize">{profile.experience}</div>
                 )}
               </div>
             </div>
           </div>
 
           {/* Fitness Goals */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white dark:bg-secondary-900 rounded-2xl border border-secondary-200 dark:border-secondary-800 p-6 transition-colors duration-300">
             <h3 className="text-lg font-semibold text-secondary-900 mb-4">
               <Target className="inline h-5 w-5 mr-2" />
               Fitness Goals
@@ -323,7 +321,7 @@ const ProfilePage: React.FC = () => {
                 {profile.goals.map((goal) => (
                   <span
                     key={goal}
-                    className="px-3 py-1 bg-primary-100 text-primary-800 rounded-full text-sm font-medium"
+                    className="px-3 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300 rounded-full text-sm font-medium transition-colors"
                   >
                     {goal}
                   </span>
@@ -336,7 +334,7 @@ const ProfilePage: React.FC = () => {
           </div>
 
           {/* Equipment */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white dark:bg-secondary-900 rounded-2xl border border-secondary-200 dark:border-secondary-800 p-6 transition-colors duration-300">
             <h3 className="text-lg font-semibold text-secondary-900 mb-4">
               <Dumbbell className="inline h-5 w-5 mr-2" />
               Available Equipment
@@ -371,21 +369,21 @@ const ProfilePage: React.FC = () => {
                     return (
                       <span
                         key={equipmentSlug}
-                        className="px-3 py-1 bg-secondary-100 text-secondary-800 rounded-full text-sm font-medium"
+                        className="px-3 py-1 bg-secondary-100 dark:bg-secondary-800 text-secondary-800 dark:text-secondary-200 rounded-full text-sm font-medium transition-colors"
                       >
                         {equipmentItem?.label || equipmentSlug}
                       </span>
                     );
                   })
                 ) : (
-                  <span className="text-secondary-600 italic">No equipment selected (bodyweight workouts)</span>
+                  <span className="text-secondary-600 dark:text-secondary-400 italic">No equipment selected (bodyweight workouts)</span>
                 )}
               </div>
             )}
           </div>
 
           {/* Personal Details */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white dark:bg-secondary-900 rounded-2xl border border-secondary-200 dark:border-secondary-800 p-6 transition-colors duration-300">
             <h3 className="text-lg font-semibold text-secondary-900 mb-4">Personal Details</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -401,7 +399,7 @@ const ProfilePage: React.FC = () => {
                     placeholder="25"
                   />
                 ) : (
-                  <div className="input bg-gray-50">{profile.age || 'Not specified'}</div>
+                  <div className="input bg-secondary-50 dark:bg-secondary-800">{profile.age || 'Not specified'}</div>
                 )}
               </div>
 
@@ -416,7 +414,7 @@ const ProfilePage: React.FC = () => {
                     <option value="female">Female</option>
                   </select>
                 ) : (
-                  <div className="input bg-gray-50 capitalize">
+                  <div className="input bg-secondary-50 dark:bg-secondary-800 capitalize">
                     {profile.sex === 'prefer_not_to_say' ? 'Prefer not to say' : profile.sex}
                   </div>
                 )}
@@ -444,7 +442,7 @@ const ProfilePage: React.FC = () => {
                     <span className="flex items-center text-sm text-secondary-600">in</span>
                   </div>
                 ) : (
-                  <div className="input bg-gray-50">
+                  <div className="input bg-secondary-50 dark:bg-secondary-800">
                     {profile.height_ft && profile.height_in 
                       ? `${profile.height_ft}'${profile.height_in}"`
                       : 'Not specified'
@@ -465,14 +463,14 @@ const ProfilePage: React.FC = () => {
                     placeholder="150"
                   />
                 ) : (
-                  <div className="input bg-gray-50">{profile.weight_lb || 'Not specified'}</div>
+                  <div className="input bg-secondary-50 dark:bg-secondary-800">{profile.weight_lb || 'Not specified'}</div>
                 )}
               </div>
             </div>
           </div>
 
           {/* Health & Constraints */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white dark:bg-secondary-900 rounded-2xl border border-secondary-200 dark:border-secondary-800 p-6 transition-colors duration-300">
             <h3 className="text-lg font-semibold text-secondary-900 mb-4">
               <AlertTriangle className="inline h-5 w-5 mr-2" />
               Health & Constraints
@@ -490,7 +488,7 @@ const ProfilePage: React.FC = () => {
                     placeholder="Describe any injuries or physical limitations..."
                   />
                 ) : (
-                  <div className="input bg-gray-50 min-h-[100px] whitespace-pre-wrap">
+                  <div className="input bg-secondary-50 dark:bg-secondary-800 min-h-[100px] whitespace-pre-wrap">
                     {profile.injury_notes || 'None specified'}
                   </div>
                 )}
@@ -527,13 +525,13 @@ const ProfilePage: React.FC = () => {
                       profile.constraints.map((constraint) => (
                         <span
                           key={constraint}
-                          className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium"
+                          className="px-3 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded-full text-sm font-medium transition-colors"
                         >
                           {constraint}
                         </span>
                       ))
                     ) : (
-                      <span className="text-secondary-600 italic">No constraints specified</span>
+                      <span className="text-secondary-600 dark:text-secondary-400 italic">No constraints specified</span>
                     )}
                   </div>
                 )}
@@ -542,7 +540,7 @@ const ProfilePage: React.FC = () => {
           </div>
 
           {/* Profile Created */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white dark:bg-secondary-900 rounded-2xl border border-secondary-200 dark:border-secondary-800 p-6 transition-colors duration-300">
             <h3 className="text-lg font-semibold text-secondary-900 mb-4">Profile Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>

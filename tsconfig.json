@@ -1,55 +1,66 @@
 {
   "compilerOptions": {
-    // File Layout
+    // File Layout - Optimized for performance
     "rootDir": "./",
     "outDir": "./dist",
 
-    // Environment Settings
+    // Environment Settings - Latest stable versions for performance
     "module": "CommonJS",
     "target": "ES2022",
     "moduleResolution": "node",
-    "lib": ["ES2022"],
+    "lib": ["ES2022", "DOM"],
     "types": ["node"],
 
-    // Output Options
+    // Output Options - Optimized for production
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
-    "removeComments": false, // Keep comments for better AI agent understanding
+    "removeComments": true, // Remove comments in production for smaller bundles
+    "importHelpers": true, // Use tslib helpers to reduce bundle size
+    "downlevelIteration": true, // Better iteration support
 
-    // Strict Type Checking Options (Temporarily relaxed for build stability)
-    "strict": false,
-    "noImplicitAny": false, // Temporarily disabled
+    // Strict Type Checking - Enhanced for code quality
+    "strict": true,
+    "noImplicitAny": true,
     "strictNullChecks": true,
     "strictFunctionTypes": true,
     "strictBindCallApply": true,
-    "strictPropertyInitialization": false, // Temporarily disabled
+    "strictPropertyInitialization": true,
     "noImplicitThis": true,
     "alwaysStrict": true,
-    "noUncheckedIndexedAccess": false, // Temporarily disabled
-    "exactOptionalPropertyTypes": false, // Temporarily disabled
+    "noUncheckedIndexedAccess": true, // Prevent index access errors
+    "exactOptionalPropertyTypes": false, // Temporarily disabled for advanced services compatibility // Stricter optional properties
 
-    // Additional Checks for Code Quality (Temporarily relaxed)
-    "noImplicitReturns": false, // Temporarily disabled
+    // Additional Checks for Code Quality
+    "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "noImplicitOverride": false, // Temporarily disabled
-    "noPropertyAccessFromIndexSignature": false, // Temporarily disabled
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
 
-    // Code Quality Options (Temporarily relaxed for gradual migration)
-    "noUnusedLocals": false, // Will enable after refactoring
-    "noUnusedParameters": false, // Will enable after refactoring
+    // Code Quality Options - Enabled for clean code
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
 
-    // Module Resolution
+    // Module Resolution - Enhanced
     "isolatedModules": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
+    "allowImportingTsExtensions": false,
 
-    // Advanced Options
+    // Advanced Options - Performance optimized
     "incremental": true,
-    "tsBuildInfoFile": "./dist/.tsbuildinfo"
+    "tsBuildInfoFile": "./dist/.tsbuildinfo",
+    "composite": false,
+    "preserveWatchOutput": true,
+    "pretty": true,
+
+    // Emit Options - Optimized
+    "newLine": "lf",
+    "stripInternal": true
   },
   "include": [
     "src/**/*",
@@ -58,10 +69,13 @@
   "exclude": [
     "node_modules",
     "dist",
+    "frontend",
     "**/*.test.ts",
-    "**/*.spec.ts"
+    "**/*.spec.ts",
+    "**/*.d.ts"
   ],
   "ts-node": {
-    "esm": true
+    "esm": true,
+    "experimentalSpecifierResolution": "node"
   }
 }

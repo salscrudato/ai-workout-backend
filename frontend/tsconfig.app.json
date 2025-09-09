@@ -1,41 +1,43 @@
 {
   "compilerOptions": {
+    // Build optimization
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "target": "ES2022",
     "useDefineForClassFields": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
+    "incremental": true,
 
-    /* Bundler mode */
+    // Bundler mode - optimized for Vite
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": false,
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
+    "jsxImportSource": "react",
 
-    /* Enhanced Type Checking (temporarily relaxed for build) */
-    "strict": false,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "exactOptionalPropertyTypes": false,
-    "noImplicitReturns": false,
-    "noFallthroughCasesInSwitch": false,
-    "noUncheckedIndexedAccess": false,
-    "noImplicitOverride": false,
-    "allowUnusedLabels": true,
-    "allowUnreachableCode": true,
-    "erasableSyntaxOnly": false,
-    "noUncheckedSideEffectImports": false,
-    "verbatimModuleSyntax": false,
+    // Enhanced Type Checking - enabled for code quality
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
 
-    /* Interop Constraints */
+    // Interop Constraints
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
 
-    /* Path Mapping */
+    // Path Mapping - optimized for better imports
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
@@ -45,13 +47,28 @@
       "@/hooks/*": ["./src/hooks/*"],
       "@/contexts/*": ["./src/contexts/*"],
       "@/services/*": ["./src/services/*"],
-      "@/types/*": ["./src/types/*"]
-    }
+      "@/types/*": ["./src/types/*"],
+      "@/assets/*": ["./src/assets/*"],
+      "@/styles/*": ["./src/styles/*"]
+    },
+
+    // Performance optimizations
+    "preserveWatchOutput": true,
+    "pretty": true
   },
-  "include": ["src"],
+  "include": [
+    "src",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.d.ts"
+  ],
   "exclude": [
     "src/**/*.test.tsx",
     "src/**/*.test.ts",
-    "src/test/**/*"
+    "src/**/*.spec.tsx",
+    "src/**/*.spec.ts",
+    "src/test/**/*",
+    "node_modules",
+    "dist"
   ]
 }

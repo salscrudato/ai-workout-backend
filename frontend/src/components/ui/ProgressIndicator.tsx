@@ -39,6 +39,12 @@ const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
   showLabels = true,
   className,
 }) => {
+  const totalSteps = steps.length;
+  const prefersReducedMotion =
+    typeof window !== 'undefined' &&
+    'matchMedia' in window &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   const isStepCompleted = (stepIndex: number) => {
     return completedSteps.includes(stepIndex) || stepIndex < currentStep;
   };
@@ -61,8 +67,8 @@ const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
     },
     active: {
       default: 'bg-primary-500 text-white border-primary-500',
-      blue: 'gradient-blue-cyan text-white border-primary-500 shadow-glow-blue animate-pulse',
-      gradient: 'gradient-blue-deep text-white border-primary-600 shadow-glow-blue animate-pulse',
+      blue: 'gradient-blue-cyan text-white border-primary-500 shadow-glow-blue animate-pulse motion-reduce:animate-none',
+      gradient: 'gradient-blue-deep text-white border-primary-600 shadow-glow-blue animate-pulse motion-reduce:animate-none',
     },
     pending: {
       default: 'bg-secondary-100 text-secondary-500 border-secondary-300',
@@ -86,19 +92,25 @@ const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
 
   if (orientation === 'vertical') {
     return (
-      <div className={clsx('flex flex-col', className)}>
+      <div role="list" aria-label="Progress steps" className={clsx('flex flex-col', className)}>
         {steps.map((step, index) => {
           const stepVariant = getStepVariant(index);
           const isLast = index === steps.length - 1;
           
           return (
-            <div key={step.id} className="flex items-start">
+            <div
+              key={step.id}
+              className="flex items-start"
+              role="listitem"
+              aria-current={isStepActive(index) ? 'step' : undefined}
+              aria-label={`Step ${index + 1} of ${totalSteps}: ${step.label}${isStepCompleted(index) ? ' (completed)' : isStepActive(index) ? ' (current)' : ''}`}
+            >
               {/* Step Circle */}
               <div className="flex flex-col items-center">
                 <div
                   className={clsx(
                     'w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 flex items-center justify-center',
-                    'transition-all duration-300 transform-gpu',
+                    'transition-all duration-300 transform-gpu motion-reduce:transform-none motion-reduce:transition-none',
                     stepStyles[stepVariant][variant],
                     isStepActive(index) && 'scale-110'
                   )}
@@ -115,7 +127,7 @@ const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
                   <div
                     className={clsx(
                       'w-0.5 h-8 sm:h-12 mt-2',
-                      'transition-all duration-300',
+                      'transition-all duration-300 motion-reduce:transition-none',
                       isStepCompleted(index)
                         ? connectorStyles.completed[variant]
                         : connectorStyles.pending[variant]
@@ -151,19 +163,24 @@ const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
 
   // Horizontal orientation
   return (
-    <div className={clsx('flex items-center justify-between w-full', className)}>
+    <div role="list" aria-label="Progress steps" className={clsx('flex items-center justify-between w-full', className)}>
       {steps.map((step, index) => {
         const stepVariant = getStepVariant(index);
         const isLast = index === steps.length - 1;
         
         return (
           <React.Fragment key={step.id}>
-            <div className="flex flex-col items-center">
+            <div
+              className="flex flex-col items-center"
+              role="listitem"
+              aria-current={isStepActive(index) ? 'step' : undefined}
+              aria-label={`Step ${index + 1} of ${totalSteps}: ${step.label}${isStepCompleted(index) ? ' (completed)' : isStepActive(index) ? ' (current)' : ''}`}
+            >
               {/* Step Circle */}
               <div
                 className={clsx(
                   'w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 flex items-center justify-center',
-                  'transition-all duration-300 transform-gpu',
+                  'transition-all duration-300 transform-gpu motion-reduce:transform-none motion-reduce:transition-none',
                   stepStyles[stepVariant][variant],
                   isStepActive(index) && 'scale-110'
                 )}
@@ -195,7 +212,7 @@ const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
               <div
                 className={clsx(
                   'flex-1 h-0.5 mx-2 sm:mx-4',
-                  'transition-all duration-300',
+                  'transition-all duration-300 motion-reduce:transition-none',
                   isStepCompleted(index)
                     ? connectorStyles.completed[variant]
                     : connectorStyles.pending[variant]

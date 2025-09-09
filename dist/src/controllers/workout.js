@@ -1,34 +1,25 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateQuickWorkout = exports.completeWorkout = exports.listWorkouts = exports.getWorkout = exports.generate = void 0;
-const pino_1 = __importDefault(require("pino"));
-// Core dependencies
+const tslib_1 = require("tslib");
+const pino_1 = tslib_1.__importDefault(require("pino"));
 const errors_1 = require("../middlewares/errors");
-// import { buildWorkoutPrompt } from '../services/prompt'; // Temporarily disabled
 const generator_1 = require("../services/generator");
 const hash_1 = require("../libs/hash");
-// Data models
 const WorkoutPlan_1 = require("../models/WorkoutPlan");
 const WorkoutSession_1 = require("../models/WorkoutSession");
 const User_1 = require("../models/User");
-// Validation and utilities
 const validation_1 = require("../utils/validation");
-// Initialize logger for this controller
 const baseLogger = (0, pino_1.default)({
     name: 'workout-controller',
-    level: process.env['NODE_ENV'] === 'development' ? 'debug' : 'info'
+    level: process.env['NODE_ENV'] === 'development' ? 'debug' : 'info',
 });
-// Create logger wrapper that accepts any parameters
 const logger = {
     info: (msg, obj) => baseLogger.info(obj || {}, msg),
     error: (msg, obj) => baseLogger.error(obj || {}, msg),
     warn: (msg, obj) => baseLogger.warn(obj || {}, msg),
     debug: (msg, obj) => baseLogger.debug(obj || {}, msg),
 };
-// Temporary stub implementations for disabled services
 const buildWorkoutPrompt = async (userId, preWorkout) => {
     const goals = Array.isArray(preWorkout.goals) && preWorkout.goals.length
         ? preWorkout.goals.join(', ')
@@ -52,46 +43,13 @@ Requirements:
 - Output only JSON conforming to the provided schema.`;
     return { prompt, variant: null };
 };
-// Removed unused functions generateSetsProgramming and generateProgressiveReps
-/**
- * Current prompt version for workout generation
- * Used for caching and A/B testing different prompt variations
- */
 const PROMPT_VERSION = 'v2.1.0';
-// Removed unused WORKOUT_CONFIG
-/**
- * Generates a unique request ID for tracking and logging
- * @returns Unique request identifier
- */
 function generateRequestId() {
     return `req_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 }
-/**
- * Formats rest time in seconds to a human-readable string
- * @param seconds - Rest time in seconds
- * @returns Formatted rest time string
- */
-function formatRestTime(seconds) {
-    if (seconds >= 60) {
-        const minutes = Math.floor(seconds / 60);
-        const remainingSeconds = seconds % 60;
-        return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
-    }
-    return `${seconds}s`;
-}
-/**
- * Normalizes workout type from frontend format to backend enum
- * @param workoutType - Frontend workout type string
- * @returns Normalized workout type for backend processing
- */
 function normalizeWorkoutType(workoutType) {
     return workoutType.toLowerCase().replace(/[^a-z0-9]/g, '_');
 }
-/**
- * Determines equipment level based on available equipment
- * @param equipmentOverride - Array of available equipment
- * @returns Equipment level classification
- */
 function determineEquipmentLevel(equipmentOverride) {
     if (!equipmentOverride || equipmentOverride.length === 0) {
         return 'minimal';
@@ -101,12 +59,6 @@ function determineEquipmentLevel(equipmentOverride) {
     }
     return equipmentOverride.length > 3 ? 'moderate' : 'minimal';
 }
-/**
- * Computes a canonical deduplication key for a workout request.
- * @param userId - User ID
- * @param pre - Pre-workout object
- * @returns SHA256 hash string of canonicalized input
- */
 function computeDedupKey(userId, pre) {
     const canonical = {
         userId,
@@ -118,13 +70,8 @@ function computeDedupKey(userId, pre) {
     };
     return (0, hash_1.sha256)(canonical);
 }
-/**
- * Ensure exercises have proper sets programming using advanced programming service
- * Applies intelligent programming based on exercise type and user experience level
- */
 function ensureProperSets(exercise, exerciseType, programmingOptions) {
     if (!exercise.sets || exercise.sets.length === 0 || (exercise.sets.length === 1 && exerciseType === 'main')) {
-        // Determine exercise category for programming
         const exerciseName = exercise.name?.toLowerCase() || '';
         let category = 'isolation';
         if (exerciseType === 'warmup' || exerciseType === 'cooldown') {
@@ -143,9 +90,7 @@ function ensureProperSets(exercise, exerciseType, programmingOptions) {
             exerciseName.includes('burpee') || exerciseName.includes('jump')) {
             category = 'cardio';
         }
-        // Use advanced programming if options provided, otherwise use defaults
         if (programmingOptions && exerciseType === 'main') {
-            // Simple programming logic inline
             const programming = {
                 sets: 3,
                 reps: [10, 10, 10],
@@ -158,7 +103,7 @@ function ensureProperSets(exercise, exerciseType, programmingOptions) {
             const progressiveReps = [10, 10, 10];
             exercise.sets = progressiveReps.map((reps, i) => ({
                 reps: category === 'cardio' ? 0 : reps,
-                time_sec: category === 'cardio' ? 30 + (i * 5) : 0, // Progressive time for cardio
+                time_sec: category === 'cardio' ? 30 + (i * 5) : 0,
                 rest_sec: programming.restSeconds,
                 tempo: programming.tempoPattern,
                 intensity: programming.intensityProgression[i] || 'moderate',
@@ -169,7 +114,6 @@ function ensureProperSets(exercise, exerciseType, programmingOptions) {
             }));
         }
         else {
-            // Fallback to simple programming
             const defaultSets = exerciseType === 'warmup' || exerciseType === 'cooldown' ? 1 : 3;
             const defaultReps = exerciseType === 'warmup' ? 10 : exerciseType === 'cooldown' ? 8 : 12;
             const defaultRest = exerciseType === 'warmup' ? 30 : exerciseType === 'cooldown' ? 30 : 90;
@@ -188,13 +132,9 @@ function ensureProperSets(exercise, exerciseType, programmingOptions) {
     }
     return exercise;
 }
-// Transform database format to frontend format
 function transformDatabasePlanToFrontendFormat(dbPlan) {
-    // Extract warmup exercises
     const warmupExercises = dbPlan.warm_up?.exercises || dbPlan.warmup || [];
-    // Extract main exercises from blocks
     const mainExercises = dbPlan.blocks?.[0]?.exercises || dbPlan.exercises || [];
-    // Extract cooldown exercises
     const cooldownExercises = dbPlan.cool_down?.exercises || dbPlan.cooldown || [];
     const transformedPlan = {
         meta: dbPlan.meta || {},
@@ -208,7 +148,6 @@ function transformDatabasePlanToFrontendFormat(dbPlan) {
         })),
         exercises: mainExercises.map((exercise, index) => ({
             name: exercise.name || 'Unknown Exercise',
-            // Use setsData if available (from AI generation), otherwise fall back to sets number
             sets: exercise.setsData || exercise.sets || 1,
             reps: exercise.reps || '10',
             weight: exercise.weight || '',
@@ -234,7 +173,6 @@ function transformDatabasePlanToFrontendFormat(dbPlan) {
     };
     return transformedPlan;
 }
-// Transform AI output format to frontend format
 function transformAIPlanToFrontendFormat(aiPlan, programmingOptions) {
     const formatRestTime = (restSec) => {
         if (restSec >= 60) {
@@ -248,7 +186,6 @@ function transformAIPlanToFrontendFormat(aiPlan, programmingOptions) {
         const firstSet = exercise.sets?.[0] || {};
         const isTimeBased = firstSet.time_sec > 0;
         const isRepBased = firstSet.reps > 0;
-        // Create comprehensive exercise info
         let repsDisplay = 'N/A';
         let durationDisplay = undefined;
         if (isRepBased) {
@@ -280,14 +217,12 @@ function transformAIPlanToFrontendFormat(aiPlan, programmingOptions) {
         sets: 1,
         reps: 'Time-based',
         duration: item.duration_sec ? `${item.duration_sec}s` : undefined,
-        rest: '10s', // Short transition time for warmup/cooldown
+        rest: '10s',
         notes: item.cues || undefined,
         instructions: item.instructions || undefined,
     });
-    // Extract main exercises from blocks with block information
     const mainExercises = aiPlan.blocks?.flatMap((block, blockIndex) => {
         const blockExercises = block.exercises?.map((exercise, exerciseIndex) => {
-            // Ensure proper sets before transformation
             const exerciseWithSets = ensureProperSets(exercise, 'main', programmingOptions);
             return {
                 ...transformExercise(exerciseWithSets),
@@ -298,7 +233,6 @@ function transformAIPlanToFrontendFormat(aiPlan, programmingOptions) {
         }) || [];
         return blockExercises;
     }) || [];
-    // Add finisher exercises to main exercises with enhanced formatting
     const finisherExercises = aiPlan.finisher?.map((item, index) => ({
         name: item.name,
         sets: item.rounds || 1,
@@ -327,68 +261,43 @@ function transformAIPlanToFrontendFormat(aiPlan, programmingOptions) {
     };
     return transformedPlan;
 }
-/**
- * Generates a personalized AI workout plan for the authenticated user
- *
- * This endpoint handles the complete workout generation pipeline:
- * 1. Validates user authentication and input parameters
- * 2. Builds personalized AI prompts based on user profile and history
- * 3. Calls OpenAI API for workout generation
- * 4. Applies advanced programming principles (sets, reps, intensity)
- * 5. Stores the workout plan in the database
- * 6. Returns the formatted workout to the client
- *
- * @route POST /v1/workouts/generate
- * @access Private (requires authentication)
- * @param req.body - Workout generation parameters (validated against GenerateWorkoutSchema)
- * @param req.user - Authenticated user information from auth middleware
- * @returns Generated workout plan with metadata
- *
- * @throws {401} When user is not authenticated
- * @throws {400} When input validation fails
- * @throws {503} When AI service is unavailable
- * @throws {500} When unexpected errors occur
- */
 exports.generate = (0, errors_1.asyncHandler)(async (req, res) => {
-    const startTime = Date.now();
+    const startTime = performance.now();
     const requestId = generateRequestId();
     try {
-        // 1. Validate authentication
         const userId = req.user?.uid;
         if (!userId) {
             logger.warn('Workout generation attempted without authentication', { requestId });
             res.status(401).json({
                 error: 'User authentication required',
                 code: 'AUTH_REQUIRED',
-                requestId
+                requestId,
             });
             return;
         }
-        // 2. Parse and validate request data
+        const validationStart = performance.now();
         const frontendData = validation_1.GenerateWorkoutSchema.parse(req.body);
+        const validationTime = performance.now() - validationStart;
         logger.info('Workout generation started', {
             userId,
             requestId,
             workoutType: frontendData.workoutType,
             experience: frontendData.experience,
+            validationTime: `${validationTime.toFixed(2)}ms`,
             duration: frontendData.duration
         });
-        // 3. Convert frontend format to backend PreWorkout format
         const pre = {
             userId,
             time_available_min: frontendData.duration,
-            energy_level: 3, // Default to medium energy level
+            energy_level: 3,
             workout_type: normalizeWorkoutType(frontendData.workoutType),
             equipment_override: frontendData.equipmentAvailable,
             new_injuries: frontendData.constraints?.join(', ') || undefined,
-            // Use data from request (which comes from profile)
             experience: frontendData.experience,
             goals: frontendData.goals,
         };
         logger.debug('Pre-workout data prepared', { userId, requestId, pre });
-        // Compute deduplication key for this workout request
         const dedupKey = computeDedupKey(pre.userId, pre);
-        // 4. Check for duplicate requests (idempotency)
         const existingWorkout = await WorkoutPlan_1.WorkoutPlanModel.findOne({
             userId: pre.userId,
             promptVersion: PROMPT_VERSION,
@@ -414,17 +323,18 @@ exports.generate = (0, errors_1.asyncHandler)(async (req, res) => {
             });
             return;
         }
-        // 5. Generate AI workout prompt
+        const promptStart = performance.now();
         logger.debug('Building personalized prompt', { userId, requestId });
         const promptData = await buildWorkoutPrompt(pre.userId, pre);
-        // 6. Call AI service for workout generation
+        const promptTime = performance.now() - promptStart;
+        const aiStart = performance.now();
         logger.debug('Calling AI service for workout generation', { userId, requestId });
         const aiPlan = await (0, generator_1.generateWorkout)(promptData, {
             workoutType: pre.workout_type,
             experience: pre.experience,
-            duration: pre.time_available_min
+            duration: pre.time_available_min,
         });
-        // 7. Create programming options for advanced sets/reps programming
+        const aiTime = performance.now() - aiStart;
         const programmingOptions = {
             experience: pre.experience,
             primaryGoal: pre.goals?.[0] || 'general_fitness',
@@ -432,13 +342,9 @@ exports.generate = (0, errors_1.asyncHandler)(async (req, res) => {
             timeAvailable: pre.time_available_min,
             equipmentLevel: determineEquipmentLevel(pre.equipment_override)
         };
-        // 8. Skip advanced programming (services removed)
         logger.debug('Skipping advanced programming (services removed)', { userId, requestId });
-        // 9. Transform AI output to frontend format with advanced programming
         const transformedPlan = transformAIPlanToFrontendFormat(aiPlan, programmingOptions);
-        // 10. Store workout plan in database
         logger.debug('Storing workout plan', { userId, requestId });
-        // Transform to proper WorkoutPlanData format - preserve sets array structure
         const workoutPlanData = {
             title: `${pre.workout_type} Workout`,
             description: `Personalized ${pre.workout_type.toLowerCase()} workout for ${pre.experience} level`,
@@ -446,9 +352,8 @@ exports.generate = (0, errors_1.asyncHandler)(async (req, res) => {
                     name: 'Main Workout',
                     exercises: transformedPlan.exercises.map((ex) => ({
                         name: ex.name,
-                        // Preserve the sets array structure from AI generation
                         sets: Array.isArray(ex.sets) ? ex.sets.length : (ex.sets || 3),
-                        setsData: Array.isArray(ex.sets) ? ex.sets : undefined, // Store the actual sets data
+                        setsData: Array.isArray(ex.sets) ? ex.sets : undefined,
                         reps: ex.reps,
                         weight: ex.weight,
                         duration_sec: ex.duration,
@@ -465,7 +370,7 @@ exports.generate = (0, errors_1.asyncHandler)(async (req, res) => {
                 difficulty_level: pre.experience,
                 equipment_needed: pre.equipment_override || [],
                 muscle_groups_targeted: [],
-                calories_estimate: Math.round(pre.time_available_min * 8) // Rough estimate
+                calories_estimate: Math.round(pre.time_available_min * 8)
             },
             warm_up: transformedPlan.warmup?.length > 0 ? {
                 exercises: transformedPlan.warmup.map((ex) => ({
@@ -498,29 +403,34 @@ exports.generate = (0, errors_1.asyncHandler)(async (req, res) => {
             plan: workoutPlanData,
             dedupKey
         });
-        // 11. Return successful response
-        const responseTime = Date.now() - startTime;
+        const responseTime = performance.now() - startTime;
         logger.info('Workout generation completed successfully', {
             userId,
             requestId,
             workoutId: workoutPlan.id,
-            responseTime
+            responseTime: `${responseTime.toFixed(2)}ms`,
+            promptTime: `${promptTime.toFixed(2)}ms`,
+            aiTime: `${aiTime.toFixed(2)}ms`,
         });
         res.status(201).json({
             workoutId: workoutPlan.id,
             plan: transformedPlan,
             metadata: {
-                responseTime,
+                responseTime: Math.round(responseTime),
                 cached: false,
                 requestId,
-                promptVersion: PROMPT_VERSION
-            }
+                promptVersion: PROMPT_VERSION,
+                performance: {
+                    total: `${responseTime.toFixed(2)}ms`,
+                    prompt: `${promptTime.toFixed(2)}ms`,
+                    ai: `${aiTime.toFixed(2)}ms`,
+                },
+            },
         });
     }
     catch (error) {
         const responseTime = Date.now() - startTime;
         const userId = req.user?.uid;
-        // Log the error with context
         logger.error('Workout generation failed', {
             userId,
             requestId,
@@ -528,9 +438,8 @@ exports.generate = (0, errors_1.asyncHandler)(async (req, res) => {
             stack: error instanceof Error ? error.stack : undefined,
             responseTime
         });
-        // Handle validation errors (from Zod schema)
         if (error instanceof Error && error.name === 'ZodError') {
-            const zodError = error; // Type assertion for ZodError
+            const zodError = error;
             res.status(400).json({
                 error: 'Invalid request parameters',
                 code: 'VALIDATION_ERROR',
@@ -539,9 +448,7 @@ exports.generate = (0, errors_1.asyncHandler)(async (req, res) => {
             });
             return;
         }
-        // Handle specific business logic errors
         if (error instanceof Error) {
-            // Profile not found error
             if (error.message.includes('Profile not found')) {
                 res.status(400).json({
                     error: 'Profile not found. Please complete your profile setup first.',
@@ -551,7 +458,6 @@ exports.generate = (0, errors_1.asyncHandler)(async (req, res) => {
                 });
                 return;
             }
-            // AI service errors
             if (error.message.includes('OpenAI') || error.message.includes('AI service')) {
                 res.status(503).json({
                     error: 'AI service temporarily unavailable. Please try again.',
@@ -560,7 +466,6 @@ exports.generate = (0, errors_1.asyncHandler)(async (req, res) => {
                 });
                 return;
             }
-            // Database errors
             if (error.message.includes('Database') || error.message.includes('Firestore')) {
                 res.status(503).json({
                     error: 'Database service temporarily unavailable. Please try again.',
@@ -569,7 +474,6 @@ exports.generate = (0, errors_1.asyncHandler)(async (req, res) => {
                 });
                 return;
             }
-            // Timeout errors
             if (error.message.includes('timeout') || error.message.includes('TIMEOUT')) {
                 res.status(408).json({
                     error: 'Workout generation timed out. Please try again.',
@@ -579,7 +483,6 @@ exports.generate = (0, errors_1.asyncHandler)(async (req, res) => {
                 return;
             }
         }
-        // Generic error response for unexpected errors
         res.status(500).json({
             error: 'Failed to generate workout. Please try again.',
             code: 'GENERATION_ERROR',
@@ -588,25 +491,12 @@ exports.generate = (0, errors_1.asyncHandler)(async (req, res) => {
         });
     }
 });
-/**
- * Retrieves a specific workout plan by ID
- *
- * @route GET /v1/workouts/:workoutId
- * @access Private (requires authentication)
- * @param req.params.workoutId - Unique workout plan identifier
- * @returns Complete workout plan with metadata
- *
- * @throws {400} When workoutId format is invalid
- * @throws {404} When workout plan is not found
- * @throws {403} When user doesn't have access to the workout
- */
 exports.getWorkout = (0, errors_1.asyncHandler)(async (req, res) => {
     const startTime = Date.now();
     const requestId = generateRequestId();
     const { workoutId } = req.params;
     const userId = req.user?.uid;
     logger.debug('Workout retrieval requested', { userId, workoutId, requestId });
-    // 1. Validate workout ID format
     if (!workoutId || !(0, validation_1.isValidObjectId)(workoutId)) {
         logger.warn('Invalid workout ID format', { userId, workoutId, requestId });
         res.status(400).json({
@@ -617,7 +507,6 @@ exports.getWorkout = (0, errors_1.asyncHandler)(async (req, res) => {
         return;
     }
     try {
-        // 2. Retrieve workout from database
         const workout = await WorkoutPlan_1.WorkoutPlanModel.findById(workoutId);
         if (!workout) {
             logger.warn('Workout not found', { userId, workoutId, requestId });
@@ -628,7 +517,6 @@ exports.getWorkout = (0, errors_1.asyncHandler)(async (req, res) => {
             });
             return;
         }
-        // 3. Check user authorization (users can only access their own workouts)
         if (workout.userId !== userId) {
             logger.warn('Unauthorized workout access attempt', {
                 userId,
@@ -643,7 +531,6 @@ exports.getWorkout = (0, errors_1.asyncHandler)(async (req, res) => {
             });
             return;
         }
-        // 4. Return workout data
         const responseTime = Date.now() - startTime;
         logger.info('Workout retrieved successfully', {
             userId,
@@ -651,7 +538,6 @@ exports.getWorkout = (0, errors_1.asyncHandler)(async (req, res) => {
             requestId,
             responseTime
         });
-        // Transform database format to frontend format
         const transformedPlan = transformDatabasePlanToFrontendFormat(workout.plan);
         res.json({
             id: workout.id,
@@ -689,15 +575,12 @@ exports.listWorkouts = (0, errors_1.asyncHandler)(async (req, res) => {
         res.status(400).json({ error: 'userId query parameter is required' });
         return;
     }
-    // Get completed workout sessions for this user (sorted by completion date)
     const workoutSessions = await WorkoutSession_1.WorkoutSessionModel.find({ userId }, { sort: { completedAt: -1 }, limit: 20 });
-    // Get the workout plans for completed sessions by fetching them individually
     const workouts = [];
     for (const session of workoutSessions) {
         try {
             const plan = await WorkoutPlan_1.WorkoutPlanModel.findById(session.planId);
             if (plan && plan.userId === userId) {
-                // Transform database format to frontend format
                 const transformedPlan = transformDatabasePlanToFrontendFormat(plan.plan);
                 workouts.push({
                     id: plan.id,
@@ -707,16 +590,14 @@ exports.listWorkouts = (0, errors_1.asyncHandler)(async (req, res) => {
                     preWorkout: plan.preWorkout,
                     plan: transformedPlan,
                     createdAt: plan.createdAt.toDate().toISOString(),
-                    // Add completion information
                     completedAt: session.completedAt?.toDate().toISOString(),
                     feedback: session.feedback,
-                    isCompleted: true // All workouts in history are completed
+                    isCompleted: true,
                 });
             }
         }
         catch (error) {
-            console.error(`Failed to fetch workout plan ${session.planId}:`, error);
-            // Continue with other sessions
+            logger.error(`Failed to fetch workout plan ${session.planId}`, { error });
         }
     }
     res.json({ workouts });
@@ -750,7 +631,6 @@ exports.completeWorkout = (0, errors_1.asyncHandler)(async (req, res) => {
         feedback: session.feedback
     });
 });
-// NEW: Quick workout generation with intelligent defaults
 exports.generateQuickWorkout = (0, errors_1.asyncHandler)(async (req, res) => {
     const firebaseUid = req.user?.uid;
     if (!firebaseUid) {
@@ -764,24 +644,19 @@ exports.generateQuickWorkout = (0, errors_1.asyncHandler)(async (req, res) => {
     }
     const userId = user.id;
     try {
-        // Use simple defaults for quick workout generation
-        // Convert to backend format with defaults
         const pre = {
             userId,
-            time_available_min: 30, // Default 30 minutes
-            energy_level: 3, // Default to medium energy
+            time_available_min: 30,
+            energy_level: 3,
             workout_type: 'general_fitness',
-            equipment_override: ['bodyweight'], // Default to bodyweight
+            equipment_override: ['bodyweight'],
             new_injuries: undefined,
-            experience: 'intermediate', // Will be overridden by profile data
-            goals: ['general_fitness'], // Will be overridden by profile data
+            experience: 'intermediate',
+            goals: ['general_fitness'],
         };
-        // Compute deduplication key for this quick workout
         const dedupKey = computeDedupKey(pre.userId, pre);
-        // Check for duplicate (idempotency)
         const dup = await WorkoutPlan_1.WorkoutPlanModel.findOne({ userId: pre.userId, promptVersion: PROMPT_VERSION, dedupKey });
         if (dup) {
-            // Transform database format to frontend format
             const transformedPlan = transformDatabasePlanToFrontendFormat(dup.plan);
             res.json({
                 workoutId: dup.id,
@@ -806,7 +681,6 @@ exports.generateQuickWorkout = (0, errors_1.asyncHandler)(async (req, res) => {
                 pre.equipment_override?.length > 3 ? 'moderate' : 'minimal'
         };
         const transformedPlan = transformAIPlanToFrontendFormat(aiPlan, programmingOptions);
-        // Transform to proper WorkoutPlanData format - preserve sets array structure
         const workoutPlanData = {
             title: `${pre.workout_type} Workout`,
             description: `Personalized ${pre.workout_type.toLowerCase()} workout for ${pre.experience} level`,
@@ -814,9 +688,8 @@ exports.generateQuickWorkout = (0, errors_1.asyncHandler)(async (req, res) => {
                     name: 'Main Workout',
                     exercises: transformedPlan.exercises.map((ex) => ({
                         name: ex.name,
-                        // Preserve the sets array structure from AI generation
                         sets: Array.isArray(ex.sets) ? ex.sets.length : (ex.sets || 3),
-                        setsData: Array.isArray(ex.sets) ? ex.sets : undefined, // Store the actual sets data
+                        setsData: Array.isArray(ex.sets) ? ex.sets : undefined,
                         reps: ex.reps,
                         weight: ex.weight,
                         duration_sec: ex.duration,
@@ -840,8 +713,8 @@ exports.generateQuickWorkout = (0, errors_1.asyncHandler)(async (req, res) => {
             userId: pre.userId,
             model: process.env['OPENAI_MODEL'] || 'gpt-4o-mini',
             promptVersion: PROMPT_VERSION,
-            preWorkout: pre, // Type assertion for compatibility
-            plan: workoutPlanData, // Type assertion for compatibility
+            preWorkout: pre,
+            plan: workoutPlanData,
             dedupKey
         });
         res.status(201).json({

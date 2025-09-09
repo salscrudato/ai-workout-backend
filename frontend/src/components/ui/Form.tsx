@@ -50,7 +50,12 @@ const Form = forwardRef<HTMLFormElement, FormProps>(({
   );
 
   return (
-    <form ref={ref} className={formStyles} {...props}>
+    <form
+      ref={ref}
+      role="form"
+      className={clsx(formStyles, 'motion-reduce:transition-none')}
+      {...props}
+    >
       {children}
     </form>
   );
@@ -72,8 +77,11 @@ const FormField = <T extends FieldValues = FieldValues>({
   const fieldError = errors[name];
   const errorMessage = fieldError?.message as string | undefined;
 
+  const inputId = `field-${String(name).replace(/\./g, '-')}`;
+
   return (
     <Input
+      id={inputId}
       {...register(name)}
       error={errorMessage}
       {...inputProps}
@@ -105,7 +113,7 @@ const FormActions = forwardRef<HTMLDivElement, FormActionsProps>(({
   );
 
   return (
-    <div ref={ref} className={actionsStyles}>
+    <div ref={ref} className={clsx(actionsStyles, 'motion-reduce:transition-none')} role="group" aria-label="Form actions">
       {children}
     </div>
   );
@@ -206,20 +214,36 @@ const FormErrorSummary = forwardRef<HTMLDivElement, FormErrorSummaryProps>(({
     return null;
   }
 
+  const handleFocusField = (fieldName: string) => {
+    const byId = document.getElementById(`field-${String(fieldName).replace(/\./g, '-')}`);
+    const byName = document.querySelector<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(`[name="${fieldName}"]`);
+    const el = byId || byName;
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.focus();
+    }
+  };
+
   const summaryStyles = clsx(
-    'p-4 rounded-md bg-red-50 border border-red-200',
+    'p-4 rounded-md bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-800/40',
     className
   );
 
   return (
-    <div ref={ref} className={summaryStyles} role="alert">
+    <div ref={ref} className={summaryStyles} role="alert" aria-live="assertive">
       <h4 className="text-sm font-medium text-red-800 mb-2">
         {title}
       </h4>
       <ul className="text-sm text-red-700 space-y-1">
         {errorEntries.map(([field, error]) => (
           <li key={field}>
-            • {(error as any)?.message || `${field} is invalid`}
+            <button
+              type="button"
+              className="underline decoration-dotted text-red-800 dark:text-red-200 hover:text-red-900 dark:hover:text-red-100 transition-colors"
+              onClick={() => handleFocusField(field)}
+            >
+              {(error as any)?.message || `${field} is invalid`}
+            </button>
           </li>
         ))}
       </ul>

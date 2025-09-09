@@ -42,7 +42,6 @@ const errors_1 = require("../middlewares/errors");
 const auth_1 = require("../middlewares/auth");
 const adaptiveLearning_simple_1 = require("../services/adaptiveLearning.simple");
 const r = (0, express_1.Router)();
-// Lightweight v1 health (no auth, no external calls)
 r.get('/health', (0, errors_1.asyncHandler)(async (_req, res) => {
     res.json({
         ok: true,
@@ -51,9 +50,7 @@ r.get('/health', (0, errors_1.asyncHandler)(async (_req, res) => {
         environment: process.env['NODE_ENV'] || 'development'
     });
 }));
-// Authentication routes
 r.post('/auth/google', user_1.authenticateUser);
-// Debug auth endpoint (manual verification)
 r.post('/auth/debug', (0, errors_1.asyncHandler)(async (req, res) => {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -69,9 +66,9 @@ r.post('/auth/debug', (0, errors_1.asyncHandler)(async (req, res) => {
             user: {
                 uid: decodedToken.uid,
                 email: decodedToken.email,
-                projectId: decodedToken.aud, // This shows which project the token is for
+                projectId: decodedToken.aud,
             },
-            backendProjectId: process.env.FIREBASE_PROJECT_ID || process.env.GCLOUD_PROJECT || 'ai-workout-backend-2024',
+            backendProjectId: process.env['FIREBASE_PROJECT_ID'] || process.env['GCLOUD_PROJECT'] || 'ai-workout-backend-2024',
         });
     }
     catch (error) {
@@ -79,11 +76,10 @@ r.post('/auth/debug', (0, errors_1.asyncHandler)(async (req, res) => {
             success: false,
             error: error.message,
             code: error.code,
-            backendProjectId: process.env.FIREBASE_PROJECT_ID || process.env.GCLOUD_PROJECT || 'ai-workout-backend-2024',
+            backendProjectId: process.env['FIREBASE_PROJECT_ID'] || process.env['GCLOUD_PROJECT'] || 'ai-workout-backend-2024',
         });
     }
 }));
-// Debug auth endpoint (using requireAuth middleware)
 r.post('/auth/debug-middleware', auth_1.requireAuth, (0, errors_1.asyncHandler)(async (req, res) => {
     res.json({
         success: true,
@@ -93,30 +89,24 @@ r.post('/auth/debug-middleware', auth_1.requireAuth, (0, errors_1.asyncHandler)(
             email: req.user?.email,
             projectId: req.user?.aud,
         },
-        backendProjectId: process.env.FIREBASE_PROJECT_ID || process.env.GCLOUD_PROJECT || 'ai-workout-backend-2024',
+        backendProjectId: process.env['FIREBASE_PROJECT_ID'] || process.env['GCLOUD_PROJECT'] || 'ai-workout-backend-2024',
     });
 }));
-// User routes
 r.post('/users', user_1.createUser);
-// Profile routes (protected)
 r.post('/profile', auth_1.requireAuth, profile_1.createProfile);
 r.get('/profile/:userId', auth_1.requireAuth, profile_1.getProfile);
 r.patch('/profile/:userId', auth_1.requireAuth, profile_1.patchProfile);
-// Equipment routes (public) - with caching
 r.get('/equipment', (0, errors_1.asyncHandler)(async (_req, res) => {
-    // Set cache headers for static data
-    res.set('Cache-Control', 'public, max-age=3600'); // 1 hour cache
+    res.set('Cache-Control', 'public, max-age=3600');
     const items = (0, Equipment_1.listEquipment)();
     res.json({
         items: items.map(item => ({ slug: item.slug, label: item.label })),
-        cached: false // Will be true when served from cache
+        cached: false
     });
 }));
-// Workout routes (protected) - Specific routes first
 r.post('/workouts/generate', auth_1.requireAuth, workout_1.generate);
-r.post('/workouts/quick-generate', auth_1.requireAuth, workout_1.generateQuickWorkout); // NEW: One-tap workout generation
-// Debug endpoint to test workout generation route
-r.get('/workouts/test', (0, errors_1.asyncHandler)(async (req, res) => {
+r.post('/workouts/quick-generate', auth_1.requireAuth, workout_1.generateQuickWorkout);
+r.get('/workouts/test', (0, errors_1.asyncHandler)(async (_req, res) => {
     res.json({
         message: 'Workout generation endpoint is accessible',
         timestamp: new Date().toISOString(),
@@ -126,10 +116,8 @@ r.get('/workouts/test', (0, errors_1.asyncHandler)(async (req, res) => {
         }
     });
 }));
-// Enhanced AI and Analytics routes (protected)
 r.get('/workouts/recommendations/:userId', auth_1.requireAuth, (0, errors_1.asyncHandler)(async (req, res) => {
     const { userId } = req.params;
-    // Verify user can access this data
     if (req.user?.uid !== userId) {
         res.status(403).json({ error: 'Access denied' });
         return;
@@ -143,7 +131,6 @@ r.get('/workouts/recommendations/:userId', auth_1.requireAuth, (0, errors_1.asyn
 }));
 r.get('/analytics/intelligence/:userId', auth_1.requireAuth, (0, errors_1.asyncHandler)(async (req, res) => {
     const { userId } = req.params;
-    // Verify user can access this data
     if (req.user?.uid !== userId) {
         res.status(403).json({ error: 'Access denied' });
         return;
@@ -152,7 +139,6 @@ r.get('/analytics/intelligence/:userId', auth_1.requireAuth, (0, errors_1.asyncH
         res.status(400).json({ error: 'User ID is required' });
         return;
     }
-    // Simplified intelligence response for now
     const intelligence = {
         adaptiveLoading: { currentLoad: 'moderate', recommendation: 'maintain' },
         recoveryStatus: { status: 'good', recommendation: 'proceed' },
@@ -162,7 +148,6 @@ r.get('/analytics/intelligence/:userId', auth_1.requireAuth, (0, errors_1.asyncH
 }));
 r.get('/analytics/behavior/:userId', auth_1.requireAuth, (0, errors_1.asyncHandler)(async (req, res) => {
     const { userId } = req.params;
-    // Verify user can access this data
     if (req.user?.uid !== userId) {
         res.status(403).json({ error: 'Access denied' });
         return;
@@ -176,7 +161,6 @@ r.get('/analytics/behavior/:userId', auth_1.requireAuth, (0, errors_1.asyncHandl
 }));
 r.get('/analytics/timing/:userId', auth_1.requireAuth, (0, errors_1.asyncHandler)(async (req, res) => {
     const { userId } = req.params;
-    // Verify user can access this data
     if (req.user?.uid !== userId) {
         res.status(403).json({ error: 'Access denied' });
         return;
@@ -191,7 +175,6 @@ r.get('/analytics/timing/:userId', auth_1.requireAuth, (0, errors_1.asyncHandler
 r.post('/workouts/:workoutId/feedback', auth_1.requireAuth, (0, errors_1.asyncHandler)(async (req, res) => {
     const { workoutId } = req.params;
     const { rating, difficulty, enjoyment, completed, notes } = req.body;
-    // Validate feedback data
     if (typeof rating !== 'number' || rating < 1 || rating > 5) {
         res.status(400).json({ error: 'Rating must be a number between 1 and 5' });
         return;
@@ -217,7 +200,6 @@ r.post('/workouts/:workoutId/feedback', auth_1.requireAuth, (0, errors_1.asyncHa
     });
     res.json({ success: true, message: 'Feedback recorded successfully' });
 }));
-// Parameterized workout routes (must be last to avoid conflicts)
 r.get('/workouts/:workoutId', auth_1.requireAuth, workout_1.getWorkout);
 r.get('/workouts', auth_1.requireAuth, workout_1.listWorkouts);
 r.post('/workouts/:workoutId/complete', auth_1.requireAuth, workout_1.completeWorkout);

@@ -19,7 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 // Base types for component composition
 export interface BaseComponentProps extends HTMLAttributes<HTMLElement> {
   variant?: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   animate?: boolean;
   disabled?: boolean;
   loading?: boolean;
@@ -28,7 +28,7 @@ export interface BaseComponentProps extends HTMLAttributes<HTMLElement> {
 // Context for sharing state between composed components
 interface CompositionContextValue {
   variant?: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   disabled?: boolean;
   loading?: boolean;
 }
@@ -56,6 +56,7 @@ export const CompositionProvider: React.FC<CompositionProviderProps> = ({
 export interface ContainerProps extends BaseComponentProps {
   children: React.ReactNode;
   spacing?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+  padding?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
   direction?: 'row' | 'column';
   align?: 'start' | 'center' | 'end' | 'stretch';
   justify?: 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly';
@@ -69,6 +70,7 @@ export const Container = forwardRef<HTMLDivElement, ContainerProps>(({
   variant = 'default',
   size = 'md',
   spacing = 'md',
+  padding = 'md',
   direction = 'column',
   align = 'stretch',
   justify = 'start',
@@ -87,6 +89,14 @@ export const Container = forwardRef<HTMLDivElement, ContainerProps>(({
     md: 'gap-4',
     lg: 'gap-6',
     xl: 'gap-8',
+  };
+
+  const paddingStyles = {
+    none: 'p-0',
+    sm: 'p-4',
+    md: 'p-6',
+    lg: 'p-8',
+    xl: 'p-12',
   };
 
   const directionStyles = {
@@ -116,6 +126,7 @@ export const Container = forwardRef<HTMLDivElement, ContainerProps>(({
     alignStyles[align],
     justifyStyles[justify],
     spacingStyles[spacing],
+    paddingStyles[padding],
     wrap && 'flex-wrap',
     glass && 'bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl',
     gradient && 'bg-gradient-to-br from-blue-50/50 to-cyan-50/50',
@@ -172,6 +183,7 @@ export interface SectionProps extends BaseComponentProps {
   subtitle?: string;
   headerActions?: React.ReactNode;
   padding?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+  spacing?: 'none' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
   background?: 'none' | 'subtle' | 'glass' | 'gradient';
 }
 
@@ -181,6 +193,7 @@ export const Section = forwardRef<HTMLElement, SectionProps>(({
   subtitle,
   headerActions,
   padding = 'md',
+  spacing = 'md',
   background = 'none',
   animate = false,
   className,
@@ -194,6 +207,17 @@ export const Section = forwardRef<HTMLElement, SectionProps>(({
     xl: 'p-12',
   };
 
+  const spacingStyles = {
+    none: 'space-y-0',
+    sm: 'space-y-2',
+    md: 'space-y-4',
+    lg: 'space-y-6',
+    xl: 'space-y-8',
+    '2xl': 'space-y-12',
+    '3xl': 'space-y-16',
+    '4xl': 'space-y-24',
+  };
+
   const backgroundStyles = {
     none: '',
     subtle: 'bg-slate-50/50',
@@ -203,6 +227,7 @@ export const Section = forwardRef<HTMLElement, SectionProps>(({
 
   const sectionStyles = clsx(
     paddingStyles[padding],
+    spacingStyles[spacing],
     backgroundStyles[background],
     className
   );

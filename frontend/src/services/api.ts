@@ -97,36 +97,49 @@ class ApiClient {
       console.log('🌐 Base URL:', this.baseURL);
     }
 
+    // Optimized Axios configuration for performance
     this.client = axios.create({
       baseURL: this.baseURL,
       timeout: 120000, // 2 minutes for AI generation
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
       },
-      withCredentials: false, // Explicitly set for CORS
+      withCredentials: false,
+      // Performance optimizations
+      maxRedirects: 3,
+      maxContentLength: 50 * 1024 * 1024, // 50MB max response size
+      maxBodyLength: 10 * 1024 * 1024, // 10MB max request size
+      // Connection pooling
+      httpAgent: undefined, // Let browser handle connection pooling
+      httpsAgent: undefined,
     });
 
-    // Request interceptor for authentication and logging
+    // Optimized request interceptor with token caching
     this.client.interceptors.request.use(
       async (config) => {
+        const startTime = performance.now();
         const user = auth.currentUser;
 
         if (isDevelopment) {
           console.log('🔐 API Request:', {
             method: config.method?.toUpperCase(),
             url: config.url,
-            hasUser: !!user
+            hasUser: !!user,
           });
         }
 
         // Add Firebase Auth token if user is authenticated
         if (user) {
           try {
-            const token = await user.getIdToken();
+            // Use cached token if available and not expired
+            const token = await user.getIdToken(false); // false = use cached token
             config.headers.Authorization = `Bearer ${token}`;
 
             if (isDevelopment) {
-              console.log('✅ Authorization token added');
+              const tokenTime = performance.now() - startTime;
+              console.log(`✅ Authorization token added (${tokenTime.toFixed(2)}ms)`);
             }
           } catch (error) {
             console.error('❌ Failed to get Firebase token:', error);
@@ -137,6 +150,9 @@ class ApiClient {
           console.warn('⚠️ No Firebase user found, request will be unauthenticated');
         }
 
+        // Add request timestamp for performance monitoring
+        config.metadata = { startTime };
+
         return config;
       },
       (error) => {
@@ -145,22 +161,36 @@ class ApiClient {
       }
     );
 
-    // Response interceptor for success/error handling
+    // Optimized response interceptor with performance monitoring
     this.client.interceptors.response.use(
       (response) => {
+        const requestTime = response.config.metadata?.startTime;
+        const responseTime = requestTime ? performance.now() - requestTime : 0;
+
         if (isDevelopment) {
           console.log('✅ API Response:', {
             status: response.status,
             url: response.config.url,
-            method: response.config.method?.toUpperCase()
+            method: response.config.method?.toUpperCase(),
+            responseTime: `${responseTime.toFixed(2)}ms`,
+            size: response.headers['content-length'] || 'unknown',
           });
         }
+
+        // Add performance metadata to response
+        response.metadata = {
+          responseTime,
+          timestamp: Date.now(),
+        };
+
         return response;
       },
       (error) => {
         const status = error.response?.status;
         const url = error.config?.url;
         const method = error.config?.method?.toUpperCase();
+        const requestTime = error.config?.metadata?.startTime;
+        const responseTime = requestTime ? performance.now() - requestTime : 0;
 
         if (isDevelopment) {
           console.error('❌ API Error:', {
@@ -168,18 +198,23 @@ class ApiClient {
             url,
             method,
             message: error.message,
-            data: error.response?.data
+            responseTime: `${responseTime.toFixed(2)}ms`,
+            data: error.response?.data,
           });
         }
 
-        // Handle specific error cases
+        // Enhanced error handling with specific cases
         if (status === 401) {
           console.warn('🔒 Unauthorized request - user may need to re-authenticate');
           // Note: Not automatically redirecting to allow for graceful error handling
         } else if (status === 403) {
           console.warn('🚫 Forbidden request - insufficient permissions');
+        } else if (status === 429) {
+          console.warn('⏱️ Rate limited - too many requests');
         } else if (status >= 500) {
           console.error('🔥 Server error - backend may be experiencing issues');
+        } else if (!status) {
+          console.error('🌐 Network error - check internet connection');
         }
 
         return Promise.reject(error);

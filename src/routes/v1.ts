@@ -44,14 +44,14 @@ r.post('/auth/debug', asyncHandler(async (req, res): Promise<void> => {
         email: decodedToken.email,
         projectId: decodedToken.aud, // This shows which project the token is for
       },
-      backendProjectId: process.env.FIREBASE_PROJECT_ID || process.env.GCLOUD_PROJECT || 'ai-workout-backend-2024',
+      backendProjectId: process.env['FIREBASE_PROJECT_ID'] || process.env['GCLOUD_PROJECT'] || 'ai-workout-backend-2024',
     });
   } catch (error) {
     res.status(401).json({
       success: false,
       error: (error as any).message,
       code: (error as any).code,
-      backendProjectId: process.env.FIREBASE_PROJECT_ID || process.env.GCLOUD_PROJECT || 'ai-workout-backend-2024',
+      backendProjectId: process.env['FIREBASE_PROJECT_ID'] || process.env['GCLOUD_PROJECT'] || 'ai-workout-backend-2024',
     });
   }
 }));
@@ -66,7 +66,7 @@ r.post('/auth/debug-middleware', requireAuth, asyncHandler(async (req, res): Pro
       email: req.user?.email,
       projectId: req.user?.aud,
     },
-    backendProjectId: process.env.FIREBASE_PROJECT_ID || process.env.GCLOUD_PROJECT || 'ai-workout-backend-2024',
+    backendProjectId: process.env['FIREBASE_PROJECT_ID'] || process.env['GCLOUD_PROJECT'] || 'ai-workout-backend-2024',
   });
 }));
 
@@ -95,7 +95,7 @@ r.post('/workouts/generate', requireAuth, generate);
 r.post('/workouts/quick-generate', requireAuth, generateQuickWorkout); // NEW: One-tap workout generation
 
 // Debug endpoint to test workout generation route
-r.get('/workouts/test', asyncHandler(async (req, res) => {
+r.get('/workouts/test', asyncHandler(async (_req, res) => {
   res.json({
     message: 'Workout generation endpoint is accessible',
     timestamp: new Date().toISOString(),

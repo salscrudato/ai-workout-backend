@@ -6,6 +6,21 @@ const firestore_1 = require("firebase-admin/firestore");
 const hash_1 = require("../libs/hash");
 class WorkoutPlanModel {
     static collection = 'workoutPlans';
+    static cache = new Map();
+    static CACHE_TTL = 10 * 60 * 1000;
+    static setCacheEntry(key, plan) {
+        this.cache.set(key, { plan, timestamp: Date.now() });
+    }
+    static getCacheEntry(key) {
+        const entry = this.cache.get(key);
+        if (!entry)
+            return null;
+        if (Date.now() - entry.timestamp > this.CACHE_TTL) {
+            this.cache.delete(key);
+            return null;
+        }
+        return entry.plan;
+    }
     static async create(data) {
         const db = (0, db_1.getFirestore)();
         const now = firestore_1.Timestamp.now();
@@ -19,6 +34,10 @@ class WorkoutPlanModel {
             equipment_override: Array.isArray(base.equipment_override) ? [...base.equipment_override].sort() : [],
         };
         const dedupKey = data.dedupKey || (0, hash_1.sha256)(canonical);
+        const cached = this.getCacheEntry(dedupKey);
+        if (cached) {
+            return cached;
+        }
         const summary = data.summary || {
             workoutType: base.workout_type,
             experience: base.experience,
@@ -26,7 +45,6 @@ class WorkoutPlanModel {
             goals: Array.isArray(base.goals) ? [...base.goals].sort() : [],
             equipment: Array.isArray(base.equipment_override) ? [...base.equipment_override].sort() : [],
         };
-        // NOTE: Consider adding Firestore indexes on: userId, promptVersion, dedupKey, and summary.workoutType/experience if needed.
         const workoutPlanData = {
             userId: data.userId,
             model: data.model,
@@ -39,10 +57,12 @@ class WorkoutPlanModel {
             summary,
         };
         const docRef = await db.collection(this.collection).add(workoutPlanData);
-        return {
+        const workoutPlan = {
             id: docRef.id,
             ...workoutPlanData,
         };
+        this.setCacheEntry(dedupKey, workoutPlan);
+        return workoutPlan;
     }
     static async findById(id) {
         const db = (0, db_1.getFirestore)();
@@ -73,14 +93,11 @@ class WorkoutPlanModel {
             const doc = snapshot.docs[0];
             return { id: doc.id, ...doc.data() };
         }
-        // Note: Firestore doesn't support deep object equality queries
-        // We'll need to handle preWorkout matching in the application layer
         const snapshot = await query.limit(1).get();
         if (snapshot.empty) {
             return null;
         }
         const docs = snapshot.docs;
-        // If preWorkout filter is provided, check it manually
         if (filter.preWorkout) {
             for (const doc of docs) {
                 const data = doc.data();
@@ -99,13 +116,11 @@ class WorkoutPlanModel {
         if (filter.userId) {
             query = query.where('userId', '==', filter.userId);
         }
-        // Apply sorting
         if (options.sort) {
             for (const [field, direction] of Object.entries(options.sort)) {
                 query = query.orderBy(field, direction === 1 ? 'asc' : 'desc');
             }
         }
-        // Apply limit
         if (options.limit) {
             query = query.limit(options.limit);
         }
@@ -114,7 +129,6 @@ class WorkoutPlanModel {
             id: doc.id,
             ...doc.data(),
         }));
-        // Apply field selection (projection)
         if (options.select) {
             results = results.map(item => {
                 const filtered = { id: item.id };
@@ -123,10 +137,8 @@ class WorkoutPlanModel {
                         filtered[field] = item[field];
                     }
                     else if (include === 0 && field !== 'id') {
-                        // Exclude field - don't add it to filtered
                     }
                 }
-                // If no fields are explicitly included (only exclusions), include all except excluded
                 if (!Object.values(options.select || {}).includes(1)) {
                     for (const [key, value] of Object.entries(item)) {
                         if (!(key in (options.select || {})) || (options.select && options.select[key] !== 0)) {

@@ -115,6 +115,11 @@ const MobileWorkoutGenerator: React.FC<MobileWorkoutGeneratorProps> = ({ classNa
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
 
+  const prefersReducedMotion =
+    typeof window !== 'undefined' &&
+    'matchMedia' in window &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   const {
     register,
     handleSubmit,
@@ -283,9 +288,9 @@ const MobileWorkoutGenerator: React.FC<MobileWorkoutGeneratorProps> = ({ classNa
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-secondary-50 dark:bg-secondary-950 transition-colors duration-300">
       {/* Progress Header */}
-      <div className="bg-white border-b border-secondary-200 sticky top-0 z-10">
+      <div className="bg-white dark:bg-secondary-900 border-b border-secondary-200 dark:border-secondary-800 sticky top-0 z-10 transition-colors duration-300">
         <div className="px-4 py-4">
           <div className="flex items-center justify-between mb-3">
             <h1 className="text-lg font-bold text-secondary-900">
@@ -301,9 +306,9 @@ const MobileWorkoutGenerator: React.FC<MobileWorkoutGeneratorProps> = ({ classNa
           </p>
 
           {/* Progress Bar */}
-          <div className="w-full bg-secondary-200 rounded-full h-1">
+          <div className="w-full bg-secondary-200 dark:bg-secondary-800 rounded-full h-1">
             <div 
-              className="bg-primary-500 h-1 rounded-full transition-all duration-300"
+              className="bg-primary-500 h-1 rounded-full transition-all duration-300 motion-reduce:transition-none"
               style={{ width: `${(currentStep / totalSteps) * 100}%` }}
             />
           </div>
@@ -319,7 +324,7 @@ const MobileWorkoutGenerator: React.FC<MobileWorkoutGeneratorProps> = ({ classNa
               {WORKOUT_TYPES.map((type) => (
                 <Card
                   key={type.id}
-                  className={`cursor-pointer transition-all duration-200 ${
+                  className={`cursor-pointer transition-all duration-200 motion-reduce:transition-none ${
                     watchedValues.workoutType === type.id
                       ? 'ring-2 ring-primary-500 bg-primary-50 border-primary-200'
                       : 'hover:border-secondary-300'
@@ -369,7 +374,7 @@ const MobileWorkoutGenerator: React.FC<MobileWorkoutGeneratorProps> = ({ classNa
                 {DURATION_OPTIONS.map((option) => (
                   <Card
                     key={option.value}
-                    className={`cursor-pointer transition-all duration-200 text-center ${
+                    className={`cursor-pointer transition-all duration-200 text-center motion-reduce:transition-none ${
                       watchedValues.duration === option.value
                         ? 'ring-2 ring-primary-500 bg-primary-50 border-primary-200'
                         : 'hover:border-secondary-300'
@@ -407,7 +412,7 @@ const MobileWorkoutGenerator: React.FC<MobileWorkoutGeneratorProps> = ({ classNa
                   step="5"
                   value={watchedValues.duration}
                   onChange={(e) => setValue('duration', parseInt(e.target.value))}
-                  className="w-full h-2 bg-secondary-200 rounded-lg appearance-none cursor-pointer slider"
+                  className="w-full h-2 bg-secondary-200 dark:bg-secondary-800 rounded-lg appearance-none cursor-pointer slider"
                 />
                 <div className="flex justify-between text-xs text-secondary-500 mt-1">
                   <span>10 min</span>
@@ -423,7 +428,7 @@ const MobileWorkoutGenerator: React.FC<MobileWorkoutGeneratorProps> = ({ classNa
               {ENERGY_LEVELS.map((level) => (
                 <Card
                   key={level.value}
-                  className={`cursor-pointer transition-all duration-200 ${
+                  className={`cursor-pointer transition-all duration-200 motion-reduce:transition-none ${
                     watchedValues.energyLevel === level.value
                       ? 'ring-2 ring-primary-500 bg-primary-50 border-primary-200'
                       : 'hover:border-secondary-300'
@@ -515,7 +520,7 @@ const MobileWorkoutGenerator: React.FC<MobileWorkoutGeneratorProps> = ({ classNa
 
       {/* Navigation Footer */}
       {currentStep < 4 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-secondary-200 p-4">
+        <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-secondary-900 border-t border-secondary-200 dark:border-secondary-800 p-4 pb-safe-bottom transition-colors duration-300">
           <div className="flex gap-3">
             {currentStep > 1 && (
               <Button

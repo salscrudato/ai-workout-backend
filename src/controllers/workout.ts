@@ -21,18 +21,18 @@ import {
 
 
 
-// Initialize logger for this controller
+// Optimized logger for workout controller
 const baseLogger = pino({
   name: 'workout-controller',
-  level: process.env['NODE_ENV'] === 'development' ? 'debug' : 'info'
+  level: process.env['NODE_ENV'] === 'development' ? 'debug' : 'info',
 });
 
-// Create logger wrapper that accepts any parameters
+// Optimized logger wrapper with better type safety
 const logger = {
-  info: (msg: string, obj?: any) => baseLogger.info(obj || {}, msg),
-  error: (msg: string, obj?: any) => baseLogger.error(obj || {}, msg),
-  warn: (msg: string, obj?: any) => baseLogger.warn(obj || {}, msg),
-  debug: (msg: string, obj?: any) => baseLogger.debug(obj || {}, msg),
+  info: (msg: string, obj?: Record<string, any>) => baseLogger.info(obj || {}, msg),
+  error: (msg: string, obj?: Record<string, any>) => baseLogger.error(obj || {}, msg),
+  warn: (msg: string, obj?: Record<string, any>) => baseLogger.warn(obj || {}, msg),
+  debug: (msg: string, obj?: Record<string, any>) => baseLogger.debug(obj || {}, msg),
 };
 
 // Temporary type definitions for disabled services
@@ -96,19 +96,7 @@ function generateRequestId(): string {
   return `req_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 }
 
-/**
- * Formats rest time in seconds to a human-readable string
- * @param seconds - Rest time in seconds
- * @returns Formatted rest time string
- */
-function formatRestTime(seconds: number): string {
-  if (seconds >= 60) {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
-  }
-  return `${seconds}s`;
-}
+// Removed unused formatRestTime function
 
 /**
  * Normalizes workout type from frontend format to backend enum
@@ -403,31 +391,37 @@ function transformAIPlanToFrontendFormat(aiPlan: any, programmingOptions?: Worko
  * @throws {503} When AI service is unavailable
  * @throws {500} When unexpected errors occur
  */
+/**
+ * Optimized workout generation with performance monitoring
+ */
 export const generate = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  const startTime = Date.now();
+  const startTime = performance.now();
   const requestId = generateRequestId();
 
   try {
-    // 1. Validate authentication
+    // 1. Validate authentication with early return
     const userId = req.user?.uid;
     if (!userId) {
       logger.warn('Workout generation attempted without authentication', { requestId });
       res.status(401).json({
         error: 'User authentication required',
         code: 'AUTH_REQUIRED',
-        requestId
+        requestId,
       });
       return;
     }
 
-    // 2. Parse and validate request data
+    // 2. Parse and validate request data with performance tracking
+    const validationStart = performance.now();
     const frontendData = GenerateWorkoutSchema.parse(req.body);
+    const validationTime = performance.now() - validationStart;
 
     logger.info('Workout generation started', {
       userId,
       requestId,
       workoutType: frontendData.workoutType,
       experience: frontendData.experience,
+      validationTime: `${validationTime.toFixed(2)}ms`,
       duration: frontendData.duration
     });
 
@@ -478,17 +472,21 @@ export const generate = asyncHandler(async (req: Request, res: Response): Promis
       return;
     }
 
-    // 5. Generate AI workout prompt
+    // 5. Generate AI workout prompt with performance tracking
+    const promptStart = performance.now();
     logger.debug('Building personalized prompt', { userId, requestId });
     const promptData = await buildWorkoutPrompt(pre.userId, pre);
+    const promptTime = performance.now() - promptStart;
 
-    // 6. Call AI service for workout generation
+    // 6. Call AI service for workout generation with performance monitoring
+    const aiStart = performance.now();
     logger.debug('Calling AI service for workout generation', { userId, requestId });
     const aiPlan = await generateWorkout(promptData, {
       workoutType: pre.workout_type,
       experience: pre.experience,
-      duration: pre.time_available_min
+      duration: pre.time_available_min,
     });
+    const aiTime = performance.now() - aiStart;
 
     // 7. Create programming options for advanced sets/reps programming
     const programmingOptions: WorkoutProgrammingOptions = {
@@ -565,28 +563,35 @@ export const generate = asyncHandler(async (req: Request, res: Response): Promis
       model: process.env['OPENAI_MODEL'] || 'gpt-4o-mini',
       promptVersion: PROMPT_VERSION,
       preWorkout: pre,
-      plan: workoutPlanData,
+      plan: workoutPlanData as any, // Type assertion for exactOptionalPropertyTypes compatibility
       dedupKey
     });
 
-    // 11. Return successful response
-    const responseTime = Date.now() - startTime;
+    // 11. Return successful response with performance metrics
+    const responseTime = performance.now() - startTime;
     logger.info('Workout generation completed successfully', {
       userId,
       requestId,
       workoutId: workoutPlan.id,
-      responseTime
+      responseTime: `${responseTime.toFixed(2)}ms`,
+      promptTime: `${promptTime.toFixed(2)}ms`,
+      aiTime: `${aiTime.toFixed(2)}ms`,
     });
 
     res.status(201).json({
       workoutId: workoutPlan.id,
       plan: transformedPlan,
       metadata: {
-        responseTime,
+        responseTime: Math.round(responseTime),
         cached: false,
         requestId,
-        promptVersion: PROMPT_VERSION
-      }
+        promptVersion: PROMPT_VERSION,
+        performance: {
+          total: `${responseTime.toFixed(2)}ms`,
+          prompt: `${promptTime.toFixed(2)}ms`,
+          ai: `${aiTime.toFixed(2)}ms`,
+        },
+      },
     });
 
   } catch (error) {
@@ -783,8 +788,8 @@ export const listWorkouts = asyncHandler(async (req: Request, res: Response): Pr
   // Get completed workout sessions for this user (sorted by completion date)
   const workoutSessions = await WorkoutSessionModel.find({ userId }, { sort: { completedAt: -1 }, limit: 20 });
 
-  // Get the workout plans for completed sessions by fetching them individually
-  const workouts = [];
+  // Get the workout plans for completed sessions with proper typing
+  const workouts: any[] = [];
   for (const session of workoutSessions) {
     try {
       const plan = await WorkoutPlanModel.findById(session.planId);
@@ -792,7 +797,7 @@ export const listWorkouts = asyncHandler(async (req: Request, res: Response): Pr
         // Transform database format to frontend format
         const transformedPlan = transformDatabasePlanToFrontendFormat(plan.plan);
 
-        (workouts as any[]).push({
+        workouts.push({
           id: plan.id,
           userId: plan.userId,
           model: plan.model,
@@ -803,11 +808,11 @@ export const listWorkouts = asyncHandler(async (req: Request, res: Response): Pr
           // Add completion information
           completedAt: session.completedAt?.toDate().toISOString(),
           feedback: session.feedback,
-          isCompleted: true // All workouts in history are completed
+          isCompleted: true, // All workouts in history are completed
         });
       }
     } catch (error) {
-      console.error(`Failed to fetch workout plan ${session.planId}:`, error);
+      logger.error(`Failed to fetch workout plan ${session.planId}`, { error });
       // Continue with other sessions
     }
   }

@@ -58,6 +58,11 @@ const MobileWorkoutSession: React.FC<MobileWorkoutSessionProps> = ({
   });
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [showExerciseDetails, setShowExerciseDetails] = useState(false);
+
+  const prefersReducedMotion =
+    typeof window !== 'undefined' &&
+    'matchMedia' in window &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -290,9 +295,9 @@ const MobileWorkoutSession: React.FC<MobileWorkoutSessionProps> = ({
   }
 
   return (
-    <div className={clsx('min-h-screen bg-gray-50', className)}>
+    <div className={clsx('min-h-screen bg-secondary-50 dark:bg-secondary-950 transition-colors duration-300', className)}>
       {/* Header with Progress */}
-      <div className="bg-white border-b border-secondary-200 sticky top-0 z-10">
+      <div className="bg-white dark:bg-secondary-900 border-b border-secondary-200 dark:border-secondary-800 sticky top-0 z-10 transition-colors duration-300">
         <div className="px-4 py-4">
           <div className="flex items-center justify-between mb-3">
             <div>
@@ -314,9 +319,9 @@ const MobileWorkoutSession: React.FC<MobileWorkoutSessionProps> = ({
           </div>
           
           {/* Progress Bar */}
-          <div className="w-full bg-secondary-200 rounded-full h-2">
+          <div className="w-full bg-secondary-200 dark:bg-secondary-800 rounded-full h-2">
             <div 
-              className="bg-primary-500 h-2 rounded-full transition-all duration-300"
+              className="bg-primary-500 h-2 rounded-full transition-all duration-300 motion-reduce:transition-none"
               style={{ width: `${getTotalProgress()}%` }}
             />
           </div>
@@ -325,7 +330,7 @@ const MobileWorkoutSession: React.FC<MobileWorkoutSessionProps> = ({
 
       {/* Timer Display */}
       {exerciseTimer.isActive && (
-        <div className="bg-white border-b border-secondary-200">
+        <div className="bg-white dark:bg-secondary-900 border-b border-secondary-200 dark:border-secondary-800 transition-colors duration-300">
           <div className="px-4 py-6 text-center">
             <div className="relative w-32 h-32 mx-auto mb-4">
               <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 120 120">
@@ -336,7 +341,7 @@ const MobileWorkoutSession: React.FC<MobileWorkoutSessionProps> = ({
                   stroke="currentColor"
                   strokeWidth="8"
                   fill="transparent"
-                  className="text-secondary-200"
+                  className="text-secondary-200 dark:text-secondary-800"
                 />
                 <circle
                   cx="60"
@@ -347,16 +352,16 @@ const MobileWorkoutSession: React.FC<MobileWorkoutSessionProps> = ({
                   fill="transparent"
                   strokeDasharray={`${2 * Math.PI * 54}`}
                   strokeDashoffset={`${2 * Math.PI * 54 * (1 - getTimerProgress() / 100)}`}
-                  className={exerciseTimer.type === 'work' ? 'text-primary-500' : 'text-blue-500'}
+                  className={exerciseTimer.type === 'work' ? 'text-primary-500' : 'text-accent-500'}
                   strokeLinecap="round"
                 />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-secondary-900">
+                <div className="text-center" role="timer" aria-live="polite" aria-label="Exercise timer" aria-valuetext={formatTime(exerciseTimer.timeRemaining)}>
+                  <div className="text-2xl font-bold text-secondary-900 dark:text-secondary-100">
                     {formatTime(exerciseTimer.timeRemaining)}
                   </div>
-                  <div className="text-xs text-secondary-600 uppercase tracking-wide">
+                  <div className="text-xs text-secondary-600 dark:text-secondary-400 uppercase tracking-wide">
                     {exerciseTimer.type}
                   </div>
                 </div>
@@ -364,7 +369,7 @@ const MobileWorkoutSession: React.FC<MobileWorkoutSessionProps> = ({
             </div>
             
             <Badge 
-              variant={exerciseTimer.type === 'work' ? 'primary' : 'secondary'}
+              variant={exerciseTimer.type === 'work' ? 'primary' : 'accent'}
               size="lg"
             >
               {exerciseTimer.type === 'work' ? 'Work Time' : 'Rest Time'}
@@ -377,7 +382,7 @@ const MobileWorkoutSession: React.FC<MobileWorkoutSessionProps> = ({
       <div className="p-4">
         <Card padding="lg">
           <div className="text-center mb-6">
-            <h2 className="text-xl font-bold text-secondary-900 mb-2">
+            <h2 className="text-xl font-bold text-secondary-900 dark:text-secondary-100 mb-2">
               {currentExercise.display_name || currentExercise.name}
             </h2>
             
@@ -402,7 +407,7 @@ const MobileWorkoutSession: React.FC<MobileWorkoutSessionProps> = ({
                 )}
                 
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">
+                  <div className="text-2xl font-bold text-accent-600 dark:text-accent-300">
                     {currentSet.rest_sec}s
                   </div>
                   <div className="text-xs text-secondary-600">REST</div>
@@ -425,7 +430,7 @@ const MobileWorkoutSession: React.FC<MobileWorkoutSessionProps> = ({
           {/* Exercise Instructions Toggle */}
           <button
             onClick={() => setShowExerciseDetails(!showExerciseDetails)}
-            className="w-full flex items-center justify-center gap-2 text-sm text-secondary-600 mb-4"
+            className="w-full flex items-center justify-center gap-2 text-sm text-secondary-600 mb-4 motion-reduce:transition-none"
           >
             <span>Exercise Details</span>
             {showExerciseDetails ? 
@@ -518,14 +523,14 @@ const MobileWorkoutSession: React.FC<MobileWorkoutSessionProps> = ({
             <div className="flex justify-center gap-4 pt-2">
               <button
                 onClick={() => setSoundEnabled(!soundEnabled)}
-                className="p-2 text-secondary-600 hover:text-secondary-900"
+                className="p-2 text-secondary-600 dark:text-secondary-400 hover:text-secondary-900 dark:hover:text-secondary-200"
               >
                 {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
               </button>
               
               <button
                 onClick={pauseSession}
-                className="p-2 text-secondary-600 hover:text-secondary-900"
+                className="p-2 text-secondary-600 dark:text-secondary-400 hover:text-secondary-900 dark:hover:text-secondary-200"
               >
                 <Pause className="w-5 h-5" />
               </button>
@@ -539,7 +544,7 @@ const MobileWorkoutSession: React.FC<MobileWorkoutSessionProps> = ({
                   setTotalElapsedTime(0);
                   setIsSessionActive(false);
                 }}
-                className="p-2 text-secondary-600 hover:text-secondary-900"
+                className="p-2 text-secondary-600 dark:text-secondary-400 hover:text-secondary-900 dark:hover:text-secondary-200"
               >
                 <RotateCcw className="w-5 h-5" />
               </button>

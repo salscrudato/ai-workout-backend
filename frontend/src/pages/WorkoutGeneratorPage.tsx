@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { apiClient } from '../services/api';
 import { useForm } from 'react-hook-form';
@@ -9,25 +9,14 @@ import { clsx } from 'clsx';
 
 // Icons - imported individually for better tree shaking
 import {
-  ArrowLeft,
-  Zap,
   Clock,
   Target,
-  Sparkles,
-  Dumbbell,
-  Activity,
-  Settings,
-  CheckCircle
+  Sparkles
 } from 'lucide-react';
 
 // UI Components
 import LoadingSpinner from '../components/ui/LoadingSpinner';
-import Button from '../components/ui/Button';
-import Badge from '../components/ui/Badge';
-import Card from '../components/ui/Card';
-import WorkoutWizard from '../components/ui/WorkoutWizard';
 import { Display, Heading, Body } from '../components/ui/Typography';
-import LoadingSkeleton from '../components/ui/LoadingSkeleton';
 
 // Contexts and hooks
 import { useToast } from '../contexts/ToastContext';
@@ -38,42 +27,17 @@ import type { GenerateWorkoutRequest } from '../types/api';
 // Utils
 import { safeArrayFrom } from '../utils/profileUtils';
 
-// Enhanced Components
-import {
-  ResponsiveContainer,
-  ResponsiveGrid,
-  ResponsiveStack,
-  OptimizedFadeIn,
-  OptimizedProgressBar,
-  OptimizedLoadingOverlay,
-  microInteractionVariants,
-  SkipLink,
-  AccessibleFormField,
-  AccessibleButton,
-  useScreenReaderAnnouncement,
-  ValidationSummary,
-  AccessibleProgress,
-  GlassCard,
-  PremiumButton,
-  PremiumCard,
-  VisualHeading,
-  VisualSeparator,
-  PremiumLoading,
-  shadowStyles,
-  gradientStyles
-} from '../components/ui/enhanced';
-
 /**
  * Validation schema for workout generation form
  * Ensures all required fields are present and valid
  */
 const workoutSchema = z.object({
   workoutType: z.string().min(1, 'Please select a workout type'),
-  equipmentAvailable: z.array(z.string()).default([]),
+  equipmentAvailable: z.array(z.string()),
   duration: z.number()
     .min(10, 'Minimum workout duration is 10 minutes')
     .max(180, 'Maximum workout duration is 180 minutes'),
-  constraints: z.array(z.string()).default([]),
+  constraints: z.array(z.string()),
 });
 
 type WorkoutFormData = z.infer<typeof workoutSchema>;
@@ -146,7 +110,8 @@ const WorkoutGeneratorPage: React.FC = () => {
     watch,
     setValue,
     formState: { errors, isValid },
-  } = useForm({
+  } = useForm<WorkoutFormData>({
+    resolver: zodResolver(workoutSchema),
     defaultValues,
     mode: 'onChange', // Enable real-time validation
   });
@@ -433,7 +398,7 @@ const WorkoutGeneratorPage: React.FC = () => {
               <button
                 type="button"
                 disabled={isGenerating}
-                onClick={handleSubmit(handleFormSubmit)}
+                onClick={handleSubmit(handleFormSubmit as any)}
                 className={clsx(
                   'w-full flex items-center justify-center px-6 py-4 text-lg font-semibold',
                   'rounded-xl transition-all duration-300 transform mobile-touch',

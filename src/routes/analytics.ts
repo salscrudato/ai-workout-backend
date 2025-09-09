@@ -103,7 +103,7 @@ router.get('/ab-test-recommendations', maybeApiKey, asyncHandler(async (_req, re
  * GET /analytics/performance-metrics
  * Get advanced performance metrics
  */
-router.get('/performance-metrics', maybeApiKey, asyncHandler(async (req, res) => {
+router.get('/performance-metrics', maybeApiKey, asyncHandler(async (_req, res) => {
   const performanceStats = advancedPerformanceMonitor.getStats();
   const performanceTrends = advancedPerformanceMonitor.getPerformanceTrends();
   const recentAlerts = advancedPerformanceMonitor.getRecentAlerts();
@@ -120,7 +120,7 @@ router.get('/performance-metrics', maybeApiKey, asyncHandler(async (req, res) =>
  * GET /analytics/cache-metrics
  * Get cache performance metrics
  */
-router.get('/cache-metrics', maybeApiKey, asyncHandler(async (req, res) => {
+router.get('/cache-metrics', maybeApiKey, asyncHandler(async (_req, res) => {
   const cacheMetrics = cacheManager.getAllMetrics();
 
   res.json({
@@ -133,7 +133,7 @@ router.get('/cache-metrics', maybeApiKey, asyncHandler(async (req, res) => {
  * GET /analytics/system-overview
  * Get comprehensive system metrics overview
  */
-router.get('/system-overview', maybeApiKey, asyncHandler(async (req, res) => {
+router.get('/system-overview', maybeApiKey, asyncHandler(async (_req, res) => {
   const performanceStats = advancedPerformanceMonitor.getStats();
   const cacheMetrics = cacheManager.getAllMetrics();
   const deduplicationMetrics = requestDeduplicationService.getMetrics();

@@ -1,84 +1,162 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { resolve } from 'path';
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react({
+      // Optimize React plugin for production
+      babel: {
+        plugins: [
+          // Remove PropTypes in production
+          ['babel-plugin-transform-remove-console', { exclude: ['error', 'warn'] }],
+        ],
+      },
+    }),
+  ],
+
+  // Path resolution
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, './src'),
+      '@components': resolve(__dirname, './src/components'),
+      '@pages': resolve(__dirname, './src/pages'),
+      '@services': resolve(__dirname, './src/services'),
+      '@utils': resolve(__dirname, './src/utils'),
+      '@types': resolve(__dirname, './src/types'),
+    },
+  },
+
   build: {
-    // Optimize build output
+    // Optimize build output for maximum performance
     target: 'es2020',
     minify: 'esbuild',
-    sourcemap: false, // Disable sourcemaps in production for smaller bundle
+    sourcemap: process.env.NODE_ENV === 'development',
 
-    // Generate unique filenames for better cache busting
-    rollupOptions: {
-      output: {
-        // Improved chunk naming strategy
-        chunkFileNames: (chunkInfo) => {
-          const facadeModuleId = chunkInfo.facadeModuleId
-          if (facadeModuleId) {
-            // Create meaningful chunk names based on the module
-            if (facadeModuleId.includes('node_modules')) {
-              return 'vendor/[name]-[hash].js'
-            }
-            if (facadeModuleId.includes('pages')) {
-              return 'pages/[name]-[hash].js'
-            }
-            if (facadeModuleId.includes('components')) {
-              return 'components/[name]-[hash].js'
-            }
-          }
-          return 'chunks/[name]-[hash].js'
-        },
-        entryFileNames: 'entry/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash].[ext]',
-
-        // Manual chunk splitting for better caching
-        manualChunks: {
-          // Vendor chunks
-          'react-vendor': ['react', 'react-dom'],
-          'router-vendor': ['react-router-dom'],
-          'form-vendor': ['react-hook-form', '@hookform/resolvers', 'zod'],
-          'firebase-vendor': ['firebase/app', 'firebase/auth'],
-          'ui-vendor': ['lucide-react', 'clsx'],
-          'http-vendor': ['axios'],
-
-          // App chunks
-          'auth': ['./src/contexts/AuthContext.tsx', './src/services/api.ts'],
-          'pages': [
-            './src/pages/LoginPage.tsx',
-            './src/pages/DashboardPage.tsx',
-            './src/pages/ProfileSetupPage.tsx',
-            './src/pages/WorkoutGeneratorPage.tsx',
-            './src/pages/WorkoutDetailPage.tsx',
-            './src/pages/WorkoutHistoryPage.tsx',
-            './src/pages/ProfilePage.tsx'
-          ]
-        }
-      }
-    },
-
-    // Optimize chunk size warnings
+    // Optimize bundle size
+    reportCompressedSize: false, // Faster builds
     chunkSizeWarningLimit: 1000,
 
     // Enable CSS code splitting
     cssCodeSplit: true,
 
-    // Optimize dependencies
+    // Optimize asset handling
+    assetsInlineLimit: 4096, // Inline assets smaller than 4KB
+
+    // Advanced Rollup configuration for optimal bundling
+    rollupOptions: {
+      output: {
+        // Optimized chunk naming strategy
+        chunkFileNames: (chunkInfo) => {
+          const facadeModuleId = chunkInfo.facadeModuleId;
+          if (facadeModuleId) {
+            if (facadeModuleId.includes('node_modules')) {
+              return 'vendor/[name]-[hash].js';
+            }
+            if (facadeModuleId.includes('pages')) {
+              return 'pages/[name]-[hash].js';
+            }
+            if (facadeModuleId.includes('components')) {
+              return 'components/[name]-[hash].js';
+            }
+          }
+          return 'chunks/[name]-[hash].js';
+        },
+        entryFileNames: 'entry/[name]-[hash].js',
+        assetFileNames: (assetInfo) => {
+          const info = assetInfo.name?.split('.') || [];
+          const ext = info[info.length - 1];
+          if (/png|jpe?g|svg|gif|tiff|bmp|ico/i.test(ext || '')) {
+            return `images/[name]-[hash].[ext]`;
+          }
+          if (/css/i.test(ext || '')) {
+            return `styles/[name]-[hash].[ext]`;
+          }
+          return `assets/[name]-[hash].[ext]`;
+        },
+
+        // Optimized manual chunk splitting
+        manualChunks: (id) => {
+          // Vendor chunks - more granular splitting
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'react-vendor';
+            }
+            if (id.includes('react-router')) {
+              return 'router-vendor';
+            }
+            if (id.includes('react-hook-form') || id.includes('@hookform') || id.includes('zod')) {
+              return 'form-vendor';
+            }
+            if (id.includes('firebase')) {
+              return 'firebase-vendor';
+            }
+            if (id.includes('lucide-react') || id.includes('clsx') || id.includes('framer-motion')) {
+              return 'ui-vendor';
+            }
+            if (id.includes('axios')) {
+              return 'http-vendor';
+            }
+            if (id.includes('date-fns')) {
+              return 'utils-vendor';
+            }
+            return 'vendor';
+          }
+
+          // App chunks
+          if (id.includes('/contexts/')) {
+            return 'contexts';
+          }
+          if (id.includes('/services/')) {
+            return 'services';
+          }
+          if (id.includes('/pages/')) {
+            return 'pages';
+          }
+          if (id.includes('/components/ui/')) {
+            return 'ui-components';
+          }
+          if (id.includes('/components/')) {
+            return 'components';
+          }
+          if (id.includes('/utils/')) {
+            return 'utils';
+          }
+        },
+      },
+
+      // Tree shaking optimizations
+      treeshake: {
+        moduleSideEffects: false,
+        propertyReadSideEffects: false,
+        unknownGlobalSideEffects: false,
+      },
+    },
+
+    // CommonJS optimization
     commonjsOptions: {
       include: [/node_modules/],
-      transformMixedEsModules: true
-    }
+      transformMixedEsModules: true,
+    },
   },
 
-  // Optimize development
+  // Development server optimization
   server: {
     hmr: {
-      overlay: false // Disable error overlay for better development experience
-    }
+      overlay: false, // Disable error overlay for better UX
+      port: 24678, // Custom HMR port
+    },
+    host: true, // Listen on all addresses
+    port: 5173,
+    strictPort: false,
+    // Optimize file watching
+    watch: {
+      ignored: ['**/node_modules/**', '**/dist/**'],
+    },
   },
 
-  // Optimize dependencies
+  // Dependency optimization for faster dev startup
   optimizeDeps: {
     include: [
       'react',
@@ -90,8 +168,33 @@ export default defineConfig({
       'axios',
       'lucide-react',
       'clsx',
-      'date-fns'
+      'date-fns',
+      'framer-motion',
     ],
-    exclude: ['firebase']
-  }
-})
+    exclude: ['firebase'],
+    // Force optimization of these dependencies
+    force: false,
+  },
+
+  // Performance optimizations
+  esbuild: {
+    // Remove console.log in production
+    drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
+    // Optimize for modern browsers
+    target: 'es2020',
+  },
+
+  // CSS optimization
+  css: {
+    devSourcemap: process.env.NODE_ENV === 'development',
+    preprocessorOptions: {
+      // Add any CSS preprocessor options here
+    },
+  },
+
+  // Define global constants
+  define: {
+    __DEV__: process.env.NODE_ENV === 'development',
+    __PROD__: process.env.NODE_ENV === 'production',
+  },
+});

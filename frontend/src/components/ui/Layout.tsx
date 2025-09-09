@@ -49,12 +49,15 @@ const gridMap: Record<GridColumns, string> = {
   12: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12',
 };
 
-// Container component for consistent page layouts
+// Enhanced Container component with sophisticated content management
 export interface ContainerProps {
   children: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
   padding?: SpacingScale;
   className?: string;
+  as?: keyof React.JSX.IntrinsicElements;
+  centered?: boolean;
+  bleed?: boolean; // Allow content to bleed to edges on mobile
 }
 
 export const Container: React.FC<ContainerProps> = ({

@@ -9,27 +9,45 @@ import ConnectionStatus from './components/ui/ConnectionStatus';
 import AppLayout from './components/ui/AppLayout';
 import SkipLinks from './components/ui/SkipLinks';
 import PerformanceDashboard from './components/ui/PerformanceDashboard';
+import AccessibilityOptimized from './components/ui/AccessibilityOptimized';
+import MobilePerformanceOptimized from './components/ui/MobilePerformanceOptimized';
+import ModernLoadingSkeleton from './components/ui/ModernLoadingSkeleton';
 import KeyboardShortcutsHelp from './components/ui/KeyboardShortcutsHelp';
 import { ToastProvider as EnhancedToastProvider } from './components/ui/ToastManager';
+import { useToast } from './components/ui/ToastManager';
 import { useGlobalShortcuts } from './hooks/useKeyboardShortcuts';
 
 import { initializeBrowserCompatibility } from './utils/browserCompatibility';
 
-// Lazy load page components for better performance
-const LoginPage = lazy(() => import('./pages/LoginPage'));
-const DashboardPage = lazy(() => import('./pages/DashboardPage'));
-const ProfileSetupPage = lazy(() => import('./pages/ProfileSetupPage'));
-const WorkoutGeneratorPage = lazy(() => import('./pages/WorkoutGeneratorPage'));
-const WorkoutDetailPage = lazy(() => import('./pages/WorkoutDetailPage'));
-const WorkoutHistoryPage = lazy(() => import('./pages/WorkoutHistoryPage'));
-const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+// Optimized lazy loading with preloading hints
+const LoginPage = lazy(() =>
+  import(/* webpackChunkName: "login" */ './pages/LoginPage')
+);
+const DashboardPage = lazy(() =>
+  import(/* webpackChunkName: "dashboard" */ './pages/DashboardPage')
+);
+const ProfileSetupPage = lazy(() =>
+  import(/* webpackChunkName: "profile-setup" */ './pages/ProfileSetupPage')
+);
+const WorkoutGeneratorPage = lazy(() =>
+  import(/* webpackChunkName: "workout-generator" */ './pages/WorkoutGeneratorPage')
+);
+const WorkoutDetailPage = lazy(() =>
+  import(/* webpackChunkName: "workout-detail" */ './pages/WorkoutDetailPage')
+);
+const WorkoutHistoryPage = lazy(() =>
+  import(/* webpackChunkName: "workout-history" */ './pages/WorkoutHistoryPage')
+);
+const ProfilePage = lazy(() =>
+  import(/* webpackChunkName: "profile" */ './pages/ProfilePage')
+);
 
-// Protected Route Component
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+// Optimized Protected Route Component with memoization
+const ProtectedRoute = React.memo(({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
-    return <LoadingSpinner />;
+    return <ModernLoadingSkeleton />;
   }
 
   if (!isAuthenticated) {
@@ -37,14 +55,16 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   return <>{children}</>;
-}
+});
 
-// Profile Setup Route - redirects to setup if user is new
-function ProfileSetupRoute({ children }: { children: React.ReactNode }) {
+ProtectedRoute.displayName = 'ProtectedRoute';
+
+// Optimized Profile Setup Route with memoization
+const ProfileSetupRoute = React.memo(({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isNewUser, profile, loading } = useAuth();
 
   if (loading) {
-    return <LoadingSpinner />;
+    return <ModernLoadingSkeleton />;
   }
 
   if (!isAuthenticated) {
@@ -56,21 +76,37 @@ function ProfileSetupRoute({ children }: { children: React.ReactNode }) {
   }
 
   return <>{children}</>;
-}
+});
+
+ProfileSetupRoute.displayName = 'ProfileSetupRoute';
 
 function AppRoutes() {
   const { loading } = useAuth();
 
   if (loading) {
-    return <LoadingSpinner />;
+    return (
+      <AccessibilityOptimized>
+        <ModernLoadingSkeleton variant="dashboard" />
+      </AccessibilityOptimized>
+    );
   }
 
   return (
-    <NavigationProvider>
-      <AppLayout
-        fabAction={() => window.location.href = '/generate'}
-        showFAB={window.location.pathname !== '/generate'}
+    <AccessibilityOptimized
+      announceChanges
+      focusManagement
+      highContrast={false}
+    >
+      <MobilePerformanceOptimized
+        lazyLoad
+        optimizeImages
+        enablePrefetch
       >
+        <NavigationProvider>
+          <AppLayout
+            fabAction={() => window.location.href = '/generate'}
+            showFAB={window.location.pathname !== '/generate'}
+          >
         {/* Connection Status Banner */}
         <div className="sticky top-0 z-40">
           <ConnectionStatus className="mx-4 mt-4" />
@@ -132,8 +168,10 @@ function AppRoutes() {
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </Suspense>
-      </AppLayout>
-    </NavigationProvider>
+          </AppLayout>
+        </NavigationProvider>
+      </MobilePerformanceOptimized>
+    </AccessibilityOptimized>
   );
 }
 
@@ -141,6 +179,8 @@ function AppRoutes() {
 function EnhancedAppContent() {
   const [showPerformanceDashboard, setShowPerformanceDashboard] = useState(false);
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+
+  const { showInfo } = useToast();
 
   // Global keyboard shortcuts
   const { shortcuts } = useGlobalShortcuts();
@@ -164,6 +204,53 @@ function EnhancedAppContent() {
       category: 'Help',
     },
   ];
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    let refreshing = false;
+    const onControllerChange = () => {
+      if (refreshing) return;
+      refreshing = true;
+      // Give the UI a beat to paint the toast before reload, if any
+      setTimeout(() => window.location.reload(), 100);
+    };
+    navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
+
+    navigator.serviceWorker.getRegistration().then((reg) => {
+      if (!reg) return;
+
+      const promptAndActivate = (sw: ServiceWorker) => {
+        try {
+          showInfo('Updating…', 'A new version is installing.');
+        } catch {
+          // Silently handle toast errors
+        }
+        sw.postMessage({ type: 'SKIP_WAITING' });
+      };
+
+      // If already waiting (e.g., SW updated while tab was in background)
+      if (reg.waiting) {
+        promptAndActivate(reg.waiting);
+      }
+
+      // Listen for new updates
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener('statechange', () => {
+          // When the new worker is installed and there's an active controller,
+          // it means an update is ready.
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            promptAndActivate(newWorker);
+          }
+        });
+      });
+    }).catch(() => {});
+
+    return () => {
+      navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+    };
+  }, [showInfo]);
 
   return (
     <>

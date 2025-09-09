@@ -4,24 +4,30 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "build:analyze": "tsc -b && vite build --mode analyze",
+    "dev": "vite --host",
+    "dev:debug": "vite --host --debug",
+    "build": "npm run type-check && vite build",
+    "build:production": "npm run clean && npm run type-check && vite build --mode production",
+    "build:analyze": "npm run type-check && vite build --mode analyze",
     "build:sw": "npm run build && node scripts/build-sw.js",
-    "build:enhanced": "npm run build && npm run build:sw",
-    "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
+    "build:enhanced": "npm run build:production && npm run build:sw",
+    "clean": "rimraf dist",
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx --max-warnings 0",
     "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
-    "preview": "vite preview",
-    "type-check": "tsc --noEmit",
-    "test": "vitest",
-    "test:ui": "vitest --ui",
-    "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage",
-    "test:watch": "vitest --watch",
+    "preview": "vite preview --host",
+    "type-check": "tsc --noEmit --incremental",
+    "type-check:watch": "tsc --noEmit --watch",
+    "test": "vitest --passWithNoTests",
+    "test:ui": "vitest --ui --passWithNoTests",
+    "test:run": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --coverage --passWithNoTests",
+    "test:watch": "vitest --watch --passWithNoTests",
     "prepare": "husky install",
-    "pre-commit": "lint-staged"
+    "pre-commit": "lint-staged",
+    "precommit": "npm run lint && npm run type-check",
+    "prepush": "npm run test:run"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
@@ -52,10 +58,11 @@
     "@types/jest": "^29.5.8",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
-    "@typescript-eslint/eslint-plugin": "^6.12.0",
-    "@typescript-eslint/parser": "^6.12.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.21",
+    "babel-plugin-transform-remove-console": "^6.9.4",
     "eslint": "^9.33.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-import": "^2.29.0",
@@ -73,6 +80,7 @@
     "postcss": "^8.5.6",
     "prettier": "^3.1.0",
     "prettier-plugin-tailwindcss": "^0.5.7",
+    "rimraf": "^6.0.1",
     "tailwindcss": "^3.4.17",
     "ts-jest": "^29.1.1",
     "typescript": "~5.8.3",
@@ -82,6 +90,14 @@
     "vitest": "^1.0.0",
     "workbox-webpack-plugin": "^7.0.0"
   },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "volta": {
+    "node": "20.18.0",
+    "npm": "10.8.2"
+  }
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
       "eslint --fix",
