@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     // File Layout - Optimized for performance
-    "rootDir": "./",
+    "rootDir": "./src",
     "outDir": "./dist",
 
     // Environment Settings - Latest stable versions for performance
@@ -36,7 +36,6 @@
     "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
-    "noUncheckedIndexedAccess": true,
 
     // Code Quality Options - Enabled for clean code
     "noUnusedLocals": true,

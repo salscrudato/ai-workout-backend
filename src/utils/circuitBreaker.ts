@@ -120,7 +120,7 @@ export enum CircuitState { CLOSED = 'CLOSED', OPEN = 'OPEN', HALF_OPEN = 'HALF_O
 export interface CircuitBreakerOptions { failureThreshold: number; recoveryTimeout: number; monitoringPeriod: number; expectedErrors?: (error: Error) => boolean; }
 export interface CircuitBreakerStats { state: CircuitState; failureCount: number; successCount: number; totalRequests: number; lastFailureTime?: Date; nextAttemptTime?: Date; }
 
-export class CircuitBreaker<T = any> { // eslint-disable-line @typescript-eslint/no-unused-vars
+export class CircuitBreaker {
   constructor(_serviceName: string, _options: Partial<CircuitBreakerOptions> = {}) {}
   async execute<R>(fn: () => Promise<R>): Promise<R> { return await fn(); }
   getStats(): CircuitBreakerStats { return { state: CircuitState.CLOSED, failureCount: 0, successCount: 0, totalRequests: 0 }; }

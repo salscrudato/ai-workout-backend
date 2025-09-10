@@ -336,11 +336,11 @@ export class IntelligentCache<T = any> {
   }
 
   private setupEventListeners(): void {
-    this.l2Cache.on('expired', (key, value) => {
+    this.l2Cache.on('expired', (key, _value) => {
       logger.debug({ key }, 'Cache entry expired');
     });
 
-    this.l2Cache.on('del', (key, value) => {
+    this.l2Cache.on('del', (_key, _value) => {
       this.metrics.evictions++;
     });
   }
@@ -357,7 +357,7 @@ export class IntelligentCache<T = any> {
     return (now - entry.timestamp) < entry.ttl;
   }
 
-  private shouldPromoteToL1(key: string, entry: CacheEntry<T>): boolean {
+  private shouldPromoteToL1(key: string, _entry: CacheEntry<T>): boolean {
     const pattern = this.accessPatterns.get(key);
     if (!pattern) return false;
 
@@ -368,7 +368,7 @@ export class IntelligentCache<T = any> {
     return recentAccesses > 3 && timeSinceLastAccess < 60000; // 1 minute
   }
 
-  private determineOptimalTier(key: string, entry: CacheEntry<T>): CacheTier {
+  private determineOptimalTier(key: string, _entry: CacheEntry<T>): CacheTier {
     const pattern = this.accessPatterns.get(key);
     
     // New entries go to L2 by default

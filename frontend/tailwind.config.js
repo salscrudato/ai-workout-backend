@@ -280,6 +280,11 @@ export default {
           border: '1px solid rgba(255, 255, 255, 0.30)',
           boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.15), 0 2px 8px 0 rgba(31, 38, 135, 0.08)',
         },
+
+        // Enhanced gradient backgrounds
+        '.gradient-purple-light': {
+          background: 'linear-gradient(135deg, rgba(147, 51, 234, 0.1) 0%, rgba(79, 70, 229, 0.05) 100%)',
+        },
         '.glass-light': {
           backgroundColor: 'rgba(255, 255, 255, 0.75)',
           backdropFilter: 'blur(16px) saturate(180%)',

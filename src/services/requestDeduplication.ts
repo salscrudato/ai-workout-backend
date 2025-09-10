@@ -191,7 +191,7 @@ export class RequestDeduplicationService {
     const cancelledCount = this.pendingRequests.size;
     const error = new Error('All requests cancelled');
 
-    for (const [key, pendingRequest] of this.pendingRequests) {
+    for (const [_key, pendingRequest] of this.pendingRequests) {
       if (pendingRequest.status === RequestStatus.PENDING) {
         pendingRequest.status = RequestStatus.CANCELLED;
         

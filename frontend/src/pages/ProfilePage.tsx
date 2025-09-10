@@ -5,18 +5,18 @@ import { apiClient } from '../services/api';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { 
-  ArrowLeft, 
-  User, 
-  Edit3, 
-  Save, 
+import {
+  ArrowLeft,
+  User,
+  Edit3,
+  Save,
   X,
   Target,
   Dumbbell,
-  AlertTriangle
+  AlertTriangle,
+  Check
 } from 'lucide-react';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
-import Button from '../components/ui/Button';
 import type { Equipment, CreateProfileInput } from '../types/api';
 
 // Validation schema
@@ -176,7 +176,7 @@ const ProfilePage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-secondary-50 dark:bg-secondary-950 transition-colors duration-300">
+      <div className="min-h-screen flex items-center justify-center">
         <LoadingSpinner size="lg" text="Loading profile..." />
       </div>
     );
@@ -184,10 +184,10 @@ const ProfilePage: React.FC = () => {
 
   if (!profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-secondary-50 dark:bg-secondary-950 transition-colors duration-300">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-secondary-900 dark:text-secondary-100 mb-2">Profile not found</h2>
-          <Link to="/profile-setup" className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300">
+          <h2 className="text-xl font-semibold text-secondary-900 mb-2">Profile not found</h2>
+          <Link to="/profile-setup" className="text-primary-600 hover:text-primary-700">
             Complete profile setup
           </Link>
         </div>
@@ -196,15 +196,15 @@ const ProfilePage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-secondary-50 dark:bg-secondary-950 transition-colors duration-300">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white dark:bg-secondary-900 shadow-sm border-b border-secondary-200 dark:border-secondary-800 transition-colors duration-300">
+      <header className="bg-white shadow-sm border-b border-secondary-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <Link
                 to="/dashboard"
-                className="flex items-center text-secondary-600 dark:text-secondary-400 hover:text-secondary-900 dark:hover:text-secondary-200 transition-colors"
+                className="flex items-center text-secondary-600 hover:text-secondary-900 transition-colors"
               >
                 <ArrowLeft className="h-5 w-5" />
               </Link>
@@ -212,39 +212,42 @@ const ProfilePage: React.FC = () => {
                 <div className="bg-primary-600 p-2 rounded-lg">
                   <User className="h-5 w-5 text-white" />
                 </div>
-                <h1 className="text-xl font-bold text-secondary-900 dark:text-secondary-100">Profile</h1>
+                <h1 className="text-xl font-bold text-secondary-900">Profile</h1>
               </div>
             </div>
             
             <div className="flex items-center space-x-2">
               {!isEditing ? (
-                <Button
-                  variant="outline"
-                  size="sm"
+                <button
                   onClick={() => setIsEditing(true)}
-                  leftIcon={<Edit3 className="h-4 w-4" />}
+                  className="btn btn-outline btn-sm"
                 >
+                  <Edit3 className="h-4 w-4 mr-1" />
                   Edit
-                </Button>
+                </button>
               ) : (
                 <div className="flex space-x-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <button
                     onClick={cancelEdit}
-                    leftIcon={<X className="h-4 w-4" />}
+                    className="btn btn-ghost btn-sm"
                   >
+                    <X className="h-4 w-4 mr-1" />
                     Cancel
-                  </Button>
-                  <Button
-                    variant="primary"
-                    size="sm"
+                  </button>
+                  <button
                     onClick={handleSubmit(onSubmit)}
-                    loading={isSaving}
-                    leftIcon={<Save className="h-4 w-4" />}
+                    disabled={isSaving}
+                    className="btn btn-primary btn-sm"
                   >
-                    Save
-                  </Button>
+                    {isSaving ? (
+                      <LoadingSpinner size="sm" />
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-1" />
+                        Save
+                      </>
+                    )}
+                  </button>
                 </div>
               )}
             </div>
@@ -255,7 +258,7 @@ const ProfilePage: React.FC = () => {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
           {/* Basic Info */}
-          <div className="bg-white dark:bg-secondary-900 rounded-2xl border border-secondary-200 dark:border-secondary-800 p-6 transition-colors duration-300">
+          <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-lg font-semibold text-secondary-900 mb-4">Basic Information</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -267,7 +270,7 @@ const ProfilePage: React.FC = () => {
                   type="email"
                   value={user?.email || ''}
                   disabled
-                  className="input bg-secondary-50 dark:bg-secondary-800"
+                  className="input bg-gray-50"
                 />
               </div>
               
@@ -282,14 +285,14 @@ const ProfilePage: React.FC = () => {
                     <option value="advanced">Advanced</option>
                   </select>
                 ) : (
-                  <div className="input bg-secondary-50 dark:bg-secondary-800 capitalize">{profile.experience}</div>
+                  <div className="input bg-gray-50 capitalize">{profile.experience}</div>
                 )}
               </div>
             </div>
           </div>
 
           {/* Fitness Goals */}
-          <div className="bg-white dark:bg-secondary-900 rounded-2xl border border-secondary-200 dark:border-secondary-800 p-6 transition-colors duration-300">
+          <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-lg font-semibold text-secondary-900 mb-4">
               <Target className="inline h-5 w-5 mr-2" />
               Fitness Goals
@@ -300,10 +303,10 @@ const ProfilePage: React.FC = () => {
                 {GOAL_OPTIONS.map((goal) => (
                   <label
                     key={goal}
-                    className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
+                    className={`relative flex items-center justify-center p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 touch-target min-h-[60px] ${
                       watchedValues.goals?.includes(goal)
-                        ? 'border-primary-500 bg-primary-50'
-                        : 'border-secondary-200 hover:border-secondary-300'
+                        ? 'border-primary-500 bg-primary-50 shadow-lg shadow-primary-500/20 text-primary-800 scale-105'
+                        : 'border-neutral-200 hover:border-primary-300 hover:bg-primary-50/30 hover:scale-102 active:scale-98'
                     }`}
                   >
                     <input
@@ -312,7 +315,16 @@ const ProfilePage: React.FC = () => {
                       onChange={() => toggleArrayValue(watchedValues.goals || [], goal, 'goals')}
                       checked={watchedValues.goals?.includes(goal) || false}
                     />
-                    <div className="flex-1 text-sm font-medium text-center">{goal}</div>
+                    <div className="text-center w-full">
+                      <div className="text-sm font-semibold leading-tight">{goal}</div>
+                    </div>
+
+                    {/* Enhanced selection indicator */}
+                    {watchedValues.goals?.includes(goal) && (
+                      <div className="absolute -top-2 -right-2 w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center shadow-lg animate-bounce">
+                        <Check className="w-4 h-4 text-white" />
+                      </div>
+                    )}
                   </label>
                 ))}
               </div>
@@ -321,7 +333,7 @@ const ProfilePage: React.FC = () => {
                 {profile.goals.map((goal) => (
                   <span
                     key={goal}
-                    className="px-3 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300 rounded-full text-sm font-medium transition-colors"
+                    className="px-3 py-1 bg-primary-100 text-primary-800 rounded-full text-sm font-medium"
                   >
                     {goal}
                   </span>
@@ -334,7 +346,7 @@ const ProfilePage: React.FC = () => {
           </div>
 
           {/* Equipment */}
-          <div className="bg-white dark:bg-secondary-900 rounded-2xl border border-secondary-200 dark:border-secondary-800 p-6 transition-colors duration-300">
+          <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-lg font-semibold text-secondary-900 mb-4">
               <Dumbbell className="inline h-5 w-5 mr-2" />
               Available Equipment
@@ -345,10 +357,10 @@ const ProfilePage: React.FC = () => {
                 {equipment.map((item) => (
                   <label
                     key={item.slug}
-                    className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
+                    className={`relative flex items-center justify-center p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 touch-target min-h-[60px] ${
                       watchedValues.equipmentAvailable?.includes(item.slug)
-                        ? 'border-primary-500 bg-primary-50'
-                        : 'border-secondary-200 hover:border-secondary-300'
+                        ? 'border-primary-500 bg-primary-50 shadow-lg shadow-primary-500/20 text-primary-800 scale-105'
+                        : 'border-neutral-200 hover:border-primary-300 hover:bg-primary-50/30 hover:scale-102 active:scale-98'
                     }`}
                   >
                     <input
@@ -357,7 +369,16 @@ const ProfilePage: React.FC = () => {
                       onChange={() => toggleArrayValue(watchedValues.equipmentAvailable || [], item.slug, 'equipmentAvailable')}
                       checked={watchedValues.equipmentAvailable?.includes(item.slug) || false}
                     />
-                    <div className="flex-1 text-sm font-medium">{item.label}</div>
+                    <div className="text-center w-full">
+                      <div className="text-sm font-semibold leading-tight">{item.label}</div>
+                    </div>
+
+                    {/* Enhanced selection indicator */}
+                    {watchedValues.equipmentAvailable?.includes(item.slug) && (
+                      <div className="absolute -top-2 -right-2 w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center shadow-lg animate-bounce">
+                        <Check className="w-4 h-4 text-white" />
+                      </div>
+                    )}
                   </label>
                 ))}
               </div>
@@ -369,21 +390,21 @@ const ProfilePage: React.FC = () => {
                     return (
                       <span
                         key={equipmentSlug}
-                        className="px-3 py-1 bg-secondary-100 dark:bg-secondary-800 text-secondary-800 dark:text-secondary-200 rounded-full text-sm font-medium transition-colors"
+                        className="px-3 py-1 bg-secondary-100 text-secondary-800 rounded-full text-sm font-medium"
                       >
                         {equipmentItem?.label || equipmentSlug}
                       </span>
                     );
                   })
                 ) : (
-                  <span className="text-secondary-600 dark:text-secondary-400 italic">No equipment selected (bodyweight workouts)</span>
+                  <span className="text-secondary-600 italic">No equipment selected (bodyweight workouts)</span>
                 )}
               </div>
             )}
           </div>
 
           {/* Personal Details */}
-          <div className="bg-white dark:bg-secondary-900 rounded-2xl border border-secondary-200 dark:border-secondary-800 p-6 transition-colors duration-300">
+          <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-lg font-semibold text-secondary-900 mb-4">Personal Details</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -399,7 +420,7 @@ const ProfilePage: React.FC = () => {
                     placeholder="25"
                   />
                 ) : (
-                  <div className="input bg-secondary-50 dark:bg-secondary-800">{profile.age || 'Not specified'}</div>
+                  <div className="input bg-gray-50">{profile.age || 'Not specified'}</div>
                 )}
               </div>
 
@@ -414,7 +435,7 @@ const ProfilePage: React.FC = () => {
                     <option value="female">Female</option>
                   </select>
                 ) : (
-                  <div className="input bg-secondary-50 dark:bg-secondary-800 capitalize">
+                  <div className="input bg-gray-50 capitalize">
                     {profile.sex === 'prefer_not_to_say' ? 'Prefer not to say' : profile.sex}
                   </div>
                 )}
@@ -442,7 +463,7 @@ const ProfilePage: React.FC = () => {
                     <span className="flex items-center text-sm text-secondary-600">in</span>
                   </div>
                 ) : (
-                  <div className="input bg-secondary-50 dark:bg-secondary-800">
+                  <div className="input bg-gray-50">
                     {profile.height_ft && profile.height_in 
                       ? `${profile.height_ft}'${profile.height_in}"`
                       : 'Not specified'
@@ -463,14 +484,14 @@ const ProfilePage: React.FC = () => {
                     placeholder="150"
                   />
                 ) : (
-                  <div className="input bg-secondary-50 dark:bg-secondary-800">{profile.weight_lb || 'Not specified'}</div>
+                  <div className="input bg-gray-50">{profile.weight_lb || 'Not specified'}</div>
                 )}
               </div>
             </div>
           </div>
 
           {/* Health & Constraints */}
-          <div className="bg-white dark:bg-secondary-900 rounded-2xl border border-secondary-200 dark:border-secondary-800 p-6 transition-colors duration-300">
+          <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-lg font-semibold text-secondary-900 mb-4">
               <AlertTriangle className="inline h-5 w-5 mr-2" />
               Health & Constraints
@@ -488,7 +509,7 @@ const ProfilePage: React.FC = () => {
                     placeholder="Describe any injuries or physical limitations..."
                   />
                 ) : (
-                  <div className="input bg-secondary-50 dark:bg-secondary-800 min-h-[100px] whitespace-pre-wrap">
+                  <div className="input bg-gray-50 min-h-[100px] whitespace-pre-wrap">
                     {profile.injury_notes || 'None specified'}
                   </div>
                 )}
@@ -503,10 +524,10 @@ const ProfilePage: React.FC = () => {
                     {CONSTRAINT_OPTIONS.map((constraint) => (
                       <label
                         key={constraint}
-                        className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
+                        className={`relative flex items-center justify-center p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 touch-target min-h-[60px] ${
                           watchedValues.constraints?.includes(constraint)
-                            ? 'border-primary-500 bg-primary-50'
-                            : 'border-secondary-200 hover:border-secondary-300'
+                            ? 'border-primary-500 bg-primary-50 shadow-lg shadow-primary-500/20 text-primary-800 scale-105'
+                            : 'border-neutral-200 hover:border-primary-300 hover:bg-primary-50/30 hover:scale-102 active:scale-98'
                         }`}
                       >
                         <input
@@ -515,7 +536,16 @@ const ProfilePage: React.FC = () => {
                           onChange={() => toggleArrayValue(watchedValues.constraints || [], constraint, 'constraints')}
                           checked={watchedValues.constraints?.includes(constraint) || false}
                         />
-                        <div className="flex-1 text-sm font-medium">{constraint}</div>
+                        <div className="text-center w-full">
+                          <div className="text-sm font-semibold leading-tight">{constraint}</div>
+                        </div>
+
+                        {/* Enhanced selection indicator */}
+                        {watchedValues.constraints?.includes(constraint) && (
+                          <div className="absolute -top-2 -right-2 w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center shadow-lg animate-bounce">
+                            <Check className="w-4 h-4 text-white" />
+                          </div>
+                        )}
                       </label>
                     ))}
                   </div>
@@ -525,13 +555,13 @@ const ProfilePage: React.FC = () => {
                       profile.constraints.map((constraint) => (
                         <span
                           key={constraint}
-                          className="px-3 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded-full text-sm font-medium transition-colors"
+                          className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium"
                         >
                           {constraint}
                         </span>
                       ))
                     ) : (
-                      <span className="text-secondary-600 dark:text-secondary-400 italic">No constraints specified</span>
+                      <span className="text-secondary-600 italic">No constraints specified</span>
                     )}
                   </div>
                 )}
@@ -540,7 +570,7 @@ const ProfilePage: React.FC = () => {
           </div>
 
           {/* Profile Created */}
-          <div className="bg-white dark:bg-secondary-900 rounded-2xl border border-secondary-200 dark:border-secondary-800 p-6 transition-colors duration-300">
+          <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-lg font-semibold text-secondary-900 mb-4">Profile Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>

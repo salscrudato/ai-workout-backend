@@ -225,9 +225,7 @@ export class SocialGamificationService {
   /**
    * Get available challenges for user
    */
-  async getAvailableChallenges(userId: string): Promise<Challenge[]> {
-    const profile = await this.getUserGameProfile(userId);
-    
+  async getAvailableChallenges(_userId: string): Promise<Challenge[]> {
     // Filter challenges based on user level and preferences
     return this.activeChallenges.filter(challenge => {
       // Basic filtering - could be more sophisticated
@@ -285,7 +283,7 @@ export class SocialGamificationService {
    * Create initial user game profile
    */
   private async createUserGameProfile(userId: string): Promise<UserGameProfile> {
-    const [workoutHistory, sessionHistory] = await Promise.all([
+    const [_workoutHistory, sessionHistory] = await Promise.all([
       WorkoutPlanModel.find({ userId }, { limit: 50 }),
       WorkoutSessionModel.find({ userId }, { limit: 100 })
     ]);
@@ -506,7 +504,7 @@ export class SocialGamificationService {
    */
   private async checkAchievements(userId: string, profile: UserGameProfile): Promise<Achievement[]> {
     const newAchievements: Achievement[] = [];
-    const [workoutHistory, sessionHistory] = await Promise.all([
+    const [_workoutHistory, sessionHistory] = await Promise.all([
       WorkoutPlanModel.find({ userId }) as Promise<any[]>,
       WorkoutSessionModel.find({ userId }) as Promise<any[]>
     ]);

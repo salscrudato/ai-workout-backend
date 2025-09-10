@@ -23,7 +23,7 @@ export class PromptAnalytics {
   /**
    * Analyze prompt performance across different versions
    */
-  async analyzePromptPerformance(promptVersion?: string): Promise<PromptPerformanceMetrics[]> {
+  async analyzePromptPerformance(_promptVersion?: string): Promise<PromptPerformanceMetrics[]> {
     const workoutPlans = await WorkoutPlanModel.find({}, { limit: 100 });
     
     // Group by prompt version
@@ -188,7 +188,7 @@ export class PromptAnalytics {
     }));
   }
 
-  private calculateAverageGenerationTime(plans: any[]): number {
+  private calculateAverageGenerationTime(_plans: any[]): number {
     // This would need to be tracked during generation
     // For now, return a placeholder
     return 5000; // 5 seconds average

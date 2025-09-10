@@ -8,10 +8,10 @@ export default defineConfig({
     react({
       // Optimize React plugin for production
       babel: {
-        plugins: [
-          // Remove PropTypes in production
+        plugins: process.env.NODE_ENV === 'production' ? [
+          // Remove console.log in production only
           ['babel-plugin-transform-remove-console', { exclude: ['error', 'warn'] }],
-        ],
+        ] : [],
       },
     }),
   ],

@@ -190,6 +190,50 @@
     @apply transition-all duration-150 ease-out;
   }
 
+  /* Enhanced floating animation */
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    25% { transform: translateY(-10px) rotate(1deg); }
+    50% { transform: translateY(-20px) rotate(0deg); }
+    75% { transform: translateY(-10px) rotate(-1deg); }
+  }
+
+  /* Gradient animation for buttons */
+  @keyframes gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  /* Enhanced glow effects */
+  .shadow-glow-blue {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3), 0 0 40px rgba(59, 130, 246, 0.1);
+  }
+
+  .shadow-glow-purple {
+    box-shadow: 0 0 20px rgba(147, 51, 234, 0.3), 0 0 40px rgba(147, 51, 234, 0.1);
+  }
+
+  .shadow-glow-green {
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.3), 0 0 40px rgba(34, 197, 94, 0.1);
+  }
+
+  /* Premium glass effects with enhanced depth */
+  .glass-premium {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px) saturate(200%);
+    -webkit-backdrop-filter: blur(20px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow:
+      0 8px 32px 0 rgba(31, 38, 135, 0.15),
+      0 2px 8px 0 rgba(31, 38, 135, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  }
+
   /* Mobile-first responsive text sizing */
   .text-responsive-xs {
     @apply text-xs sm:text-sm;
@@ -479,15 +523,17 @@
 
   /* Screen reader only content */
   .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
   }
 
   .sr-only:focus {
@@ -499,6 +545,55 @@
     overflow: visible;
     clip: auto;
     white-space: normal;
+  }
+
+  /* Force hide all checkboxes in mobile-optimized selections */
+  .touch-target input[type="checkbox"] {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    position: absolute !important;
+    left: -9999px !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: none !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+  }
+
+  /* Override Tailwind Forms plugin for hidden checkboxes */
+  input[type="checkbox"].sr-only {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    position: absolute !important;
+    left: -9999px !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: none !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+  }
+
+  /* Ensure no pseudo-elements are visible */
+  input[type="checkbox"].sr-only::before,
+  input[type="checkbox"].sr-only::after,
+  .touch-target input[type="checkbox"]::before,
+  .touch-target input[type="checkbox"]::after {
+    display: none !important;
+    content: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
   }
 
   /* Skip links */
@@ -608,6 +703,13 @@
     opacity: 0.8;
   }
 
+  /* Enhanced hover states for mobile optimization */
+  @media (hover: hover) {
+    .hover\:scale-102:hover {
+      transform: scale(1.02);
+    }
+  }
+
   /* Enhanced swipe interactions */
   .swipeable {
     touch-action: pan-x;
@@ -675,18 +777,7 @@
     @apply flex items-center p-6 pt-0;
   }
 
-  /* Accessibility utilities */
-  .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
+  /* Accessibility utilities - removed duplicate, using enhanced version above */
 
   /* Reduced motion support */
   @media (prefers-reduced-motion: reduce) {

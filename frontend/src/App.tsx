@@ -1,7 +1,7 @@
 import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { NavigationProvider } from './contexts/NavigationContext';
+
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
 import LoadingSpinner from './components/ui/LoadingSpinner';
@@ -102,11 +102,7 @@ function AppRoutes() {
         optimizeImages
         enablePrefetch
       >
-        <NavigationProvider>
-          <AppLayout
-            fabAction={() => window.location.href = '/generate'}
-            showFAB={window.location.pathname !== '/generate'}
-          >
+          <AppLayout>
         {/* Connection Status Banner */}
         <div className="sticky top-0 z-40">
           <ConnectionStatus className="mx-4 mt-4" />
@@ -114,6 +110,7 @@ function AppRoutes() {
 
         <Suspense fallback={<LoadingSpinner />}>
           <Routes>
+        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<LoginPage />} />
         <Route
           path="/profile-setup"
@@ -169,7 +166,6 @@ function AppRoutes() {
           </Routes>
         </Suspense>
           </AppLayout>
-        </NavigationProvider>
       </MobilePerformanceOptimized>
     </AccessibilityOptimized>
   );

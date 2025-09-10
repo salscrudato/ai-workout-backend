@@ -94,7 +94,7 @@ export async function createExpressApp(): Promise<express.Application> {
     },
     credentials: false,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-API-Key'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-API-Key', 'Cache-Control'],
     optionsSuccessStatus: 200,
     maxAge: 86400, // Cache preflight for 24 hours
   };

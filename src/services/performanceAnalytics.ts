@@ -324,10 +324,10 @@ export class PerformanceAnalyticsService {
    * Generate performance recommendations
    */
   private generateRecommendations(
-    profile: any,
+    _profile: any,
     overall: OverallMetrics,
     strength: StrengthProgression,
-    consistency: ConsistencyMetrics
+    _consistency: ConsistencyMetrics
   ): PerformanceRecommendation[] {
     const recommendations: PerformanceRecommendation[] = [];
 
@@ -345,7 +345,7 @@ export class PerformanceAnalyticsService {
     }
 
     // Scheduling recommendations
-    if (consistency.weeklyConsistency < 0.6) {
+    if (_consistency.weeklyConsistency < 0.6) {
       recommendations.push({
         category: 'scheduling',
         priority: 'high',
@@ -380,7 +380,7 @@ export class PerformanceAnalyticsService {
     userId: string,
     overall: OverallMetrics,
     strength: StrengthProgression,
-    consistency: ConsistencyMetrics
+    _consistency: ConsistencyMetrics
   ): Achievement[] {
     const achievements: Achievement[] = [];
 
@@ -433,27 +433,27 @@ export class PerformanceAnalyticsService {
     return WorkoutSessionModel.find({ userId }, { limit });
   }
 
-  private calculateCurrentStreak(sessionHistory: any[]): number {
+  private calculateCurrentStreak(_sessionHistory: any[]): number {
     // Simplified implementation
     return 5;
   }
 
-  private calculateLongestStreak(sessionHistory: any[]): number {
+  private calculateLongestStreak(_sessionHistory: any[]): number {
     // Simplified implementation
     return 12;
   }
 
-  private calculateImprovementScore(workoutHistory: any[], sessionHistory: any[]): number {
+  private calculateImprovementScore(_workoutHistory: any[], _sessionHistory: any[]): number {
     // Simplified implementation - would calculate based on multiple factors
     return 75;
   }
 
-  private calculateProgressionRate(workoutHistory: any[]): number {
+  private calculateProgressionRate(_workoutHistory: any[]): number {
     // Simplified implementation
     return 0.08; // 8% monthly progression
   }
 
-  private analyzeMuscleGroupProgress(workoutHistory: any[]): MuscleGroupProgress[] {
+  private analyzeMuscleGroupProgress(_workoutHistory: any[]): MuscleGroupProgress[] {
     return [
       {
         muscleGroup: 'Upper Body',
@@ -472,7 +472,7 @@ export class PerformanceAnalyticsService {
     ];
   }
 
-  private analyzeExerciseProgressions(workoutHistory: any[]): ExerciseProgression[] {
+  private analyzeExerciseProgressions(_workoutHistory: any[]): ExerciseProgression[] {
     return [
       {
         exerciseName: 'Push-ups',
@@ -485,12 +485,12 @@ export class PerformanceAnalyticsService {
     ];
   }
 
-  private calculatePlateauRisk(workoutHistory: any[], sessionHistory: any[]): number {
+  private calculatePlateauRisk(_workoutHistory: any[], _sessionHistory: any[]): number {
     // Simplified implementation
     return 0.3;
   }
 
-  private generateNextMilestones(progressions: ExerciseProgression[]): Milestone[] {
+  private generateNextMilestones(_progressions: ExerciseProgression[]): Milestone[] {
     return [
       {
         title: '20 Push-ups',
@@ -502,47 +502,47 @@ export class PerformanceAnalyticsService {
     ];
   }
 
-  private calculateWeeklyConsistency(sessions: any[]): number {
+  private calculateWeeklyConsistency(_sessions: any[]): number {
     // Simplified implementation
     return 0.75;
   }
 
-  private calculateMonthlyConsistency(sessions: any[]): number {
+  private calculateMonthlyConsistency(_sessions: any[]): number {
     // Simplified implementation
     return 0.68;
   }
 
-  private findMostFrequent(array: number[]): number[] {
+  private findMostFrequent(_array: number[]): number[] {
     // Simplified implementation
     return [1, 3, 5]; // Monday, Wednesday, Friday
   }
 
-  private calculateConsistencyTrend(sessions: any[]): 'improving' | 'stable' | 'declining' {
+  private calculateConsistencyTrend(_sessions: any[]): 'improving' | 'stable' | 'declining' {
     return 'improving';
   }
 
-  private analyzeMissedPatterns(sessionHistory: any[]): string[] {
+  private analyzeMissedPatterns(_sessionHistory: any[]): string[] {
     return ['Tends to skip Monday workouts', 'Less consistent during weekends'];
   }
 
-  private filterByPeriod(sessions: any[], period: string): any[] {
+  private filterByPeriod(sessions: any[], _period: string): any[] {
     // Simplified implementation
     return sessions.slice(0, 10);
   }
 
-  private calculateAverageDuration(sessions: any[]): number {
+  private calculateAverageDuration(_sessions: any[]): number {
     return 35;
   }
 
-  private calculateAverageRating(sessions: any[]): number {
+  private calculateAverageRating(_sessions: any[]): number {
     return 4.2;
   }
 
-  private findDominantWorkoutTypes(workoutHistory: any[], period: string): string[] {
+  private findDominantWorkoutTypes(_workoutHistory: any[], _period: string): string[] {
     return ['Full Body', 'Upper Body'];
   }
 
-  private calculateIntensityTrend(sessions: any[]): 'increasing' | 'stable' | 'decreasing' {
+  private calculateIntensityTrend(_sessions: any[]): 'increasing' | 'stable' | 'decreasing' {
     return 'increasing';
   }
 }

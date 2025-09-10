@@ -50,7 +50,7 @@
     "postinstall": "npm run build",
     "build:optimized": "npm run clean && tsc -p . --incremental --skipLibCheck --noUnusedLocals false --noUnusedParameters false",
     "build:fast": "npm run clean && tsc -p . --incremental --skipLibCheck --noEmit false",
-    "build:production-safe": "npm run clean && tsc -p . --incremental --skipLibCheck --noUnusedLocals false --noUnusedParameters false",
+    "build:production-safe": "npm run clean && tsc -p . --incremental --skipLibCheck --noUnusedLocals false --noUnusedParameters false && node scripts/create-dist-package.cjs",
     "health:check": "node -e \"console.log('Health check passed')\"",
     "security:audit": "npm audit --audit-level moderate",
     "performance:monitor": "node scripts/performance-monitor.js"
