@@ -3,16 +3,16 @@ module.exports = {
   semi: true,
   trailingComma: 'es5',
   singleQuote: true,
-  printWidth: 100,
+  printWidth: 120,
   tabWidth: 2,
   useTabs: false,
-  
+
   // JSX specific
   jsxSingleQuote: false,
-  jsxBracketSameLine: false,
-  
+  bracketSameLine: false,
+
   // Other options
-  arrowParens: 'always',
+  arrowParens: 'avoid',
   bracketSpacing: true,
   endOfLine: 'lf',
   htmlWhitespaceSensitivity: 'css',
@@ -20,28 +20,37 @@ module.exports = {
   proseWrap: 'preserve',
   quoteProps: 'as-needed',
   requirePragma: false,
-  
+
   // Plugin configurations
   plugins: ['prettier-plugin-tailwindcss'],
-  
+
   // File-specific overrides
   overrides: [
     {
       files: '*.json',
       options: {
         printWidth: 80,
+        tabWidth: 2,
       },
     },
     {
       files: '*.md',
       options: {
-        proseWrap: 'always',
         printWidth: 80,
+        proseWrap: 'always',
+        tabWidth: 2,
       },
     },
     {
       files: '*.{css,scss}',
       options: {
+        singleQuote: false,
+      },
+    },
+    {
+      files: '*.{yml,yaml}',
+      options: {
+        tabWidth: 2,
         singleQuote: false,
       },
     },

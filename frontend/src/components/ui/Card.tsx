@@ -1,7 +1,13 @@
 import React, { forwardRef, HTMLAttributes } from 'react';
 import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
-import { cardVariants } from './animations/variants';
+// Simple animation variants
+const cardVariants = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -20 },
+  hover: { y: -2 },
+};
 
 export type CardVariant = 'default' | 'outlined' | 'elevated' | 'outline' | 'glass' | 'glass-light' | 'glass-blue' | 'glass-cyan' | 'glass-ultra' | 'luxury' | 'sophisticated' | 'premium-elevated' | 'glass-blue-premium' | 'gradient';
 export type CardPadding = 'none' | 'sm' | 'md' | 'lg';

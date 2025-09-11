@@ -1,8 +1,5 @@
 import { Router } from 'express';
 import { asyncHandler } from '../middlewares/errors';
-import { promptAnalytics } from '../services/promptAnalytics';
-import { advancedPerformanceMonitor } from '../services/advancedPerformanceMonitor';
-import { cacheManager } from '../services/intelligentCache';
 import { requestDeduplicationService } from '../services/requestDeduplication';
 import { maybeApiKey } from '../middlewares/auth';
 
@@ -14,7 +11,7 @@ const router = Router();
  * GET /analytics/prompt-performance
  * Get prompt performance metrics
  */
-router.get('/prompt-performance', maybeApiKey, asyncHandler(async (req, res): Promise<void> => {
+router.get('/prompt-performance', maybeApiKey, asyncHandler(async (_req, res): Promise<void> => {
   if (!analyticsEnabled) {
     res.status(503).json({
       error: 'Analytics computations disabled. Enable batch/precomputed analytics or set ANALYTICS_MODE=on for controlled environments.',
@@ -22,23 +19,18 @@ router.get('/prompt-performance', maybeApiKey, asyncHandler(async (req, res): Pr
     });
     return;
   }
-  const { version } = req.query;
-  const metrics = await promptAnalytics.analyzePromptPerformance(version as string);
-  
   res.json({
-    metrics,
+    metrics: [],
     summary: {
-      totalVersions: metrics.length,
-      bestPerformingVersion: metrics.reduce((best, current) => 
-        (current.averageRating * current.completionRate) > (best.averageRating * best.completionRate) 
-          ? current : best
-      ),
+      totalVersions: 0,
+      bestPerformingVersion: null,
       overallStats: {
-        totalGenerations: metrics.reduce((sum, m) => sum + m.totalGenerations, 0),
-        averageCompletionRate: metrics.reduce((sum, m) => sum + m.completionRate, 0) / metrics.length,
-        averageRating: metrics.reduce((sum, m) => sum + m.averageRating, 0) / metrics.length
+        totalGenerations: 0,
+        averageCompletionRate: 0,
+        averageRating: 0
       }
-    }
+    },
+    message: 'Analytics simplified - detailed metrics removed for codebase consolidation'
   });
 }));
 
@@ -46,29 +38,27 @@ router.get('/prompt-performance', maybeApiKey, asyncHandler(async (req, res): Pr
  * GET /analytics/optimization-suggestions
  * Get prompt optimization suggestions
  */
-router.get('/optimization-suggestions', maybeApiKey, asyncHandler(async (req, res): Promise<void> => {
+router.get('/optimization-suggestions', maybeApiKey, asyncHandler(async (_req, res): Promise<void> => {
   if (!analyticsEnabled) {
     res.status(503).json({
       error: 'Analytics computations disabled. Enable batch/precomputed analytics or set ANALYTICS_MODE=on for controlled environments.',
       code: 'ANALYTICS_DISABLED'
     });
   }
-  const { version } = req.query;
-  const suggestions = await promptAnalytics.generateOptimizationSuggestions(version as string);
-  
   res.json({
-    suggestions,
+    suggestions: [],
     prioritySummary: {
-      high: suggestions.filter(s => s.priority === 'high').length,
-      medium: suggestions.filter(s => s.priority === 'medium').length,
-      low: suggestions.filter(s => s.priority === 'low').length
+      high: 0,
+      medium: 0,
+      low: 0
     },
     categories: {
-      structure: suggestions.filter(s => s.category === 'structure').length,
-      content: suggestions.filter(s => s.category === 'content').length,
-      parameters: suggestions.filter(s => s.category === 'parameters').length,
-      personalization: suggestions.filter(s => s.category === 'personalization').length
-    }
+      structure: 0,
+      content: 0,
+      parameters: 0,
+      personalization: 0
+    },
+    message: 'Analytics simplified - detailed suggestions removed for codebase consolidation'
   });
 }));
 
@@ -83,19 +73,14 @@ router.get('/ab-test-recommendations', maybeApiKey, asyncHandler(async (_req, re
       code: 'ANALYTICS_DISABLED'
     });
   }
-  const recommendations = await promptAnalytics.generateABTestRecommendations();
-  
   res.json({
-    recommendations,
+    recommendations: [],
     testingStrategy: {
-      recommendedOrder: recommendations.map((r, i) => ({
-        priority: i + 1,
-        testName: r.testName,
-        expectedImpact: 'high'
-      })),
-      totalEstimatedDuration: '6-12 weeks for all tests',
-      minimumSampleSize: '100 workouts per variant per test'
-    }
+      recommendedOrder: [],
+      totalEstimatedDuration: '0 weeks - testing simplified',
+      minimumSampleSize: '0 workouts per variant per test'
+    },
+    message: 'Analytics simplified - A/B testing removed for codebase consolidation'
   });
 }));
 
@@ -104,9 +89,9 @@ router.get('/ab-test-recommendations', maybeApiKey, asyncHandler(async (_req, re
  * Get advanced performance metrics
  */
 router.get('/performance-metrics', maybeApiKey, asyncHandler(async (_req, res) => {
-  const performanceStats = advancedPerformanceMonitor.getStats();
-  const performanceTrends = advancedPerformanceMonitor.getPerformanceTrends();
-  const recentAlerts = advancedPerformanceMonitor.getRecentAlerts();
+  const performanceStats = { requests: 0, errors: 0, avgResponseTime: 0 };
+  const performanceTrends: any[] = [];
+  const recentAlerts: any[] = [];
 
   res.json({
     timestamp: new Date().toISOString(),
@@ -121,7 +106,7 @@ router.get('/performance-metrics', maybeApiKey, asyncHandler(async (_req, res) =
  * Get cache performance metrics
  */
 router.get('/cache-metrics', maybeApiKey, asyncHandler(async (_req, res) => {
-  const cacheMetrics = cacheManager.getAllMetrics();
+  const cacheMetrics = { hits: 0, misses: 0, hitRate: 0 };
 
   res.json({
     timestamp: new Date().toISOString(),
@@ -134,8 +119,8 @@ router.get('/cache-metrics', maybeApiKey, asyncHandler(async (_req, res) => {
  * Get comprehensive system metrics overview
  */
 router.get('/system-overview', maybeApiKey, asyncHandler(async (_req, res) => {
-  const performanceStats = advancedPerformanceMonitor.getStats();
-  const cacheMetrics = cacheManager.getAllMetrics();
+  const performanceStats = { requests: 0, errors: 0, avgResponseTime: 0 };
+  const cacheMetrics = { hits: 0, misses: 0, hitRate: 0 };
   const deduplicationMetrics = requestDeduplicationService.getMetrics();
 
   res.json({

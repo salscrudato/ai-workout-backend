@@ -198,29 +198,47 @@ class AdvancedCache<T = any> {
   }
 }
 
+// Determine cache TTLs based on environment
+const isDev = import.meta.env.DEV;
+const isMobileDev = window.location.hostname.includes('192.168') || window.location.hostname.includes('10.0');
+const minimizeCache = isDev || isMobileDev || new URLSearchParams(window.location.search).has('no-cache');
+
+// Reduced TTLs for development/mobile testing
+const cacheTTLs = minimizeCache ? {
+  api: 30 * 1000,      // 30 seconds
+  user: 60 * 1000,     // 1 minute
+  workout: 30 * 1000,  // 30 seconds
+  image: 5 * 60 * 1000 // 5 minutes
+} : {
+  api: 5 * 60 * 1000,      // 5 minutes
+  user: 30 * 60 * 1000,    // 30 minutes
+  workout: 10 * 60 * 1000, // 10 minutes
+  image: 60 * 60 * 1000    // 1 hour
+};
+
 // Create singleton instances for different data types
 export const apiCache = new AdvancedCache('api', {
-  ttl: 5 * 60 * 1000, // 5 minutes
+  ttl: cacheTTLs.api,
   maxSize: 50,
-  persistent: true,
+  persistent: !minimizeCache, // Disable persistence in dev for immediate updates
 });
 
 export const userCache = new AdvancedCache('user', {
-  ttl: 30 * 60 * 1000, // 30 minutes
+  ttl: cacheTTLs.user,
   maxSize: 20,
-  persistent: true,
+  persistent: !minimizeCache,
 });
 
 export const workoutCache = new AdvancedCache('workout', {
-  ttl: 10 * 60 * 1000, // 10 minutes
+  ttl: cacheTTLs.workout,
   maxSize: 30,
-  persistent: true,
+  persistent: !minimizeCache,
 });
 
 export const imageCache = new AdvancedCache('image', {
-  ttl: 60 * 60 * 1000, // 1 hour
+  ttl: cacheTTLs.image,
   maxSize: 100,
-  persistent: true,
+  persistent: !minimizeCache,
 });
 
 // Cache key generators
@@ -239,6 +257,62 @@ export const invalidateCache = (pattern: string) => {
     keys.forEach(key => cache.delete(key));
   });
 };
+
+// Clear all caches (useful for development and mobile testing)
+export const clearAllCaches = async () => {
+  console.log('🧹 Clearing all application caches...');
+
+  // Clear application-level caches
+  [apiCache, userCache, workoutCache, imageCache].forEach(cache => {
+    cache.clear();
+  });
+
+  // Clear service worker caches
+  if ('caches' in window) {
+    const cacheNames = await caches.keys();
+    await Promise.all(
+      cacheNames.map(cacheName => {
+        console.log(`🗑️ Deleting cache: ${cacheName}`);
+        return caches.delete(cacheName);
+      })
+    );
+  }
+
+  // Clear localStorage cache data
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith('cache_')) {
+      localStorage.removeItem(key);
+    }
+  });
+
+  console.log('✅ All caches cleared');
+};
+
+// Force refresh without cache
+export const forceRefresh = () => {
+  console.log('🔄 Force refreshing page...');
+  window.location.reload();
+};
+
+// Development helper to add cache control to window
+if (minimizeCache && typeof window !== 'undefined') {
+  (window as any).cacheControl = {
+    clear: clearAllCaches,
+    refresh: forceRefresh,
+    invalidate: invalidateCache,
+    status: () => ({
+      minimizeCache,
+      cacheTTLs,
+      cacheKeys: {
+        api: apiCache.keys(),
+        user: userCache.keys(),
+        workout: workoutCache.keys(),
+        image: imageCache.keys()
+      }
+    })
+  };
+  console.log('🛠️ Cache control available at window.cacheControl');
+}
 
 export const getCacheStats = () => ({
   api: apiCache.getStats(),

@@ -3,7 +3,7 @@ import pino from 'pino';
 
 // Core dependencies
 import { asyncHandler } from '../middlewares/errors';
-// import { buildWorkoutPrompt } from '../services/prompt'; // Temporarily disabled
+import { buildWorkoutPrompt } from '../services/unifiedPromptService';
 import { generateWorkout } from '../services/generator';
 import { sha256 } from '../libs/hash';
 
@@ -35,7 +35,7 @@ const logger = {
   debug: (msg: string, obj?: Record<string, any>) => baseLogger.debug(obj || {}, msg),
 };
 
-// Temporary type definitions for disabled services
+// Type definitions for workout programming
 type WorkoutProgrammingOptions = {
   timeAvailable: number;
   experience: string;
@@ -47,37 +47,6 @@ type WorkoutProgrammingOptions = {
   equipmentLevel?: string;
 };
 
-// Temporary stub implementations for disabled services
-const buildWorkoutPrompt = async (userId: string, preWorkout: any) => {
-  const goals =
-    Array.isArray(preWorkout.goals) && preWorkout.goals.length
-      ? preWorkout.goals.join(', ')
-      : 'general_fitness';
-  const equipment =
-    Array.isArray(preWorkout.equipment_override) && preWorkout.equipment_override.length
-      ? preWorkout.equipment_override.join(', ')
-      : 'bodyweight only';
-  const constraints = preWorkout.new_injuries ? String(preWorkout.new_injuries) : '';
-
-  const prompt = `User: ${userId}
-Context:
-- Experience: ${preWorkout.experience}
-- Workout type: ${preWorkout.workout_type}
-- Duration: ${preWorkout.time_available_min} minutes
-- Goals: ${goals}
-- Equipment available: ${equipment}${constraints ? `\n- Constraints/Injuries: ${constraints}` : ''}
-Requirements:
-- Produce a single-session workout optimized for the above.
-- Respect the provided duration budget.
-- Choose safe, common movements available with the listed equipment.
-- Use progressive overload appropriate for ${preWorkout.experience}.
-- Output only JSON conforming to the provided schema.`;
-
-  return { prompt, variant: null };
-};
-
-// Removed unused functions generateSetsProgramming and generateProgressiveReps
-
 
 
 /**
@@ -85,8 +54,6 @@ Requirements:
  * Used for caching and A/B testing different prompt variations
  */
 const PROMPT_VERSION = 'v2.1.0';
-
-// Removed unused WORKOUT_CONFIG
 
 /**
  * Generates a unique request ID for tracking and logging
@@ -96,15 +63,115 @@ function generateRequestId(): string {
   return `req_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 }
 
-// Removed unused formatRestTime function
-
 /**
  * Normalizes workout type from frontend format to backend enum
+ * Maps frontend workout type selections to specific backend workout types
  * @param workoutType - Frontend workout type string
  * @returns Normalized workout type for backend processing
  */
 function normalizeWorkoutType(workoutType: string): string {
-  return workoutType.toLowerCase().replace(/[^a-z0-9]/g, '_');
+  // Create a mapping from frontend workout types to backend workout types
+  const workoutTypeMapping: Record<string, string> = {
+    // Upper body splits
+    'Chest/Triceps': 'push',
+    'chest/triceps': 'push',
+    'Back/Biceps': 'pull',
+    'back/biceps': 'pull',
+    'Shoulders': 'push',
+    'shoulders': 'push',
+
+    // Lower body
+    'Legs': 'legs',
+    'legs': 'legs',
+    'Lower Body': 'legs',
+    'lower body': 'legs',
+
+    // Core
+    'Core': 'core',
+    'core': 'core',
+    'Abs': 'core',
+    'abs': 'core',
+
+    // Full body combinations
+    'Upper Body': 'upper_body',
+    'upper body': 'upper_body',
+    'Full Body': 'full_body',
+    'full body': 'full_body',
+    'full_body': 'full_body',
+
+    // Movement patterns
+    'Push': 'push',
+    'push': 'push',
+    'Pull': 'pull',
+    'pull': 'pull',
+
+    // Cardio and conditioning
+    'Cardio': 'conditioning',
+    'cardio': 'conditioning',
+    'HIIT': 'conditioning',
+    'hiit': 'conditioning',
+    'Conditioning': 'conditioning',
+    'conditioning': 'conditioning',
+
+    // Recovery and mobility
+    'Mobility': 'mobility',
+    'mobility': 'mobility',
+    'Recovery': 'recovery',
+    'recovery': 'recovery',
+    'Stretching': 'mobility',
+    'stretching': 'mobility',
+
+    // General fitness
+    'General': 'full_body',
+    'general': 'full_body',
+    'Strength': 'full_body',
+    'strength': 'full_body',
+  };
+
+  // Check if we have a direct mapping
+  if (workoutTypeMapping[workoutType]) {
+    return workoutTypeMapping[workoutType];
+  }
+
+  // Fallback: normalize the string and try to map common patterns
+  const normalized = workoutType.toLowerCase().trim();
+
+  // Check normalized version
+  if (workoutTypeMapping[normalized]) {
+    return workoutTypeMapping[normalized];
+  }
+
+  // Pattern matching for complex workout types
+  if (normalized.includes('chest') || normalized.includes('tricep')) {
+    return 'push';
+  }
+  if (normalized.includes('back') || normalized.includes('bicep')) {
+    return 'pull';
+  }
+  if (normalized.includes('leg') || normalized.includes('quad') || normalized.includes('glute')) {
+    return 'legs';
+  }
+  if (normalized.includes('shoulder')) {
+    return 'push';
+  }
+  if (normalized.includes('core') || normalized.includes('ab')) {
+    return 'core';
+  }
+  if (normalized.includes('cardio') || normalized.includes('hiit')) {
+    return 'conditioning';
+  }
+  if (normalized.includes('full') || normalized.includes('total')) {
+    return 'full_body';
+  }
+  if (normalized.includes('upper')) {
+    return 'upper_body';
+  }
+  if (normalized.includes('lower')) {
+    return 'legs';
+  }
+
+  // Default fallback to full_body for unknown workout types
+  return 'full_body';
 }
 
 /**
@@ -821,37 +888,117 @@ export const listWorkouts = asyncHandler(async (req: Request, res: Response): Pr
 });
 
 export const completeWorkout = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  const startTime = Date.now();
+  const requestId = generateRequestId();
   const { workoutId: planId } = req.params;
+  const userId = req.user?.uid;
 
-  if (!planId || !isValidObjectId(planId)) {
-    res.status(400).json({ error: 'Invalid workoutId format' });
-    return;
-  }
+  logger.debug('Workout completion requested', { userId, planId, requestId });
 
-  const validatedData = CompleteWorkoutSchema.parse(req.body ?? {});
-
-  const workoutPlan = await WorkoutPlanModel.findById(planId);
-  if (!workoutPlan) {
-    res.status(404).json({ error: 'Workout plan not found' });
-    return;
-  }
-
-  const session = await WorkoutSessionModel.create({
-    planId,
-    userId: workoutPlan.userId,
-    startedAt: validatedData.startedAt ? new Date(validatedData.startedAt) : undefined,
-    completedAt: validatedData.completedAt ? new Date(validatedData.completedAt) : new Date(),
-    feedback: {
-      comment: validatedData.feedback || '',
-      rating: validatedData.rating || undefined
+  try {
+    // 1. Validate workout ID format
+    if (!planId || !isValidObjectId(planId)) {
+      logger.warn('Invalid workout ID format for completion', { userId, planId, requestId });
+      res.status(400).json({
+        error: 'Invalid workoutId format',
+        code: 'INVALID_WORKOUT_ID',
+        requestId
+      });
+      return;
     }
-  });
-  res.status(201).json({
-    sessionId: session.id,
-    workoutPlanId: planId,
-    completedAt: session.completedAt,
-    feedback: session.feedback
-  });
+
+    // 2. Validate request body
+    const validatedData = CompleteWorkoutSchema.parse(req.body ?? {});
+
+    // 3. Find workout plan
+    const workoutPlan = await WorkoutPlanModel.findById(planId);
+    if (!workoutPlan) {
+      logger.warn('Workout plan not found for completion', { userId, planId, requestId });
+      res.status(404).json({
+        error: 'Workout plan not found',
+        code: 'WORKOUT_NOT_FOUND',
+        requestId
+      });
+      return;
+    }
+
+    // 4. Check user authorization
+    if (workoutPlan.userId !== userId) {
+      logger.warn('Unauthorized workout completion attempt', {
+        userId,
+        planId,
+        workoutUserId: workoutPlan.userId,
+        requestId
+      });
+      res.status(403).json({
+        error: 'Access denied',
+        code: 'ACCESS_DENIED',
+        requestId
+      });
+      return;
+    }
+
+    // 5. Create workout session
+    const session = await WorkoutSessionModel.create({
+      planId,
+      userId: workoutPlan.userId,
+      startedAt: validatedData.startedAt ? new Date(validatedData.startedAt) : undefined,
+      completedAt: validatedData.completedAt ? new Date(validatedData.completedAt) : new Date(),
+      feedback: {
+        comment: validatedData.feedback || '',
+        rating: validatedData.rating || undefined
+      }
+    });
+
+    const responseTime = Date.now() - startTime;
+    logger.info('Workout completed successfully', {
+      userId,
+      planId,
+      sessionId: session.id,
+      requestId,
+      responseTime: `${responseTime}ms`
+    });
+
+    res.status(201).json({
+      sessionId: session.id,
+      workoutPlanId: planId,
+      completedAt: session.completedAt,
+      feedback: session.feedback,
+      requestId
+    });
+
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+
+    logger.error('Workout completion failed', {
+      userId,
+      planId,
+      requestId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      responseTime
+    });
+
+    // Handle validation errors (from Zod schema)
+    if (error instanceof Error && error.name === 'ZodError') {
+      const zodError = error as any; // Type assertion for ZodError
+      res.status(400).json({
+        error: 'Invalid request parameters',
+        code: 'VALIDATION_ERROR',
+        details: zodError.errors,
+        errorId: `err_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+        timestamp: new Date().toISOString(),
+        requestId
+      });
+      return;
+    }
+
+    // Generic error response
+    res.status(500).json({
+      error: 'Failed to complete workout',
+      code: 'COMPLETION_ERROR',
+      requestId
+    });
+  }
 });
 
 // NEW: Quick workout generation with intelligent defaults

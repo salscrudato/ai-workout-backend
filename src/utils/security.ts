@@ -75,8 +75,8 @@ export function analyzeRequest(req: Request): SecurityAnalysis {
 
   const ip = req.ip || 'unknown';
   const userAgent = req.get('User-Agent') || '';
-  const path = req.path;
-  const method = req.method;
+  const {path} = req;
+  const {method} = req;
 
   // Check for suspicious patterns in URL
   if (containsSuspiciousPatterns(path)) {

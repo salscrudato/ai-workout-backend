@@ -1,7 +1,18 @@
 import React, { forwardRef, ButtonHTMLAttributes, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
-import { buttonVariants, advancedButtonVariants } from './animations/variants';
+// Simple animation variants
+const buttonVariants = {
+  initial: { scale: 1 },
+  hover: { scale: 1.02 },
+  tap: { scale: 0.98 },
+};
+
+const advancedButtonVariants = {
+  initial: { scale: 1, opacity: 1 },
+  hover: { scale: 1.02, opacity: 0.9 },
+  tap: { scale: 0.98 },
+};
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'outline' | 'gradient' | 'premium' | 'luxury' | 'minimal' | 'electric' | 'glass';
 export type ButtonSize = 'sm' | 'md' | 'lg' | 'xl';

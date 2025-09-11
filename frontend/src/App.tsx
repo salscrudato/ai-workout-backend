@@ -4,20 +4,22 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
-import LoadingSpinner from './components/ui/LoadingSpinner';
-import ConnectionStatus from './components/ui/ConnectionStatus';
-import AppLayout from './components/ui/AppLayout';
-import SkipLinks from './components/ui/SkipLinks';
-import PerformanceDashboard from './components/ui/PerformanceDashboard';
-import AccessibilityOptimized from './components/ui/AccessibilityOptimized';
-import MobilePerformanceOptimized from './components/ui/MobilePerformanceOptimized';
-import ModernLoadingSkeleton from './components/ui/ModernLoadingSkeleton';
-import KeyboardShortcutsHelp from './components/ui/KeyboardShortcutsHelp';
-import { ToastProvider as EnhancedToastProvider } from './components/ui/ToastManager';
-import { useToast } from './components/ui/ToastManager';
+import {
+  Loading,
+  ConnectionStatus,
+  AppLayout,
+  SkipLinks,
+  PerformanceDashboard,
+  AccessibilityProvider,
+  KeyboardShortcutsHelp,
+  ToastProvider as EnhancedToastProvider,
+  useToast,
+} from './components/ui';
+import { CacheControlPanel } from './components/dev/CacheControlPanel';
 import { useGlobalShortcuts } from './hooks/useKeyboardShortcuts';
 
 import { initializeBrowserCompatibility } from './utils/browserCompatibility';
+import { initializeCacheControl } from './utils/cacheHeaders';
 
 // Optimized lazy loading with preloading hints
 const LoginPage = lazy(() =>
@@ -47,7 +49,7 @@ const ProtectedRoute = React.memo(({ children }: { children: React.ReactNode }) 
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
-    return <ModernLoadingSkeleton />;
+    return <Loading variant="skeleton" fullScreen />;
   }
 
   if (!isAuthenticated) {
@@ -64,7 +66,7 @@ const ProfileSetupRoute = React.memo(({ children }: { children: React.ReactNode 
   const { isAuthenticated, isNewUser, profile, loading } = useAuth();
 
   if (loading) {
-    return <ModernLoadingSkeleton />;
+    return <Loading variant="skeleton" fullScreen />;
   }
 
   if (!isAuthenticated) {
@@ -85,30 +87,25 @@ function AppRoutes() {
 
   if (loading) {
     return (
-      <AccessibilityOptimized>
-        <ModernLoadingSkeleton variant="dashboard" />
-      </AccessibilityOptimized>
+      <AccessibilityProvider>
+        <Loading variant="skeleton" fullScreen />
+      </AccessibilityProvider>
     );
   }
 
   return (
-    <AccessibilityOptimized
+    <AccessibilityProvider
       announceChanges
       focusManagement
       highContrast={false}
     >
-      <MobilePerformanceOptimized
-        lazyLoad
-        optimizeImages
-        enablePrefetch
-      >
-          <AppLayout>
+      <AppLayout>
         {/* Connection Status Banner */}
         <div className="sticky top-0 z-40">
           <ConnectionStatus className="mx-4 mt-4" />
         </div>
 
-        <Suspense fallback={<LoadingSpinner />}>
+        <Suspense fallback={<Loading />}>
           <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<LoginPage />} />
@@ -165,9 +162,8 @@ function AppRoutes() {
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </Suspense>
-          </AppLayout>
-      </MobilePerformanceOptimized>
-    </AccessibilityOptimized>
+      </AppLayout>
+    </AccessibilityProvider>
   );
 }
 
@@ -272,14 +268,18 @@ function EnhancedAppContent() {
 
       {/* Connection status indicator */}
       <ConnectionStatus />
+
+      {/* Development cache control panel */}
+      <CacheControlPanel />
     </>
   );
 }
 
 function App() {
-  // Initialize browser compatibility on app start
+  // Initialize browser compatibility and cache control on app start
   useEffect(() => {
     initializeBrowserCompatibility().catch(console.error);
+    initializeCacheControl();
   }, []);
 
   return (

@@ -15,6 +15,17 @@ import { apiClient } from '../services/api';
 import type { User, Profile } from '../types/api';
 import { normalizeProfile } from '../utils/profileUtils';
 
+// Enhanced error types for better error handling
+interface NetworkError extends Error {
+  code?: string;
+  status?: number;
+}
+
+interface AuthenticationError extends Error {
+  code?: string;
+  customData?: any;
+}
+
 interface AuthContextType {
   // Firebase user
   firebaseUser: FirebaseUser | null;
@@ -75,12 +86,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setUser(authResponse.user);
           setProfile(normalizeProfile(authResponse.profile));
           setIsNewUser(authResponse.isNewUser);
-        } catch (error: any) {
-          console.error('Backend authentication failed:', error);
+        } catch (error: unknown) {
+          const authError = error as NetworkError;
+          console.error('Backend authentication failed:', authError);
 
           // If it's a network error, create a temporary user object and continue
-          if (error.message?.includes('Unable to connect to the server') ||
-              error.message?.includes('Network Error')) {
+          if (authError.message?.includes('Unable to connect to the server') ||
+              authError.message?.includes('Network Error')) {
             console.warn('Backend unavailable, creating temporary user session');
 
             // Create a temporary user object from Firebase user
@@ -128,12 +140,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       try {
         await signInWithPopup(auth, googleProvider);
         // The onAuthStateChanged listener will handle the rest
-      } catch (popupError: any) {
-        console.warn('Popup sign-in failed, trying redirect:', popupError);
+      } catch (popupError: unknown) {
+        const authError = popupError as AuthenticationError;
+        console.warn('Popup sign-in failed, trying redirect:', authError);
 
         // If popup fails due to COOP or other popup-related issues, use redirect
         if (
-          popupError?.code === 'auth/popup-blocked' ||
+          authError?.code === 'auth/popup-blocked' ||
           popupError?.code === 'auth/popup-closed-by-user' ||
           popupError?.message?.includes('Cross-Origin-Opener-Policy') ||
           popupError?.message?.includes('popup')
@@ -145,12 +158,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
 
         // Re-throw other errors
-        throw popupError;
+        throw authError;
       }
-    } catch (error: any) {
-      console.error('Google sign-in failed:', error);
+    } catch (error: unknown) {
+      const authError = error as AuthenticationError;
+      console.error('Google sign-in failed:', authError);
       setLoading(false);
-      throw error;
+      throw authError;
     }
   }, []);
 

@@ -9,9 +9,7 @@ import {
   RotateCcw,
   Star
 } from 'lucide-react';
-import LoadingSpinner from '../components/ui/LoadingSpinner';
-import RestTimer from '../components/RestTimer';
-import Button from '../components/ui/Button';
+import { Loading, RestTimer, Button } from '../components/ui';
 import type { WorkoutPlanResponse, WorkoutExercise } from '../types/api';
 
 // Helper function to parse rest time strings like "90s", "2m", "1m 30s" into seconds
@@ -57,7 +55,7 @@ const WorkoutDetailPage: React.FC = () => {
   const [timer, setTimer] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [feedback, setFeedback] = useState('');
-  const [rating, setRating] = useState(0);
+  const [rating, setRating] = useState<number | undefined>(undefined);
   const [showRestTimer, setShowRestTimer] = useState(false);
   const [restTimerKey, setRestTimerKey] = useState(0); // Force re-render of RestTimer
   const prefersReducedMotion =
@@ -192,7 +190,7 @@ const WorkoutDetailPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-secondary-50 dark:bg-secondary-950 transition-colors duration-300">
-        <LoadingSpinner size="lg" text="Loading workout..." />
+        <Loading size="lg" text="Loading workout..." />
       </div>
     );
   }

@@ -6,8 +6,14 @@ import Badge from './Badge';
 import Button from './Button';
 import Card from './Card';
 import { Heading, Body } from './Typography';
-import { MicroInteraction } from './animations';
-import { workoutCardVariants } from './animations/variants';
+// Remove MicroInteraction import - using simple motion.div instead
+// Simple animation variants
+const workoutCardVariants = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  hover: { y: -4, scale: 1.02 },
+  tap: { scale: 0.98 },
+};
 import type { WorkoutPlanResponse } from '../../types/api';
 
 export interface WorkoutCardProps {
@@ -57,8 +63,7 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
 
   if (variant === 'compact') {
     return (
-      <MicroInteraction type="card" className={className}>
-        <motion.div
+      <motion.div
           variants={workoutCardVariants}
           initial="initial"
           animate="animate"
@@ -68,7 +73,8 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
             'hover:border-primary-200/50 hover:shadow-glow-sm transition-all duration-300',
             'cursor-pointer touch-manipulation select-none',
             'active:scale-[0.98] active:shadow-inner',
-            'focus-visible:ring-4 focus-visible:ring-primary-500/30 focus-visible:outline-none'
+            'focus-visible:ring-4 focus-visible:ring-primary-500/30 focus-visible:outline-none',
+            className
           )}
           style={{
             WebkitTapHighlightColor: 'transparent',
@@ -101,15 +107,13 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
             </p>
           </div>
         </div>
-        </motion.div>
-      </MicroInteraction>
+      </motion.div>
     );
   }
 
   if (variant === 'featured') {
     return (
-      <MicroInteraction type="card" className={className}>
-        <motion.div
+      <motion.div
           variants={workoutCardVariants}
           initial="initial"
           animate="animate"
@@ -118,7 +122,8 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
             'bg-gradient-to-br from-primary-50 to-primary-100',
             'border border-primary-200 rounded-2xl p-6',
             'shadow-medium hover:shadow-hard transition-all duration-300',
-            'relative overflow-hidden'
+            'relative overflow-hidden',
+            className
           )}
         >
         {/* Background decoration */}
@@ -182,15 +187,13 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
             </Button>
           </div>
         </div>
-        </motion.div>
-      </MicroInteraction>
+      </motion.div>
     );
   }
 
   // Default variant
   return (
-    <MicroInteraction type="card" className={className}>
-      <motion.div
+    <motion.div
         variants={workoutCardVariants}
         initial="initial"
         animate="animate"
@@ -198,7 +201,8 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
         className={clsx(
           'bg-white rounded-xl border border-secondary-200 p-6',
           'hover:border-secondary-300 hover:shadow-soft transition-all duration-200',
-          'group'
+          'group',
+          className
         )}
       >
       <div className="flex items-start justify-between mb-4">
@@ -255,8 +259,7 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
           View Details
         </Button>
       </div>
-      </motion.div>
-    </MicroInteraction>
+    </motion.div>
   );
 };
 

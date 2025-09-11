@@ -10,16 +10,10 @@
       "type": "image/x-icon"
     },
     {
-      "src": "/icon-192x192.png",
+      "src": "/vite.svg",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable any"
-    },
-    {
-      "src": "/icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable any"
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
   ],
   "start_url": "/?source=pwa",
@@ -36,63 +30,7 @@
     "client_mode": "navigate-existing"
   },
   "display_override": ["standalone", "minimal-ui", "window-controls-overlay"],
-  "shortcuts": [
-    {
-      "name": "Generate Workout",
-      "short_name": "Generate",
-      "description": "Create a new AI-powered workout",
-      "url": "/generate",
-      "icons": [
-        {
-          "src": "/shortcut-generate.png",
-          "sizes": "96x96",
-          "type": "image/png"
-        }
-      ]
-    },
-    {
-      "name": "Workout History",
-      "short_name": "History",
-      "description": "View your workout history and progress",
-      "url": "/history",
-      "icons": [
-        {
-          "src": "/shortcut-history.png",
-          "sizes": "96x96",
-          "type": "image/png"
-        }
-      ]
-    },
-    {
-      "name": "Analytics",
-      "short_name": "Analytics",
-      "description": "Track your fitness progress and insights",
-      "url": "/analytics",
-      "icons": [
-        {
-          "src": "/shortcut-analytics.png",
-          "sizes": "96x96",
-          "type": "image/png"
-        }
-      ]
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "/screenshot-wide.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "AI Workout Dashboard"
-    },
-    {
-      "src": "/screenshot-narrow.png",
-      "sizes": "750x1334",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Mobile Workout Experience"
-    }
-  ],
+
   "related_applications": [],
   "prefer_related_applications": false,
   "edge_side_panel": {

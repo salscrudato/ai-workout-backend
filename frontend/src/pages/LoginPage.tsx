@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Dumbbell, ArrowRight, Sparkles, CheckCircle } from 'lucide-react';
-import LoadingSpinner from '../components/ui/LoadingSpinner';
+import { Loading } from '../components/ui';
 
 const LoginPage: React.FC = () => {
   const { signInWithGoogle, isAuthenticated, loading } = useAuth();
@@ -30,7 +30,7 @@ const LoginPage: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
-        <LoadingSpinner size="lg" text="Loading..." />
+        <Loading size="lg" text="Loading..." />
       </div>
     );
   }
@@ -94,7 +94,7 @@ const LoginPage: React.FC = () => {
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-xl transition-colors duration-200 flex items-center justify-center space-x-3 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSigningIn ? (
-                <LoadingSpinner size="sm" />
+                <Loading size="sm" />
               ) : (
                 <>
                   <svg className="w-5 h-5" viewBox="0 0 24 24">

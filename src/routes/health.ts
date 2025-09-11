@@ -1,7 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { asyncHandler } from '../middlewares/errors';
 import { getFirestore } from '../config/db';
-// Removed heavy dependencies not needed for fast health checks
 import pino from 'pino';
 
 // Create logger wrapper that accepts any parameters
@@ -150,6 +149,22 @@ router.get('/live', asyncHandler(async (_req: Request, res: Response) => {
   // Simple liveness check - if we can respond, we're alive
   res.status(200).json({
     alive: true,
+    timestamp: new Date().toISOString()
+  });
+}));
+
+// Basic performance metrics endpoint
+router.get('/performance', asyncHandler(async (_req: Request, res: Response) => {
+  const memoryUsage = process.memoryUsage();
+  const uptime = process.uptime();
+
+  res.status(200).json({
+    memory: {
+      heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024),
+      heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024),
+      external: Math.round(memoryUsage.external / 1024 / 1024)
+    },
+    uptime: Math.round(uptime),
     timestamp: new Date().toISOString()
   });
 }));

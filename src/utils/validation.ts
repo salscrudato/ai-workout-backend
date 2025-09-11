@@ -22,6 +22,7 @@ export const sanitizeString = (str: string): string => {
     .trim()
     .replace(/[<>]/g, '') // Remove potential XSS characters
     .replace(/\s+/g, ' ') // Normalize whitespace
+    .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters
     .slice(0, 1000); // Prevent extremely long strings
 };
 
@@ -199,7 +200,11 @@ export const WorkoutTypeSchema = z.enum([
 export const GenerateWorkoutSchema = z.object({
   experience: ExperienceSchema,
   goals: GoalsSchema,
-  workoutType: z.string().min(1, 'Workout type is required').max(50, 'Workout type is too long'),
+  workoutType: z.string()
+    .min(1, 'Workout type is required')
+    .max(50, 'Workout type is too long')
+    .regex(/^[a-zA-Z0-9_\s\/-]+$/, 'Invalid workout type format')
+    .transform(sanitizeString),
   equipmentAvailable: EquipmentSchema,
   duration: z
     .number()

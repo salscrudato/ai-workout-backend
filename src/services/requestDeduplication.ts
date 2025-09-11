@@ -451,7 +451,7 @@ export function deduplicate(options: { key?: string; timeout?: number } = {}) {
       return requestDeduplicationService.execute(
         () => method.apply(this, args),
         args,
-        { key: key, timeout: options.timeout }
+        { key, timeout: options.timeout }
       );
     };
 

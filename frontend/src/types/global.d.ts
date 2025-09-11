@@ -228,7 +228,7 @@ declare module '*.webp' {
 
 // JSON Modules
 declare module '*.json' {
-  const value: any;
+  const value: Record<string, unknown>;
   export default value;
 }
 

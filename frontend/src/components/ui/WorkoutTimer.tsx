@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { clsx } from 'clsx';
-import { Play, Pause, RotateCcw, Clock, Volume2, VolumeX, CheckCircle } from 'lucide-react';
+import { Play, Pause, RotateCcw, Clock, Volume2, VolumeX, CheckCircle, Timer, Zap, Award } from 'lucide-react';
 import Button from './Button';
 
 export interface WorkoutTimerProps {
@@ -186,96 +186,136 @@ const WorkoutTimer: React.FC<WorkoutTimerProps> = ({
   return (
     <div
       className={clsx(
-        'rounded-2xl border p-6 transition-colors duration-300 motion-reduce:transition-none',
-        variantStyles.bg,
-        variantStyles.border,
-        isCompleted && 'ring-2 ring-green-500 ring-opacity-50',
+        'glass-premium rounded-3xl p-8 transition-all duration-300 hover-lift-subtle',
+        isCompleted && 'shadow-glow-green border-2 border-success-300',
+        variant === 'rest' && 'glass-tinted border-2 border-primary-300 shadow-glow-blue',
+        variant === 'exercise' && 'glass-light border-2 border-success-300',
         className
       )}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className={clsx('p-2 rounded-lg', variantStyles.bg)}>
-            <Clock className="w-5 h-5 text-secondary-500 dark:text-secondary-400" />
+      {/* Enhanced Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-4">
+          <div className={clsx(
+            'w-12 h-12 rounded-full flex items-center justify-center',
+            variant === 'rest' ? 'glass-tinted' : 'glass-light'
+          )}>
+            <Timer className={clsx(
+              'w-6 h-6',
+              variant === 'rest' ? 'text-primary-600' : 'text-success-600'
+            )} />
           </div>
           <div>
             {title && (
-              <h3 className={clsx('font-semibold', variantStyles.text)}>
+              <h3 className="text-xl font-bold gradient-text-primary mb-1">
                 {title}
               </h3>
             )}
             {subtitle && (
-              <p className="text-sm text-secondary-600 dark:text-secondary-400">{subtitle}</p>
+              <p className="text-sm text-neutral-600">{subtitle}</p>
             )}
           </div>
         </div>
-        
+
         {isCompleted && (
-          <div className="flex items-center gap-2 bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200 px-3 py-1 rounded-full">
-            <CheckCircle className="w-4 h-4" />
-            <span className="text-sm font-medium">Complete!</span>
+          <div className="flex items-center gap-2 glass-light rounded-full px-4 py-2 border border-success-300">
+            <Award className="w-5 h-5 text-success-600" />
+            <span className="text-sm font-semibold text-success-700">Complete!</span>
           </div>
         )}
       </div>
 
-      {/* Progress bar */}
-      <div className="w-full bg-secondary-200 dark:bg-secondary-800 rounded-full h-3 mb-6">
-        <div
-          className={clsx(
-            'h-3 rounded-full transition-all duration-1000 motion-reduce:transition-none',
-            variantStyles.progress,
-            isCompleted && 'bg-green-500'
-          )}
-          style={{ width: `${getProgressPercentage()}%` }}
-        />
-      </div>
+      {/* Enhanced Circular Progress */}
+      <div className="relative w-48 h-48 mx-auto mb-8">
+        {/* Background circle */}
+        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+          <circle
+            cx="50"
+            cy="50"
+            r="45"
+            stroke="currentColor"
+            strokeWidth="4"
+            fill="none"
+            className="text-neutral-200"
+          />
+          {/* Progress circle */}
+          <circle
+            cx="50"
+            cy="50"
+            r="45"
+            stroke="currentColor"
+            strokeWidth="4"
+            fill="none"
+            strokeLinecap="round"
+            className={clsx(
+              'transition-all duration-1000 ease-out',
+              variant === 'rest' ? 'text-primary-500' : 'text-success-500',
+              isCompleted && 'text-success-500'
+            )}
+            strokeDasharray={`${2 * Math.PI * 45}`}
+            strokeDashoffset={`${2 * Math.PI * 45 * (1 - getProgressPercentage() / 100)}`}
+          />
+        </svg>
 
-      {/* Timer display */}
-      <div className="text-center mb-6" role="timer" aria-live="polite" aria-label="Timer" aria-valuetext={formatTime(timeLeft)}>
-        <div className={clsx('text-6xl font-bold', getTimerColor())}>
-          {formatTime(timeLeft)}
+        {/* Timer display in center */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-center">
+            <div className={clsx(
+              'text-5xl font-bold mb-2',
+              isCompleted ? 'text-success-600' :
+              variant === 'rest' ? 'gradient-text-primary' : 'gradient-text-blue'
+            )} role="timer" aria-live="polite" aria-label="Timer" aria-valuetext={formatTime(timeLeft)}>
+              {formatTime(timeLeft)}
+            </div>
+            <div className="text-sm font-medium text-neutral-500 uppercase tracking-wide">
+              {isCompleted ? 'Complete' : isRunning ? 'Running' : 'Paused'}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Controls */}
+      {/* Enhanced Controls */}
       {showControls && (
-        <div className="flex items-center justify-center gap-3">
+        <div className="flex items-center justify-center gap-4 flex-wrap">
           {!isRunning ? (
             <Button
               variant="primary"
-              size="lg"
-              leftIcon={<Play className="w-5 h-5" />}
+              size="xl"
+              leftIcon={<Play className="w-6 h-6" />}
               onClick={handleStart}
               disabled={isCompleted && timeLeft === 0}
+              className="hover-lift shadow-glow-blue px-8"
             >
-              {isCompleted ? 'Restart' : 'Start'}
+              {isCompleted ? 'Restart Timer' : 'Start Timer'}
             </Button>
           ) : (
             <Button
               variant="secondary"
-              size="lg"
-              leftIcon={<Pause className="w-5 h-5" />}
+              size="xl"
+              leftIcon={<Pause className="w-6 h-6" />}
               onClick={handlePause}
+              className="hover-lift px-8"
             >
-              Pause
+              Pause Timer
             </Button>
           )}
-          
+
           <Button
             variant="outline"
             size="lg"
             leftIcon={<RotateCcw className="w-5 h-5" />}
             onClick={handleReset}
+            className="hover-lift-subtle"
           >
             Reset
           </Button>
-          
+
           <Button
-            variant="ghost"
+            variant={soundEnabled ? "primary" : "ghost"}
             size="lg"
             leftIcon={soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
             onClick={toggleSound}
+            className="hover-lift-subtle"
           >
             {soundEnabled ? 'Sound On' : 'Sound Off'}
           </Button>

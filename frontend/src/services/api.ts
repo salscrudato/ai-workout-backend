@@ -69,7 +69,10 @@ class ApiClient {
   private baseURL: string;
   private cache = new Map<string, CacheEntry>();
   private pendingRequests = new Map<string, Promise<any>>();
-  private readonly DEFAULT_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  private readonly isDev = import.meta.env.DEV;
+  private readonly isMobileDev = typeof window !== 'undefined' && (window.location.hostname.includes('192.168') || window.location.hostname.includes('10.0'));
+  private readonly minimizeCache = this.isDev || this.isMobileDev || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('no-cache'));
+  private readonly DEFAULT_CACHE_TTL = this.minimizeCache ? 30 * 1000 : 5 * 60 * 1000; // 30 seconds in dev, 5 minutes in prod
 
   /**
    * Initialize the API client with environment-specific configuration
@@ -90,7 +93,7 @@ class ApiClient {
 
     // Use production URL by default to avoid CORS issues
     // Override with VITE_API_BASE_URL environment variable if needed
-    this.baseURL = envApiUrl || 'https://ai-workout-backend-2024.web.app';
+    this.baseURL = envApiUrl || 'https://api-4pnbqxhgha-uc.a.run.app';
 
     if (isDevelopment) {
       console.log('🔧 API Client initialized in development mode');
@@ -104,7 +107,9 @@ class ApiClient {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Cache-Control': 'no-cache',
+        'Cache-Control': this.minimizeCache ? 'no-cache, no-store, must-revalidate' : 'no-cache',
+        'Pragma': this.minimizeCache ? 'no-cache' : undefined,
+        'Expires': this.minimizeCache ? '0' : undefined,
       },
       withCredentials: false,
       // Performance optimizations
@@ -290,7 +295,7 @@ class ApiClient {
     data?: any,
     options: { cache?: boolean; cacheTtl?: number; timeout?: number } = {}
   ): Promise<T> {
-    const { cache = method === 'GET', cacheTtl = this.DEFAULT_CACHE_TTL } = options;
+    const { cache = method === 'GET' && !this.minimizeCache, cacheTtl = this.DEFAULT_CACHE_TTL } = options;
     const cacheKey = this.getCacheKey(method, url, data);
 
     // Check cache first (only for cacheable requests)
@@ -573,10 +578,11 @@ class ApiClient {
   // Workout management
   async getWorkout(workoutId: string): Promise<WorkoutPlanResponse> {
     try {
-      // Cache individual workout data for 15 minutes
+      // Cache individual workout data - shorter in dev
+      const cacheTtl = this.minimizeCache ? 30 * 1000 : 15 * 60 * 1000; // 30s in dev, 15min in prod
       return await this.cachedRequest<WorkoutPlanResponse>('GET', `/v1/workouts/${workoutId}`, undefined, {
-        cache: true,
-        cacheTtl: 15 * 60 * 1000
+        cache: !this.minimizeCache,
+        cacheTtl
       });
     } catch (error) {
       this.handleError(error);
@@ -585,10 +591,11 @@ class ApiClient {
 
   async listWorkouts(userId: string): Promise<{ workouts: WorkoutPlanResponse[] }> {
     try {
-      // Cache workout list for 5 minutes
+      // Cache workout list - shorter in dev
+      const cacheTtl = this.minimizeCache ? 15 * 1000 : 5 * 60 * 1000; // 15s in dev, 5min in prod
       return await this.cachedRequest<{ workouts: WorkoutPlanResponse[] }>('GET', `/v1/workouts`, { userId }, {
-        cache: true,
-        cacheTtl: 5 * 60 * 1000
+        cache: !this.minimizeCache,
+        cacheTtl
       });
     } catch (error) {
       this.handleError(error);
@@ -597,10 +604,23 @@ class ApiClient {
 
   async completeWorkout(workoutId: string, feedback?: string, rating?: number): Promise<WorkoutSession> {
     try {
-      const response = await this.client.post<WorkoutSession>(`/v1/workouts/${workoutId}/complete`, {
-        feedback,
-        rating,
-      });
+      // Build request body, only including valid values
+      const requestBody: any = {};
+
+      // Only include feedback if it's a non-empty string
+      if (feedback && feedback.trim().length > 0) {
+        requestBody.feedback = feedback.trim();
+      }
+
+      // Only include rating if it's a valid number between 1-5
+      if (rating && rating >= 1 && rating <= 5) {
+        requestBody.rating = rating;
+      }
+
+      // Add completion timestamp
+      requestBody.completedAt = new Date().toISOString();
+
+      const response = await this.client.post<WorkoutSession>(`/v1/workouts/${workoutId}/complete`, requestBody);
       return this.handleResponse(response);
     } catch (error) {
       this.handleError(error);

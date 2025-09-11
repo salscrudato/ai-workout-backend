@@ -2,7 +2,16 @@
 
 ## Overview
 
-This document provides a comprehensive overview of the AI Workout Backend architecture, designed for optimal AI-agent collaboration and maintainability.
+This document provides a comprehensive overview of the AI Workout Backend architecture, designed for optimal AI-agent collaboration and maintainability. The codebase has been consolidated and simplified to remove redundancy while preserving all core functionality.
+
+## 🎯 Recent Consolidation (2025)
+
+The codebase underwent major consolidation to improve maintainability:
+- **Removed 20+ redundant files** and over-engineered services
+- **Consolidated 6 overlapping services** into 2 unified services
+- **Simplified build process** and deployment scripts
+- **Fixed critical API validation issues** for workout completion
+- **Enhanced error handling** with comprehensive validation responses
 
 ## System Architecture
 
@@ -68,10 +77,10 @@ src/
 │   └── analytics.ts     # Analytics endpoints
 ├── services/            # Business logic services
 │   ├── generator.ts     # AI workout generation
-│   ├── prompt.ts        # AI prompt engineering
-│   ├── promptOptimizer.ts # Prompt optimization
-│   ├── performanceOptimizer.ts # Performance monitoring
-│   └── workoutProgramming.ts # Exercise programming
+│   ├── unifiedPromptService.ts # Unified prompt management
+│   ├── cache.ts         # Unified caching service
+│   ├── requestDeduplication.ts # Request deduplication
+│   └── gracefulDegradation.ts # Fallback handling
 ├── schemas/             # Data validation schemas
 │   ├── preworkout.ts    # Pre-workout data schema
 │   └── workoutOutput.ts # Workout output schema

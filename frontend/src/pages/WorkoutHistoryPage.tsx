@@ -11,7 +11,7 @@ import {
   Search,
   Eye
 } from 'lucide-react';
-import LoadingSpinner from '../components/ui/LoadingSpinner';
+import { Loading } from '../components/ui';
 import Button from '../components/ui/Button';
 import type { WorkoutPlanResponse } from '../types/api';
 
@@ -84,7 +84,7 @@ const WorkoutHistoryPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-secondary-50 dark:bg-secondary-950 transition-colors duration-300">
-        <LoadingSpinner size="lg" text="Loading workout history..." />
+        <Loading size="lg" text="Loading workout history..." />
       </div>
     );
   }

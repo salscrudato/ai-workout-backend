@@ -1,8 +1,10 @@
 // Advanced Service Worker for AI Workout App
 const IS_DEV = self.location.hostname === 'localhost';
+const IS_MOBILE_DEV = self.location.hostname.includes('192.168') || self.location.hostname.includes('10.0');
+const MINIMIZE_CACHE = IS_DEV || IS_MOBILE_DEV || new URLSearchParams(self.location.search).has('no-cache');
 const log = (...args) => { if (IS_DEV) console.log('[SW]', ...args); };
 
-const CACHE_VERSION = '2.1.0';
+const CACHE_VERSION = MINIMIZE_CACHE ? `dev-${Date.now()}` : '2.1.0';
 const STATIC_CACHE = `ai-workout-static-v${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `ai-workout-dynamic-v${CACHE_VERSION}`;
 const API_CACHE = `ai-workout-api-v${CACHE_VERSION}`;
@@ -213,8 +215,19 @@ async function handleStaticResource(request) {
   }
 }
 
-// Stale-while-revalidate for API requests
+// Stale-while-revalidate for API requests (with cache bypass option)
 async function handleAPIRequest(request) {
+  // If minimizing cache, always fetch fresh data
+  if (MINIMIZE_CACHE) {
+    log('🚫 Bypassing API cache for fresh data');
+    return fetch(request).catch(() => {
+      return new Response(JSON.stringify({ error: 'Offline' }), {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    });
+  }
+
   const cache = await caches.open(API_CACHE);
   const cachedResponse = await cache.match(request);
 

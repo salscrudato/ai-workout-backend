@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Zap, History, User, Dumbbell, Plus } from 'lucide-react';
-import ModernLoadingSkeleton from '../components/ui/ModernLoadingSkeleton';
+import { Loading } from '../components/ui';
 import type { WorkoutPlanResponse } from '../types/api';
 
 const DashboardPage: React.FC = () => {
@@ -42,7 +42,7 @@ const DashboardPage: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50 px-4 py-6">
         <div className="max-w-6xl mx-auto">
-          <ModernLoadingSkeleton variant="dashboard" shimmer animate />
+          <Loading variant="skeleton" />
         </div>
       </div>
     );

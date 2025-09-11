@@ -1,0 +1,100 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Button Component > Snapshots > matches snapshot for default 1`] = `
+<button
+  class="btn btn-primary micro-bounce focus-premium btn-md touch-manipulation select-none active:scale-[0.98] active:transition-transform active:duration-75"
+>
+  <div
+    class="flex items-center justify-center"
+  >
+    <span>
+      Default Button
+    </span>
+  </div>
+</button>
+`;
+
+exports[`Button Component > Snapshots > matches snapshot for disabled state 1`] = `
+<button
+  class="btn btn-primary micro-bounce focus-premium btn-md opacity-50 cursor-not-allowed touch-manipulation select-none active:scale-[0.98] active:transition-transform active:duration-75"
+  disabled=""
+>
+  <div
+    class="flex items-center justify-center"
+  >
+    <span>
+      Disabled Button
+    </span>
+  </div>
+</button>
+`;
+
+exports[`Button Component > Snapshots > matches snapshot for loading state 1`] = `
+<button
+  class="btn btn-primary micro-bounce focus-premium btn-md opacity-50 cursor-not-allowed touch-manipulation select-none active:scale-[0.98] active:transition-transform active:duration-75"
+  disabled=""
+>
+  <div
+    class="flex items-center justify-center"
+  >
+    <div
+      class="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"
+    />
+    <span>
+      Loading Button
+    </span>
+  </div>
+</button>
+`;
+
+exports[`Button Component > Snapshots > matches snapshot for primary variant 1`] = `
+<button
+  class="btn btn-primary micro-bounce focus-premium btn-md touch-manipulation select-none active:scale-[0.98] active:transition-transform active:duration-75"
+>
+  <div
+    class="flex items-center justify-center"
+  >
+    <span>
+      Primary Button
+    </span>
+  </div>
+</button>
+`;
+
+exports[`Button Component > Snapshots > matches snapshot for secondary variant 1`] = `
+<button
+  class="btn btn-secondary micro-bounce focus-premium btn-md touch-manipulation select-none active:scale-[0.98] active:transition-transform active:duration-75"
+>
+  <div
+    class="flex items-center justify-center"
+  >
+    <span>
+      Secondary Button
+    </span>
+  </div>
+</button>
+`;
+
+exports[`Button Component > Snapshots > matches snapshot for with icons 1`] = `
+<button
+  class="btn btn-primary micro-bounce focus-premium btn-md touch-manipulation select-none active:scale-[0.98] active:transition-transform active:duration-75"
+>
+  <div
+    class="flex items-center justify-center"
+  >
+    <span
+      class="inline-flex items-center justify-center mr-2 w-5 h-5"
+    >
+      ←
+    </span>
+    <span>
+      Icon Button
+    </span>
+    <span
+      class="inline-flex items-center justify-center ml-2 w-5 h-5"
+    >
+      →
+    </span>
+  </div>
+</button>
+`;

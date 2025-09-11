@@ -81,7 +81,7 @@ export class RetryManager {
     const retryableCodes = ['ECONNRESET', 'ECONNABORTED', 'ETIMEDOUT', 'ENOTFOUND', 'EAI_AGAIN'];
     if ('code' in error && retryableCodes.includes((error as any).code)) return true;
     if ('status' in error) {
-      const status = (error as any).status;
+      const {status} = (error as any);
       return status >= 500 || status === 429;
     }
     const msg = (error.message || '').toLowerCase();

@@ -44,7 +44,23 @@ function isRetryableError(err: any): boolean {
   );
 }
 
-const SYSTEM_PROMPT = `You are an expert strength & conditioning coach. Return a safe, effective workout as **valid JSON** that exactly follows the provided JSON schema. Prioritize movement quality, progressive overload, and time efficiency. Tailor sets/reps or time and rest to the user's experience, duration, goals, and equipment. Do not include any text outside of JSON.`;
+const SYSTEM_PROMPT = `You are an expert strength & conditioning coach and exercise physiologist. Create safe, effective workouts that follow proper training principles.
+
+CRITICAL REQUIREMENTS FOR SETS:
+1. Each main exercise MUST have 2-5 sets in the "sets" array
+2. NEVER create single-set workouts for main exercises - this is a critical error
+3. Each set object must include: reps, time_sec, rest_sec, tempo, intensity, notes, weight_guidance, rpe, rest_type
+4. For strength exercises: typically 3-4 sets with 6-12 reps each
+5. For endurance exercises: typically 2-3 sets with 12-20 reps each
+6. For cardio exercises: typically 2-4 sets with time_sec > 0 and reps = 0
+
+WORKOUT STRUCTURE:
+- Warmup: 1 set per exercise (mobility/activation)
+- Main exercises: 2-5 sets per exercise (strength/conditioning)
+- Finisher: 1-3 rounds (high intensity)
+- Cooldown: 1 set per exercise (stretching/recovery)
+
+Return ONLY valid JSON that exactly follows the provided schema. No additional text or explanations outside of JSON.`;
 
 /**
  * Generate AI-powered workout plan with optimized performance
@@ -124,14 +140,17 @@ export async function generateWorkout(
   }
 
   try {
-    const parsed = JSON.parse(text);
+    let parsed = JSON.parse(text);
     const responseTime = Date.now() - startTime;
 
     // Validate basic structure
-    if (!parsed.meta || !parsed.warmup || !parsed.main || !parsed.cooldown) {
+    if (!parsed.meta || !parsed.warmup || !parsed.blocks || !parsed.cooldown) {
       logger.warn('Invalid workout structure from AI, using fallback', { requestId });
       return buildFallbackPlan(options, requestId, responseTime);
     }
+
+    // Validate and fix sets structure to ensure multiple sets
+    parsed = validateAndFixSets(parsed, requestId);
 
     logger.info('AI workout generation completed successfully', {
       requestId,
@@ -150,6 +169,52 @@ export async function generateWorkout(
     });
     return buildFallbackPlan(options, requestId, Date.now() - startTime);
   }
+}
+
+/**
+ * Validate and fix sets structure to ensure multiple sets per exercise
+ * This is critical to fix the single-set workout issue
+ */
+function validateAndFixSets(workoutPlan: any, requestId: string): any {
+  logger.debug('Validating and fixing sets structure', { requestId });
+
+  // Fix main exercise blocks
+  if (workoutPlan.blocks && Array.isArray(workoutPlan.blocks)) {
+    workoutPlan.blocks.forEach((block: any, blockIndex: number) => {
+      if (block.exercises && Array.isArray(block.exercises)) {
+        block.exercises.forEach((exercise: any, exerciseIndex: number) => {
+          if (!exercise.sets || !Array.isArray(exercise.sets) || exercise.sets.length < 2) {
+            logger.warn('Fixing exercise with insufficient sets', {
+              requestId,
+              blockIndex,
+              exerciseIndex,
+              exerciseName: exercise.display_name || exercise.name,
+              currentSets: exercise.sets?.length || 0
+            });
+
+            // Create proper sets structure
+            const defaultSets = 3;
+            const baseReps = 10;
+            const baseRest = 60;
+
+            exercise.sets = Array.from({ length: defaultSets }, (_, setIndex) => ({
+              reps: Math.max(6, baseReps - setIndex),
+              time_sec: 0,
+              rest_sec: baseRest,
+              tempo: '2-1-2-1',
+              intensity: setIndex === 0 ? 'moderate' : setIndex === defaultSets - 1 ? 'high' : 'moderate',
+              notes: setIndex === 0 ? 'warm-up set' : setIndex === defaultSets - 1 ? 'final set' : 'working set',
+              weight_guidance: setIndex === 0 ? 'light' : setIndex === defaultSets - 1 ? 'heavy' : 'moderate',
+              rpe: Math.min(9, 6 + setIndex),
+              rest_type: 'active'
+            }));
+          }
+        });
+      }
+    });
+  }
+
+  return workoutPlan;
 }
 
 /**
@@ -197,8 +262,9 @@ function buildFallbackPlan(
             primary_muscles: ['quadriceps','glutes'],
             instructions: ['Feet shoulder width, knees track toes', 'Brace core, neutral spine', 'Control down, drive up'],
             sets: [
-              { reps: 12, time_sec: 0, rest_sec: 60, tempo: '2-1-2-0', intensity: 'moderate', notes: 'RPE ~7', weight_guidance: 'bodyweight', rpe: 7, rest_type: 'active' },
-              { reps: 12, time_sec: 0, rest_sec: 60, tempo: '2-1-2-0', intensity: 'moderate', notes: 'RPE ~7', weight_guidance: 'bodyweight', rpe: 7, rest_type: 'active' }
+              { reps: 12, time_sec: 0, rest_sec: 60, tempo: '2-1-2-0', intensity: 'moderate', notes: 'warm-up set', weight_guidance: 'bodyweight', rpe: 6, rest_type: 'active' },
+              { reps: 12, time_sec: 0, rest_sec: 60, tempo: '2-1-2-0', intensity: 'moderate', notes: 'working set', weight_guidance: 'bodyweight', rpe: 7, rest_type: 'active' },
+              { reps: 12, time_sec: 0, rest_sec: 60, tempo: '2-1-2-0', intensity: 'high', notes: 'final set', weight_guidance: 'bodyweight', rpe: 8, rest_type: 'active' }
             ]
           },
           {
@@ -209,8 +275,9 @@ function buildFallbackPlan(
             primary_muscles: ['chest','triceps'],
             instructions: ['Straight line head to heels', 'Elbows ~45°', 'Lower under control'],
             sets: [
-              { reps: 10, time_sec: 0, rest_sec: 60, tempo: '2-1-2-0', intensity: 'moderate', notes: 'Knees down if needed', weight_guidance: 'bodyweight', rpe: 7, rest_type: 'active' },
-              { reps: 10, time_sec: 0, rest_sec: 60, tempo: '2-1-2-0', intensity: 'moderate', notes: 'Knees down if needed', weight_guidance: 'bodyweight', rpe: 7, rest_type: 'active' }
+              { reps: 10, time_sec: 0, rest_sec: 60, tempo: '2-1-2-0', intensity: 'moderate', notes: 'warm-up set', weight_guidance: 'bodyweight', rpe: 6, rest_type: 'active' },
+              { reps: 10, time_sec: 0, rest_sec: 60, tempo: '2-1-2-0', intensity: 'moderate', notes: 'working set', weight_guidance: 'bodyweight', rpe: 7, rest_type: 'active' },
+              { reps: 10, time_sec: 0, rest_sec: 60, tempo: '2-1-2-0', intensity: 'high', notes: 'final set', weight_guidance: 'bodyweight', rpe: 8, rest_type: 'active' }
             ]
           },
           {

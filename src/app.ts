@@ -177,7 +177,7 @@ export async function createExpressApp(): Promise<express.Application> {
   // Stricter rate limiting for AI generation endpoint
   app.use('/v1/workouts/generate', rateLimit({
     windowMs: 60_000, // 1 minute
-    max: 6, // 6 requests per minute per IP
+    max: 8, // Increased from 6 to 8 for better UX
     message: {
       error: 'Too many workout generation requests, please try again later',
       code: 'WORKOUT_GENERATION_RATE_LIMIT',
@@ -186,7 +186,7 @@ export async function createExpressApp(): Promise<express.Application> {
     legacyHeaders: false,
     keyGenerator: (req) => {
       // Use user ID if available for better rate limiting
-      return req.user?.uid || req.ip || 'unknown';
+      return (req as any).user?.uid || req.ip || 'unknown';
     },
   }));
 

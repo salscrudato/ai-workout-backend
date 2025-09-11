@@ -5,18 +5,17 @@ import { apiClient } from '../services/api';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import {
-  ArrowLeft,
-  User,
-  Edit3,
-  Save,
+import { 
+  ArrowLeft, 
+  User, 
+  Edit3, 
+  Save, 
   X,
   Target,
   Dumbbell,
-  AlertTriangle,
-  Check
+  AlertTriangle
 } from 'lucide-react';
-import LoadingSpinner from '../components/ui/LoadingSpinner';
+import { Loading } from '../components/ui';
 import type { Equipment, CreateProfileInput } from '../types/api';
 
 // Validation schema
@@ -177,7 +176,7 @@ const ProfilePage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner size="lg" text="Loading profile..." />
+        <Loading size="lg" text="Loading profile..." />
       </div>
     );
   }
@@ -240,7 +239,7 @@ const ProfilePage: React.FC = () => {
                     className="btn btn-primary btn-sm"
                   >
                     {isSaving ? (
-                      <LoadingSpinner size="sm" />
+                      <Loading size="sm" />
                     ) : (
                       <>
                         <Save className="h-4 w-4 mr-1" />
@@ -303,10 +302,10 @@ const ProfilePage: React.FC = () => {
                 {GOAL_OPTIONS.map((goal) => (
                   <label
                     key={goal}
-                    className={`relative flex items-center justify-center p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 touch-target min-h-[60px] ${
+                    className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
                       watchedValues.goals?.includes(goal)
-                        ? 'border-primary-500 bg-primary-50 shadow-lg shadow-primary-500/20 text-primary-800 scale-105'
-                        : 'border-neutral-200 hover:border-primary-300 hover:bg-primary-50/30 hover:scale-102 active:scale-98'
+                        ? 'border-primary-500 bg-primary-50'
+                        : 'border-secondary-200 hover:border-secondary-300'
                     }`}
                   >
                     <input
@@ -315,16 +314,7 @@ const ProfilePage: React.FC = () => {
                       onChange={() => toggleArrayValue(watchedValues.goals || [], goal, 'goals')}
                       checked={watchedValues.goals?.includes(goal) || false}
                     />
-                    <div className="text-center w-full">
-                      <div className="text-sm font-semibold leading-tight">{goal}</div>
-                    </div>
-
-                    {/* Enhanced selection indicator */}
-                    {watchedValues.goals?.includes(goal) && (
-                      <div className="absolute -top-2 -right-2 w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center shadow-lg animate-bounce">
-                        <Check className="w-4 h-4 text-white" />
-                      </div>
-                    )}
+                    <div className="flex-1 text-sm font-medium text-center">{goal}</div>
                   </label>
                 ))}
               </div>
@@ -357,10 +347,10 @@ const ProfilePage: React.FC = () => {
                 {equipment.map((item) => (
                   <label
                     key={item.slug}
-                    className={`relative flex items-center justify-center p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 touch-target min-h-[60px] ${
+                    className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
                       watchedValues.equipmentAvailable?.includes(item.slug)
-                        ? 'border-primary-500 bg-primary-50 shadow-lg shadow-primary-500/20 text-primary-800 scale-105'
-                        : 'border-neutral-200 hover:border-primary-300 hover:bg-primary-50/30 hover:scale-102 active:scale-98'
+                        ? 'border-primary-500 bg-primary-50'
+                        : 'border-secondary-200 hover:border-secondary-300'
                     }`}
                   >
                     <input
@@ -369,16 +359,7 @@ const ProfilePage: React.FC = () => {
                       onChange={() => toggleArrayValue(watchedValues.equipmentAvailable || [], item.slug, 'equipmentAvailable')}
                       checked={watchedValues.equipmentAvailable?.includes(item.slug) || false}
                     />
-                    <div className="text-center w-full">
-                      <div className="text-sm font-semibold leading-tight">{item.label}</div>
-                    </div>
-
-                    {/* Enhanced selection indicator */}
-                    {watchedValues.equipmentAvailable?.includes(item.slug) && (
-                      <div className="absolute -top-2 -right-2 w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center shadow-lg animate-bounce">
-                        <Check className="w-4 h-4 text-white" />
-                      </div>
-                    )}
+                    <div className="flex-1 text-sm font-medium">{item.label}</div>
                   </label>
                 ))}
               </div>
@@ -524,10 +505,10 @@ const ProfilePage: React.FC = () => {
                     {CONSTRAINT_OPTIONS.map((constraint) => (
                       <label
                         key={constraint}
-                        className={`relative flex items-center justify-center p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 touch-target min-h-[60px] ${
+                        className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
                           watchedValues.constraints?.includes(constraint)
-                            ? 'border-primary-500 bg-primary-50 shadow-lg shadow-primary-500/20 text-primary-800 scale-105'
-                            : 'border-neutral-200 hover:border-primary-300 hover:bg-primary-50/30 hover:scale-102 active:scale-98'
+                            ? 'border-primary-500 bg-primary-50'
+                            : 'border-secondary-200 hover:border-secondary-300'
                         }`}
                       >
                         <input
@@ -536,16 +517,7 @@ const ProfilePage: React.FC = () => {
                           onChange={() => toggleArrayValue(watchedValues.constraints || [], constraint, 'constraints')}
                           checked={watchedValues.constraints?.includes(constraint) || false}
                         />
-                        <div className="text-center w-full">
-                          <div className="text-sm font-semibold leading-tight">{constraint}</div>
-                        </div>
-
-                        {/* Enhanced selection indicator */}
-                        {watchedValues.constraints?.includes(constraint) && (
-                          <div className="absolute -top-2 -right-2 w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center shadow-lg animate-bounce">
-                            <Check className="w-4 h-4 text-white" />
-                          </div>
-                        )}
+                        <div className="flex-1 text-sm font-medium">{constraint}</div>
                       </label>
                     ))}
                   </div>

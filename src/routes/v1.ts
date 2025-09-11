@@ -5,7 +5,7 @@ import { generate, getWorkout, listWorkouts, completeWorkout, generateQuickWorko
 import { listEquipment } from '../models/Equipment';
 import { asyncHandler } from '../middlewares/errors';
 import { requireAuth } from '../middlewares/auth';
-import { adaptiveLearningEngine } from '../services/adaptiveLearning.simple';
+// Adaptive learning removed for codebase simplification
 
 const r = Router();
 
@@ -125,7 +125,7 @@ r.get('/workouts/recommendations/:userId', requireAuth, asyncHandler(async (req,
     return;
   }
 
-  const recommendations = await adaptiveLearningEngine.generateRecommendations(userId);
+  const recommendations: any[] = []; // Adaptive learning removed for simplification
   res.json({ recommendations });
 }));
 
@@ -166,7 +166,7 @@ r.get('/analytics/behavior/:userId', requireAuth, asyncHandler(async (req, res):
     return;
   }
 
-  const behaviorPattern = await adaptiveLearningEngine.analyzeUserBehavior(userId);
+  const behaviorPattern = {}; // Adaptive learning removed for simplification
   res.json({ behaviorPattern });
 }));
 
@@ -184,13 +184,13 @@ r.get('/analytics/timing/:userId', requireAuth, asyncHandler(async (req, res): P
     return;
   }
 
-  const optimalTiming = await adaptiveLearningEngine.predictOptimalTiming(userId);
+  const optimalTiming = {}; // Adaptive learning removed for simplification
   res.json({ optimalTiming });
 }));
 
 r.post('/workouts/:workoutId/feedback', requireAuth, asyncHandler(async (req, res): Promise<void> => {
   const { workoutId } = req.params;
-  const { rating, difficulty, enjoyment, completed, notes } = req.body;
+  const { rating, difficulty, enjoyment } = req.body;
 
   // Validate feedback data
   if (typeof rating !== 'number' || rating < 1 || rating > 5) {
@@ -213,13 +213,8 @@ r.post('/workouts/:workoutId/feedback', requireAuth, asyncHandler(async (req, re
     return;
   }
 
-  await adaptiveLearningEngine.learnFromFeedback(req.user!.uid, workoutId, {
-    rating,
-    difficulty,
-    enjoyment,
-    completed: Boolean(completed),
-    notes: notes || undefined
-  });
+  // Adaptive learning removed for simplification
+  // Previously: await adaptiveLearningEngine.learnFromFeedback(req.user!.uid, workoutId, { rating, difficulty, enjoyment, completed: Boolean(completed), notes: notes || undefined });
 
   res.json({ success: true, message: 'Feedback recorded successfully' });
 }));

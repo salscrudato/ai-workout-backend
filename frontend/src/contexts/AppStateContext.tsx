@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useReducer, useMemo, useCallback } from 'react';
+import type { WorkoutPlan, Equipment } from '../types/api';
 import type { ReactNode } from 'react';
 
 /**
@@ -25,8 +26,8 @@ export interface AppState {
     notifications: Notification[];
   };
   workout: {
-    currentWorkout: any | null;
-    generationHistory: any[];
+    currentWorkout: WorkoutPlan | null;
+    generationHistory: WorkoutPlan[];
     preferences: {
       defaultDuration: number;
       preferredEquipment: string[];
@@ -34,7 +35,7 @@ export interface AppState {
     };
   };
   cache: {
-    equipment: any[] | null;
+    equipment: Equipment[] | null;
     lastFetch: {
       equipment: number | null;
       workouts: number | null;
@@ -62,10 +63,10 @@ export type AppAction =
   | { type: 'ADD_NOTIFICATION'; payload: Omit<Notification, 'id' | 'timestamp'> }
   | { type: 'REMOVE_NOTIFICATION'; payload: string }
   | { type: 'CLEAR_NOTIFICATIONS' }
-  | { type: 'SET_CURRENT_WORKOUT'; payload: any | null }
-  | { type: 'ADD_TO_GENERATION_HISTORY'; payload: any }
+  | { type: 'SET_CURRENT_WORKOUT'; payload: WorkoutPlan | null }
+  | { type: 'ADD_TO_GENERATION_HISTORY'; payload: WorkoutPlan }
   | { type: 'UPDATE_WORKOUT_PREFERENCES'; payload: Partial<AppState['workout']['preferences']> }
-  | { type: 'SET_EQUIPMENT_CACHE'; payload: any[] }
+  | { type: 'SET_EQUIPMENT_CACHE'; payload: Equipment[] }
   | { type: 'UPDATE_CACHE_TIMESTAMP'; payload: { key: keyof AppState['cache']['lastFetch']; timestamp: number } }
   | { type: 'CLEAR_CACHE' };
 
@@ -256,7 +257,7 @@ interface AppStateActionsContextValue {
   updateWorkoutPreferences: (preferences: Partial<AppState['workout']['preferences']>) => void;
   
   // Cache actions
-  setEquipmentCache: (equipment: any[]) => void;
+  setEquipmentCache: (equipment: Equipment[]) => void;
   updateCacheTimestamp: (key: keyof AppState['cache']['lastFetch']) => void;
   clearCache: () => void;
 }
@@ -297,7 +298,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'UPDATE_WORKOUT_PREFERENCES', payload: preferences }),
     
     // Cache actions
-    setEquipmentCache: (equipment: any[]) => dispatch({ type: 'SET_EQUIPMENT_CACHE', payload: equipment }),
+    setEquipmentCache: (equipment: Equipment[]) => dispatch({ type: 'SET_EQUIPMENT_CACHE', payload: equipment }),
     updateCacheTimestamp: (key: keyof AppState['cache']['lastFetch']) => 
       dispatch({ type: 'UPDATE_CACHE_TIMESTAMP', payload: { key, timestamp: Date.now() } }),
     clearCache: () => dispatch({ type: 'CLEAR_CACHE' }),

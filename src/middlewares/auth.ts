@@ -160,7 +160,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     }
 
     if (!isProd) {
-      console.log('Auth: Attempting to verify token:', token.substring(0, 50) + '...');
+      console.log('Auth: Attempting to verify token:', `${token.substring(0, 50)  }...`);
     }
 
     // Check cache first

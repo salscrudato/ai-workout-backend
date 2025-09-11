@@ -200,7 +200,10 @@ export interface AuthResponse {
 // API Error types
 export interface ApiError {
   error: string;
-  details?: any;
+  details?: Record<string, unknown>;
+  code?: string;
+  statusCode?: number;
+  timestamp?: string;
 }
 
 // API Response wrapper

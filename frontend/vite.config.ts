@@ -76,35 +76,45 @@ export default defineConfig({
           return `assets/[name]-[hash].[ext]`;
         },
 
-        // Optimized manual chunk splitting
+        // Optimized manual chunk splitting for better caching
         manualChunks: (id) => {
-          // Vendor chunks - more granular splitting
+          // Vendor chunks - more granular splitting for better caching
           if (id.includes('node_modules')) {
+            // Core React libraries (changes infrequently)
             if (id.includes('react') || id.includes('react-dom')) {
               return 'react-vendor';
             }
+            // Router (changes infrequently)
             if (id.includes('react-router')) {
               return 'router-vendor';
             }
+            // Form libraries (moderate change frequency)
             if (id.includes('react-hook-form') || id.includes('@hookform') || id.includes('zod')) {
               return 'form-vendor';
             }
+            // Firebase (large, changes infrequently)
             if (id.includes('firebase')) {
               return 'firebase-vendor';
             }
-            if (id.includes('lucide-react') || id.includes('clsx') || id.includes('framer-motion')) {
-              return 'ui-vendor';
+            // UI libraries - split further for better tree shaking
+            if (id.includes('framer-motion')) {
+              return 'animation-vendor';
             }
+            if (id.includes('lucide-react')) {
+              return 'icons-vendor';
+            }
+            if (id.includes('clsx')) {
+              return 'utils-vendor';
+            }
+            // HTTP client (small, stable)
             if (id.includes('axios')) {
               return 'http-vendor';
             }
-            if (id.includes('date-fns')) {
-              return 'utils-vendor';
-            }
+
             return 'vendor';
           }
 
-          // App chunks
+          // App chunks - organized by change frequency
           if (id.includes('/contexts/')) {
             return 'contexts';
           }
@@ -156,23 +166,28 @@ export default defineConfig({
     },
   },
 
-  // Dependency optimization for faster dev startup
+  // Dependency optimization for faster dev startup and better tree shaking
   optimizeDeps: {
     include: [
+      // Core React libraries
       'react',
       'react-dom',
       'react-router-dom',
+      // Form libraries
       'react-hook-form',
       '@hookform/resolvers/zod',
       'zod',
+      // HTTP client
       'axios',
-      'lucide-react',
+      // UI utilities
       'clsx',
-      'date-fns',
+      // Animation library
       'framer-motion',
     ],
-    exclude: ['firebase'],
-    // Force optimization of these dependencies
+    exclude: [
+      'firebase', // Large library, better to load dynamically
+    ],
+    // Enable forced optimization for better performance
     force: false,
   },
 

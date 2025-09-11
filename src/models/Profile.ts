@@ -1,5 +1,6 @@
 import { getFirestore } from '../config/db';
 import { Timestamp } from 'firebase-admin/firestore';
+import { profileCache, CacheKeys } from '../services/cache';
 
 export interface Profile {
   id?: string;
@@ -80,16 +81,39 @@ export class ProfileModel {
   static async findOne(filter: { userId?: string; id?: string }): Promise<Profile | null> {
     const db = getFirestore();
 
+    // Check cache first for userId queries
+    if (filter.userId) {
+      const cacheKey = CacheKeys.profile(filter.userId);
+      const cached = profileCache.get(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    }
+
     if (filter.id) {
       const doc = await db.collection(this.collection).doc(filter.id).get();
       if (!doc.exists) return null;
-      return { id: doc.id, ...doc.data() } as Profile;
+      const profile = { id: doc.id, ...doc.data() } as Profile;
+
+      // Cache by userId if available
+      if (profile.userId) {
+        const cacheKey = CacheKeys.profile(profile.userId);
+        profileCache.set(cacheKey, profile);
+      }
+
+      return profile;
     }
 
     if (filter.userId) {
       const direct = await db.collection(this.collection).doc(filter.userId).get();
       if (direct.exists) {
-        return { id: direct.id, ...(direct.data() as any) } as Profile;
+        const profile = { id: direct.id, ...(direct.data() as any) } as Profile;
+
+        // Cache the result
+        const cacheKey = CacheKeys.profile(filter.userId);
+        profileCache.set(cacheKey, profile);
+
+        return profile;
       }
       // Legacy fallback: older docs may have random IDs with userId as a field
       const snapshot = await db.collection(this.collection)
@@ -149,9 +173,22 @@ export class ProfileModel {
       }
       await docRef.set(patch, { merge: true });
       const saved = await docRef.get();
-      return { id: saved.id, ...(saved.data() as any) } as Profile;
+      const profile = { id: saved.id, ...(saved.data() as any) } as Profile;
+
+      // Update cache
+      const cacheKey = CacheKeys.profile(profile.userId);
+      profileCache.set(cacheKey, profile);
+
+      return profile;
     }
 
     throw new Error('Profile not found and upsert not enabled');
+  }
+
+  /**
+   * Convenience method to find profile by userId with caching
+   */
+  static async findByUserId(userId: string): Promise<Profile | null> {
+    return this.findOne({ userId });
   }
 }

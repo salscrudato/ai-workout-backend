@@ -1,6 +1,7 @@
 import { getFirestore } from '../config/db';
 import { Timestamp } from 'firebase-admin/firestore';
 import { sha256 } from '../libs/hash';
+import { workoutCache, CacheKeys } from '../services/cache';
 
 // Proper type definitions for workout plan data
 export interface PreWorkoutData {
@@ -108,28 +109,6 @@ export interface CreateWorkoutPlanInput {
  */
 export class WorkoutPlanModel {
   private static readonly collection = 'workoutPlans';
-  private static readonly cache = new Map<string, { plan: WorkoutPlan; timestamp: number }>();
-  private static readonly CACHE_TTL = 10 * 60 * 1000; // 10 minutes
-
-  /**
-   * Cache management methods for performance optimization
-   */
-  private static setCacheEntry(key: string, plan: WorkoutPlan): void {
-    this.cache.set(key, { plan, timestamp: Date.now() });
-  }
-
-  private static getCacheEntry(key: string): WorkoutPlan | null {
-    const entry = this.cache.get(key);
-    if (!entry) return null;
-
-    // Check if cache entry is expired
-    if (Date.now() - entry.timestamp > this.CACHE_TTL) {
-      this.cache.delete(key);
-      return null;
-    }
-
-    return entry.plan;
-  }
 
   /**
    * Create a new workout plan with optimized deduplication
@@ -151,7 +130,8 @@ export class WorkoutPlanModel {
     const dedupKey = data.dedupKey || sha256(canonical);
 
     // Check cache first for recent duplicates
-    const cached = this.getCacheEntry(dedupKey);
+    const cacheKey = CacheKeys.workout(data.userId, dedupKey);
+    const cached = workoutCache.get(cacheKey);
     if (cached) {
       return cached;
     }
@@ -185,12 +165,19 @@ export class WorkoutPlanModel {
     };
 
     // Cache the created workout plan
-    this.setCacheEntry(dedupKey, workoutPlan);
+    workoutCache.set(cacheKey, workoutPlan);
 
     return workoutPlan;
   }
 
   static async findById(id: string): Promise<WorkoutPlan | null> {
+    // Check cache first
+    const cacheKey = CacheKeys.workoutPlan(id);
+    const cached = workoutCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const db = getFirestore();
     const doc = await db.collection(this.collection).doc(id).get();
 
@@ -198,10 +185,15 @@ export class WorkoutPlanModel {
       return null;
     }
 
-    return {
+    const workoutPlan = {
       id: doc.id,
       ...doc.data(),
     } as WorkoutPlan;
+
+    // Cache the result
+    workoutCache.set(cacheKey, workoutPlan);
+
+    return workoutPlan;
   }
 
   static async findOne(filter: {
@@ -237,7 +229,7 @@ export class WorkoutPlanModel {
       return null;
     }
 
-    const docs = snapshot.docs;
+    const {docs} = snapshot;
 
     // If preWorkout filter is provided, check it manually
     if (filter.preWorkout) {

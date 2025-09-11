@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
-import LoadingSpinner from '../components/ui/LoadingSpinner';
+import { Loading } from '../components/ui';
 import type { Equipment, CreateProfileInput } from '../types/api';
 
 // Validation schema
@@ -181,7 +181,7 @@ const ProfileSetupPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner size="lg" text="Loading setup..." />
+        <Loading size="lg" text="Loading setup..." />
       </div>
     );
   }
@@ -522,7 +522,7 @@ const ProfileSetupPage: React.FC = () => {
                   className="flex items-center px-6 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-md hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (
-                    <LoadingSpinner size="sm" />
+                    <Loading size="sm" />
                   ) : (
                     <>
                       Complete Setup
